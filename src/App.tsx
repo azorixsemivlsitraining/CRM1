@@ -328,9 +328,11 @@ const App: React.FC = () => {
                 path="/admin"
                 element={
                   <PrivateRoute>
-                    <Layout>
-                      <Admin />
-                    </Layout>
+                    <AdminGuard>
+                      <Layout>
+                        <Admin />
+                      </Layout>
+                    </AdminGuard>
                   </PrivateRoute>
                 }
               />
