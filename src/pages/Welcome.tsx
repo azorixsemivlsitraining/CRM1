@@ -97,15 +97,20 @@ const Welcome: React.FC = () => {
       handleHRAccess();
       return;
     }
+    if (!canAccess(key)) {
+      onDeniedOpen();
+      return;
+    }
     navigate(path);
   };
 
   const handleHRAccess = async () => {
-    if (user?.email?.toLowerCase() === 'yellesh@axisogreen.in') {
+    const isWhitelisted = user?.email?.toLowerCase() === 'yellesh@axisogreen.in';
+    if (isAdmin || canAccess('hr') || isWhitelisted) {
       navigate('/hr');
       return;
     }
-    navigate('/login', { state: { fromHR: true } });
+    onDeniedOpen();
   };
 
   return (
