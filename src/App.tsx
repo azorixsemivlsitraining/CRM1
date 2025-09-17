@@ -30,6 +30,7 @@ import RegionGuard from './components/RegionGuard';
 import ModulesPage from './components/ModulesPage';
 import ChitoorProjectDetails from './components/ChitoorProjectDetails';
 import { AuthProvider } from './context/AuthContext';
+import AdminGuard from './components/AdminGuard';
 
 // Finance route is handled by PrivateRoute, so this is no longer needed
 
