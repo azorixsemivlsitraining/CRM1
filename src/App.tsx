@@ -340,9 +340,11 @@ const App: React.FC = () => {
                 path="/admin/users"
                 element={
                   <PrivateRoute>
-                    <Layout>
-                      <UsersManagement />
-                    </Layout>
+                    <AdminGuard>
+                      <Layout>
+                        <UsersManagement />
+                      </Layout>
+                    </AdminGuard>
                   </PrivateRoute>
                 }
               />
