@@ -83,6 +83,13 @@ export async function generatePaymentReceiptPDF({ date, amount, receivedFrom, pa
     doc.setFillColor(255, 255, 255);
     doc.rect(0, 0, pageWidth, pageHeight, 'F');
     
+    // ✅ Fetch the company logo from /public/images/
+    const logoData = await fetchImageAsDataURL('/images/axiso-logo.png');
+
+    // ✅ Add logo at top-right
+    doc.addImage(logoData, 'PNG', pageWidth - margin - 45, 10, 40, 20);
+
+    
     // Header with green accent
     doc.setFillColor(72, 187, 120);
     doc.rect(0, 0, pageWidth, 8, 'F');
