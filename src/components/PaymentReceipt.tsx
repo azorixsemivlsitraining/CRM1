@@ -211,7 +211,12 @@ const footerY = pageHeight - 50; // moved a bit higher
 doc.setFont('helvetica', 'italic');
 doc.setFontSize(11);
 doc.setTextColor(72, 187, 120); // green color
-doc.text('Thank you for choosing sustainable energy solutions!', margin, footerY);
+doc.text(
+'Thank you for choosing sustainable energy solutions!',
+  pageWidth / 2,
+  footerY,
+  { align: 'center' }
+);
 
 // Signature
 try {
