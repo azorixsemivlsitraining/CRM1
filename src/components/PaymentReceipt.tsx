@@ -89,7 +89,7 @@ export async function generatePaymentReceiptPDF({
 
     // Company logo
     const logoData = await fetchImageAsDataURL(LOGO_URL);
-    doc.addImage(logoData, 'PNG', pageWidth - margin - 40, 12, 35, 18);
+    doc.addImage(logoData, 'PNG', pageWidth - margin - 50, 10, 45, 25);
 
     // Company Header
     doc.setFont('helvetica', 'bold');
@@ -206,40 +206,39 @@ export async function generatePaymentReceiptPDF({
       doc.text(customerAddress, margin + 5, fromY + 20);
     }
 
-    // Footer
-    const footerY = pageHeight - 40;
-    doc.setFont('helvetica', 'italic');
-    doc.setFontSize(10);
-    doc.setTextColor(100, 100, 100);
-    doc.text('Thank you for choosing sustainable energy solutions!', margin, footerY);
+   // Footer (Thank you line moved above signature and green color)
+const footerY = pageHeight - 50; // moved a bit higher
+doc.setFont('helvetica', 'italic');
+doc.setFontSize(11);
+doc.setTextColor(72, 187, 120); // green color
+doc.text('Thank you for choosing sustainable energy solutions!', margin, footerY);
 
-    // Signature
-    try {
-      const sigData = await fetchImageAsDataURL(SIGNATURE_IMAGE_URL);
-      const sigX = pageWidth - margin - 60;
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(9);
-      doc.setTextColor(60, 60, 60);
-      doc.text('For AXISO GREEN ENERGIES PVT. LTD.', sigX, footerY - 2);
+// Signature
+try {
+  const sigData = await fetchImageAsDataURL(SIGNATURE_IMAGE_URL);
+  const sigX = pageWidth - margin - 60;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.setTextColor(60, 60, 60);
+  doc.text('For AXISO GREEN ENERGIES PVT. LTD.', sigX, footerY + 10);
 
-      doc.addImage(sigData, 'PNG', sigX, footerY, 55, 18);
+  doc.addImage(sigData, 'PNG', sigX, footerY + 12, 55, 18);
 
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(9);
-      doc.setTextColor(30, 80, 160);
-      doc.text('Manager', sigX + 25, footerY + 22);
-    } catch {
-      doc.text('Authorized Signature', pageWidth - margin - 60, footerY + 20);
-    }
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.setTextColor(30, 80, 160);
+  doc.text('Manager', sigX + 25, footerY + 35);
+} catch {
+  doc.text('Authorized Signature', pageWidth - margin - 60, footerY + 30);
+}
 
-    // Authorized signature line
-    doc.setDrawColor(150, 150, 150);
-    doc.line(margin, footerY + 10, margin + 60, footerY + 10);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    doc.setTextColor(80, 80, 80);
-    doc.text('Authorized Signature', margin, footerY + 16);
-
+// Authorized signature line
+doc.setDrawColor(150, 150, 150);
+doc.line(margin, footerY + 15, margin + 60, footerY + 15);
+doc.setFont('helvetica', 'normal');
+doc.setFontSize(10);
+doc.setTextColor(80, 80, 80);
+doc.text('Authorized Signature', margin, footerY + 22);
     // Green footer bar
     doc.setFillColor(72, 187, 120);
     doc.rect(0, pageHeight - 8, pageWidth, 8, 'F');
