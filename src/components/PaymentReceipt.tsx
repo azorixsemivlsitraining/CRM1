@@ -116,12 +116,7 @@ export async function generatePaymentReceiptPDF({ date, amount, receivedFrom, pa
       doc.text(detail, margin, 42 + (index * 4));
     });
     
-    // AXISO logo placeholder (text-based)
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(24);
-    doc.setTextColor(72, 187, 120);
-    doc.text('AXISO', pageWidth - margin - 25, 30);
-    
+ 
     // Separator line
     doc.setDrawColor(220, 220, 220);
     doc.setLineWidth(0.5);
