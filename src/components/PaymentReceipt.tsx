@@ -89,7 +89,7 @@ export async function generatePaymentReceiptPDF({
 
     // Company logo
     const logoData = await fetchImageAsDataURL(LOGO_URL);
-    doc.addImage(logoData, 'PNG', pageWidth - margin - 50, 10, 45, 25);
+    doc.addImage(logoData, 'PNG', pageWidth - margin - 80, 10, 70, 40);
 
     // Company Header
     doc.setFont('helvetica', 'bold');
