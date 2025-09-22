@@ -207,7 +207,7 @@ export async function generatePaymentReceiptPDF({
     }
 
    // Footer (Thank you line moved above signature and green color)
-const footerY = pageHeight - 50; // moved a bit higher
+const footerY = pageHeight - 80; // moved a bit higher
 doc.setFont('helvetica', 'italic');
 doc.setFontSize(11);
 doc.setTextColor(72, 187, 120); // green color
@@ -238,12 +238,12 @@ try {
 }
 
 // Authorized signature line
-doc.setDrawColor(150, 150, 150);
-doc.line(margin, footerY + 15, margin + 60, footerY + 15);
-doc.setFont('helvetica', 'normal');
-doc.setFontSize(10);
-doc.setTextColor(80, 80, 80);
-doc.text('Authorized Signature', margin, footerY + 22);
+//doc.setDrawColor(150, 150, 150);
+//doc.line(margin, footerY + 15, margin + 60, footerY + 15);
+//doc.setFont('helvetica', 'normal');
+//doc.setFontSize(10);
+//doc.setTextColor(80, 80, 80);
+//doc.text('Authorized Signature', margin, footerY + 22);
     // Green footer bar
     doc.setFillColor(72, 187, 120);
     doc.rect(0, pageHeight - 8, pageWidth, 8, 'F');
