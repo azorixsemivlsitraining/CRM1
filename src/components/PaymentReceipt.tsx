@@ -218,24 +218,25 @@ doc.text(
   { align: 'center' }
 );
 
-// Signature
+// Signature (moved down)
 try {
   const sigData = await fetchImageAsDataURL(SIGNATURE_IMAGE_URL);
   const sigX = pageWidth - margin - 60;
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
   doc.setTextColor(60, 60, 60);
-  doc.text('For AXISO GREEN ENERGIES PVT. LTD.', sigX, footerY + 10);
+  doc.text('For AXISO GREEN ENERGIES PVT. LTD.', sigX, footerY + 40);
 
-  doc.addImage(sigData, 'PNG', sigX, footerY + 12, 55, 18);
+  doc.addImage(sigData, 'PNG', sigX, footerY + 42, 55, 18);
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
   doc.setTextColor(30, 80, 160);
-  doc.text('Manager', sigX + 25, footerY + 35);
+  doc.text('Manager', sigX + 25, footerY + 65);
 } catch {
-  doc.text('Authorized Signature', pageWidth - margin - 60, footerY + 30);
+  doc.text('Authorized Signature', pageWidth - margin - 60, footerY + 60);
 }
+
 
 // Authorized signature line
 //doc.setDrawColor(150, 150, 150);
