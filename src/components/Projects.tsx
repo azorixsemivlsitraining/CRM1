@@ -556,7 +556,7 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
               {stateFilter ? `${stateFilter} Projects` : 'Projects Management'}
             </Heading>
             <Text color="gray.600">
-              {projects.length} of {allProjects.length} projects
+              {projects.length} of {stateFilter ? allProjects.length : (combinedTotals.totalProjects || allProjects.length)} projects
               {stateFilter && ` in ${stateFilter}`}
             </Text>
           </Box>
