@@ -155,10 +155,11 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
   });
   const [loading, setLoading] = useState(false);
   const [allProjects, setAllProjects] = useState<Project[]>([]);
+  const [combinedTotals, setCombinedTotals] = useState({ totalProjects: 0, totalRevenue: 0, totalKWH: 0 });
   const [activeFilters, setActiveFilters] = useState<FilterOptions[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const toast = useToast();
-  
+
   // Filter modal state
   const { 
     isOpen: isFilterOpen, 
