@@ -20,8 +20,10 @@ const ModuleGuard: React.FC<{ moduleKey: string; children: React.ReactNode }> = 
 
   if (isAdmin) return <>{children}</>;
 
-  const allowed = Array.isArray(allowedModules) && allowedModules.includes(moduleKey);
-  if (!allowed) {
+  const hasModuleRestrictions = Array.isArray(allowedModules) && allowedModules.length > 0;
+  const canAccess = !hasModuleRestrictions || allowedModules.includes(moduleKey);
+
+  if (!canAccess) {
     return (
       <Center h="100vh">
         <Box textAlign="center">

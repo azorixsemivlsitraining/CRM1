@@ -127,6 +127,8 @@ const Reports: React.FC<{ stateFilter?: string }> = ({ stateFilter }) => {
   const fetchStats = async () => {
     try {
       const wants = (stateFilter || '').toLowerCase();
+      const wantsChitoorOnly = wants === 'chitoor';
+      const shouldIncludeChitoor = !stateFilter || wantsChitoorOnly;
 
       setIsLoading(true);
       setError(null);
@@ -136,95 +138,115 @@ const Reports: React.FC<{ stateFilter?: string }> = ({ stateFilter }) => {
         .from('projects')
         .select('*')
         .neq('status', 'deleted');
-      if (stateFilter && wants !== 'chitoor') {
+
+      if (stateFilter && !wantsChitoorOnly) {
         query = query.ilike('state', `%${wants}%`);
       }
-      const { data: projects, error } = await query;
+
+      const { data: projectsData, error } = await query;
 
       if (error) {
         console.error('Supabase error:', (error as any)?.message || error, error);
         throw error;
       }
 
-      console.log('Projects fetched:', projects);
-
-      if (stateFilter && stateFilter.toLowerCase() === 'chitoor') {
-        const { data: chitoor, error: chErr } = await supabase.from('chitoor_projects').select('*');
-        if (chErr && chErr.code !== 'PGRST116') throw new Error(chErr.message || 'Failed to load Chitoor reports');
-        const chProjects = (chitoor || []) as any[];
-        const num = (v: any) => typeof v === 'number' ? v : parseFloat(v || '0') || 0;
-        const totalRevenue = chProjects.reduce((sum: number, p: any) => sum + num(p.project_cost), 0);
-        const totalKWH = chProjects.reduce((sum: number, p: any) => sum + num(p.capacity), 0);
-        const active = chProjects.filter((p: any) => (p.project_status || '').toLowerCase() !== 'completed');
-        const completed = chProjects.filter((p: any) => (p.project_status || '').toLowerCase() === 'completed');
-        const customerMap: Record<string, boolean> = {};
-        chProjects.forEach((p: any) => {
-          const cname = p.customer_name || p.customer || p.name;
-          if (cname) customerMap[String(cname)] = true;
-        });
-        setStats({ totalProjects: chProjects.length, activeProjects: active.length, completedProjects: completed.length, totalRevenue, totalKWH });
-        const monthlyKWHData: Record<string, number> = { 'January': 0, 'February': 0, 'March': 0, 'April': 0, 'May': 0, 'June': 0, 'July': 0, 'August': 0, 'September': 0, 'October': 0, 'November': 0, 'December': 0 };
-        const monthNames = Object.keys(monthlyKWHData);
-        chProjects.forEach((p: any) => { const d = new Date(p.date_of_order || p.created_at); if (!isNaN(d.getTime())) { const m = d.getMonth(); if (p.capacity) monthlyKWHData[monthNames[m]] += p.capacity; } });
-        setMonthlyKWH(monthlyKWHData);
-        const statusCounts: Record<string, number> = {};
-        chProjects.forEach((p: any) => {
-          const s = (p.project_status || 'Unknown').trim();
-          statusCounts[s] = (statusCounts[s] || 0) + 1;
-        });
-        setStageStats(statusCounts);
-        return;
+      let chitoorProjects: any[] = [];
+      if (shouldIncludeChitoor) {
+        const { data: chitoorData, error: chErr } = await supabase.from('chitoor_projects').select('*');
+        if (chErr && (chErr as any)?.code !== 'PGRST116') {
+          throw new Error(chErr.message || 'Failed to load Chitoor reports');
+        }
+        chitoorProjects = Array.isArray(chitoorData) ? chitoorData : [];
       }
 
-      if (projects) {
-        // Filter projects for selected year
-        const yearProjects = projects.filter((project: Project) => {
-          const projectDate = new Date(project.start_date || project.created_at);
-          return projectDate.getFullYear() === selectedYear;
+      const projects = Array.isArray(projectsData) ? (projectsData as Project[]) : [];
+
+      if (wantsChitoorOnly) {
+        const num = (v: any) => (typeof v === 'number' ? v : parseFloat(v || '0') || 0);
+        const totalRevenue = chitoorProjects.reduce((sum: number, p: any) => sum + num(p.project_cost), 0);
+        const totalKWH = chitoorProjects.reduce((sum: number, p: any) => sum + num(p.capacity), 0);
+        const active = chitoorProjects.filter((p: any) => (p.project_status || '').toLowerCase() !== 'completed');
+        const completed = chitoorProjects.filter((p: any) => (p.project_status || '').toLowerCase() === 'completed');
+        const statusCounts: Record<string, number> = {};
+        chitoorProjects.forEach((p: any) => {
+          const key = (p.project_status || 'Unknown').trim();
+          statusCounts[key] = (statusCounts[key] || 0) + 1;
         });
 
-        const active = projects.filter((p: Project) => typeof p.status === 'string' && p.status.toLowerCase() === 'active');
-        const completed = projects.filter((p: Project) => typeof p.status === 'string' && p.status.toLowerCase() === 'completed');
-        const totalRevenue = projects.reduce((sum: number, p: Project) => sum + (p.proposal_amount || 0), 0);
-        const totalKWH = projects.reduce((sum: number, p: Project) => sum + (p.kwh || 0), 0);
-
-        const totalProjectsCount = projects.length;
-
-        setStats({
-          totalProjects: totalProjectsCount,
-          activeProjects: active.length,
-          completedProjects: completed.length,
-          totalRevenue,
-          totalKWH,
-        });
-
-        // Calculate projects in each stage (excluding deleted projects)
-        const stages: Record<string, number> = {};
-        PROJECT_STAGES.forEach(stage => {
-          stages[stage] = projects.filter((p: Project) => p.current_stage === stage).length;
-        });
-        setStageStats(stages);
-
-        // Calculate monthly KWH usage for the selected year
         const monthlyKWHData: Record<string, number> = {
           'January': 0, 'February': 0, 'March': 0, 'April': 0, 'May': 0, 'June': 0,
           'July': 0, 'August': 0, 'September': 0, 'October': 0, 'November': 0, 'December': 0
         };
-        
         const monthNames = Object.keys(monthlyKWHData);
-        
-        yearProjects.forEach((project: Project) => {
-          const dateToUse = project.start_date || project.created_at;
-          const projectDate = new Date(dateToUse);
-          const projectMonth = projectDate.getMonth(); // 0-11
-          
-          if (project.kwh) {
-            monthlyKWHData[monthNames[projectMonth]] += project.kwh;
+        chitoorProjects.forEach((p: any) => {
+          const projectDate = new Date(p.date_of_order || p.created_at || '');
+          if (!Number.isNaN(projectDate.getTime())) {
+            const monthIndex = projectDate.getMonth();
+            monthlyKWHData[monthNames[monthIndex]] += num(p.capacity);
           }
         });
-        
+
+        setStats({ totalProjects: chitoorProjects.length, activeProjects: active.length, completedProjects: completed.length, totalRevenue, totalKWH });
+        setStageStats(statusCounts);
         setMonthlyKWH(monthlyKWHData);
+        return;
       }
+
+      const parseNumber = (value: any) => (typeof value === 'number' ? value : parseFloat(value || '0') || 0);
+
+      const primaryActive = projects.filter((p: Project) => typeof p.status === 'string' && p.status.toLowerCase() === 'active');
+      const primaryCompleted = projects.filter((p: Project) => typeof p.status === 'string' && p.status.toLowerCase() === 'completed');
+
+      const chitoorActive = chitoorProjects.filter((p: any) => (p.project_status || '').toLowerCase() !== 'completed');
+      const chitoorCompleted = chitoorProjects.filter((p: any) => (p.project_status || '').toLowerCase() === 'completed');
+
+      const totalRevenuePrimary = projects.reduce((sum: number, p: Project) => sum + (p.proposal_amount || 0), 0);
+      const totalRevenueChitoor = chitoorProjects.reduce((sum: number, p: any) => sum + parseNumber(p.project_cost), 0);
+      const totalKWHPrimary = projects.reduce((sum: number, p: Project) => sum + (p.kwh || 0), 0);
+      const totalKWHChitoor = chitoorProjects.reduce((sum: number, p: any) => sum + parseNumber(p.capacity), 0);
+
+      setStats({
+        totalProjects: projects.length + chitoorProjects.length,
+        activeProjects: primaryActive.length + chitoorActive.length,
+        completedProjects: primaryCompleted.length + chitoorCompleted.length,
+        totalRevenue: totalRevenuePrimary + totalRevenueChitoor,
+        totalKWH: totalKWHPrimary + totalKWHChitoor,
+      });
+
+      const stages: Record<string, number> = {};
+      PROJECT_STAGES.forEach((stage) => {
+        stages[stage] = projects.filter((p: Project) => p.current_stage === stage).length;
+      });
+      setStageStats(stages);
+
+      const monthlyKWHData: Record<string, number> = {
+        'January': 0, 'February': 0, 'March': 0, 'April': 0, 'May': 0, 'June': 0,
+        'July': 0, 'August': 0, 'September': 0, 'October': 0, 'November': 0, 'December': 0
+      };
+      const monthNames = Object.keys(monthlyKWHData);
+
+      const yearProjects = projects.filter((project: Project) => {
+        const projectDate = new Date(project.start_date || project.created_at || '');
+        return !Number.isNaN(projectDate.getTime()) && projectDate.getFullYear() === selectedYear;
+      });
+
+      yearProjects.forEach((project: Project) => {
+        const projectDate = new Date(project.start_date || project.created_at || '');
+        if (!Number.isNaN(projectDate.getTime())) {
+          const monthIndex = projectDate.getMonth();
+          monthlyKWHData[monthNames[monthIndex]] += project.kwh || 0;
+        }
+      });
+
+      chitoorProjects.forEach((project: any) => {
+        const projectDate = new Date(project.date_of_order || project.created_at || '');
+        if (!Number.isNaN(projectDate.getTime()) && projectDate.getFullYear() === selectedYear) {
+          const monthIndex = projectDate.getMonth();
+          monthlyKWHData[monthNames[monthIndex]] += parseNumber(project.capacity);
+        }
+      });
+
+      setMonthlyKWH(monthlyKWHData);
     } catch (error) {
       console.error('Error fetching stats:', error);
       setError(error instanceof Error ? error.message : 'Failed to fetch reports data');
