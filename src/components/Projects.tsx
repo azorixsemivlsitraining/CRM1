@@ -175,23 +175,23 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
   const fetchProjects = useCallback(async () => {
     try {
       setLoading(true);
+      const parseNumber = (value: any) => (typeof value === 'number' ? value : parseFloat(value || '0') || 0);
+
       let query = supabase
         .from('projects')
         .select('*')
         .neq('status', 'deleted');
 
       if (!isAdmin && Array.isArray(assignedRegions) && assignedRegions.length > 0) {
-        // Only fetch projects in user's assigned regions
         query = (query as any).in('state', assignedRegions);
       }
 
-      // Apply state filter if provided
       if (stateFilter) {
         query = query.ilike('state', `%${stateFilter}%`);
       }
 
       const { data, error } = await query.order('created_at', { ascending: false });
-      
+
       if (error) {
         console.error('Supabase error:', (error as any)?.message || error, error);
         toast({
@@ -201,13 +201,42 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
           duration: 5000,
           isClosable: true,
         });
+        setCombinedTotals({ totalProjects: 0, totalRevenue: 0, totalKWH: 0 });
         return;
       }
-      
-      if (data) {
-        setAllProjects(data);
-        setProjects(data);
+
+      const primaryProjects = Array.isArray(data) ? (data as Project[]) : [];
+      setAllProjects(primaryProjects);
+      setProjects(primaryProjects);
+
+      const primaryTotals = {
+        count: primaryProjects.length,
+        revenue: primaryProjects.reduce((sum, project) => sum + parseNumber(project.proposal_amount), 0),
+        kwh: primaryProjects.reduce((sum, project) => sum + parseNumber(project.kwh), 0),
+      };
+
+      const canIncludeChitoor = !stateFilter && (isAdmin || !Array.isArray(assignedRegions) || assignedRegions.length === 0 || assignedRegions.includes('Chitoor'));
+
+      let chitoorTotals = { count: 0, revenue: 0, kwh: 0 };
+      if (canIncludeChitoor) {
+        const { data: chitoorData, error: chErr } = await supabase.from('chitoor_projects').select('project_cost, capacity, project_status');
+        if (!chErr || (chErr as any)?.code === 'PGRST116') {
+          const rows = Array.isArray(chitoorData) ? chitoorData : [];
+          chitoorTotals = {
+            count: rows.length,
+            revenue: rows.reduce((sum, row) => sum + parseNumber(row.project_cost), 0),
+            kwh: rows.reduce((sum, row) => sum + parseNumber(row.capacity), 0),
+          };
+        } else {
+          console.warn('Chitoor projects fetch error:', chErr);
+        }
       }
+
+      setCombinedTotals({
+        totalProjects: primaryTotals.count + (canIncludeChitoor ? chitoorTotals.count : 0),
+        totalRevenue: primaryTotals.revenue + (canIncludeChitoor ? chitoorTotals.revenue : 0),
+        totalKWH: primaryTotals.kwh + (canIncludeChitoor ? chitoorTotals.kwh : 0),
+      });
     } catch (error) {
       console.error('Error fetching projects:', error);
       toast({
@@ -217,6 +246,7 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
         duration: 5000,
         isClosable: true,
       });
+      setCombinedTotals({ totalProjects: 0, totalRevenue: 0, totalKWH: 0 });
     } finally {
       setLoading(false);
     }
