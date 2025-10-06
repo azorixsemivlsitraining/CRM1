@@ -230,7 +230,27 @@ export async function generatePaymentReceiptPDF({
       doc.text(addressLines, margin + 8, receivedBlockY + 26);
     }
 
-    const footerTop = pageHeight - 64;
+    // ------------------- ADD OTHER OFFERINGS -------------------
+    const offerings = [
+      'Solar Roof Top',
+      'Street Lights',
+      'Water Pumping',
+      'Fencing',
+      'Pergolas',
+      'Dryers',
+    ];
+    const offeringsStartY = pageHeight - 60;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+    doc.text('Other Offerings:', margin + 8, offeringsStartY);
+    doc.setFont('helvetica', 'normal');
+    offerings.forEach((item, idx) => {
+      doc.text(`• ${item}`, margin + 12, offeringsStartY + 6 + idx * 5);
+    });
+    // -----------------------------------------------------------
+
+    const footerTop = pageHeight - 20;
     doc.setFont('helvetica', 'italic');
     doc.setFontSize(11);
     doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
