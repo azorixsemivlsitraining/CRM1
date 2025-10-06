@@ -472,18 +472,22 @@ const handlePaymentModeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
 
 // ...
 // Download payment receipt as PDF
-const handleDownloadReceipt = async (payment: PaymentHistory, isAdvance: boolean) => {
+const handleDownloadReceipt = async (payment: PaymentHistory) => {
   if (!project) return;
+
   const receiptData = {
     date: payment.payment_date || payment.created_at,
     amount: payment.amount,
     receivedFrom: project.customer_name,
-    paymentMode: isAdvance ? 'Cash' : (payment.payment_mode || '-'),
+    paymentMode: payment.payment_mode || '-', // use the value from DB
     placeOfSupply: project.state,
     customerAddress: project.address,
   };
+
   await generatePaymentReceiptPDF(receiptData);
 };
+
+
 
 // Delete payment handler
 const handleDeletePayment = async (paymentId: string) => {
