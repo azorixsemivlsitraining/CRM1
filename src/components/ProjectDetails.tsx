@@ -204,12 +204,12 @@ const [paymentMode, setPaymentMode] = useState(() => {
       let history = paymentData || [];
       if (projectData && projectData.advance_payment && projectData.advance_payment > 0) {
         const advanceRow = {
-          id: 'advance',
-          amount: projectData.advance_payment,
-          created_at: projectData.start_date || projectData.created_at,
-          payment_mode: 'Cash',
-          payment_date: projectData.start_date || projectData.created_at,
-        };
+        id: 'advance',
+        amount: projectData.advance_payment,
+        created_at: projectData.start_date || projectData.created_at,
+        payment_mode: projectData.payment_mode || 'Cash', // use actual mode
+        payment_date: projectData.start_date || projectData.created_at,
+      };
         // Only add if not already present (by amount & date)
         if (!history.some((p: any) => p.amount === advanceRow.amount && p.payment_date === advanceRow.payment_date)) {
           history = [advanceRow, ...history];
