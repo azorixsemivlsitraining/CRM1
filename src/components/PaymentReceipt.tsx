@@ -101,6 +101,7 @@ export async function generatePaymentReceiptPDF({
     const pageWidth = doc.internal.pageSize.width;
     const pageHeight = doc.internal.pageSize.height;
 
+    // ---------------- HEADER ----------------
     doc.setFillColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
     doc.rect(0, 0, pageWidth, 10, 'F');
 
@@ -135,11 +136,13 @@ export async function generatePaymentReceiptPDF({
     doc.setDrawColor(BOX_BORDER.r, BOX_BORDER.g, BOX_BORDER.b);
     doc.line(margin, 60, pageWidth - margin, 60);
 
+    // ---------------- PAYMENT RECEIPT TITLE ----------------
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(19);
     doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
     doc.text('PAYMENT RECEIPT', pageWidth / 2, 76, { align: 'center' });
 
+    // ---------------- PAYMENT DETAILS BOX ----------------
     const detailTop = 90;
     const detailHeight = 60;
     doc.setFillColor(255, 255, 255);
@@ -151,7 +154,6 @@ export async function generatePaymentReceiptPDF({
       month: 'long',
       year: 'numeric',
     });
-
     const placeDetail = placeOfSupply.includes('(') ? placeOfSupply : `${placeOfSupply} (36)`;
 
     const detailRows = [
@@ -173,6 +175,7 @@ export async function generatePaymentReceiptPDF({
       doc.text(row.value, margin + 48, rowY);
     });
 
+    // ---------------- AMOUNT BOX ----------------
     const amountBoxWidth = 72;
     const amountBoxHeight = 34;
     const amountBoxX = pageWidth - margin - amountBoxWidth - 6;
@@ -191,6 +194,7 @@ export async function generatePaymentReceiptPDF({
       align: 'center',
     });
 
+    // ---------------- AMOUNT IN WORDS ----------------
     const wordsBlockY = detailTop + detailHeight + 18;
     const wordsBlockHeight = 20;
     doc.setFillColor(248, 250, 252);
@@ -207,6 +211,7 @@ export async function generatePaymentReceiptPDF({
     doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
     doc.text(wrappedAmountText, margin + 8, wordsBlockY + 15);
 
+    // ---------------- RECEIVED FROM ----------------
     const receivedBlockY = wordsBlockY + wordsBlockHeight + 14;
     const receivedBlockHeight = 28 + (customerAddress ? 10 : 0);
     doc.setFillColor(248, 250, 252);
@@ -230,26 +235,44 @@ export async function generatePaymentReceiptPDF({
       doc.text(addressLines, margin + 8, receivedBlockY + 26);
     }
 
-    // ------------------- ADD OTHER OFFERINGS -------------------
-    const offerings = [
+    // ---------------- OTHER OFFERINGS BOX ----------------
+    const allOfferings = [
       'Solar Roof Top',
       'Street Lights',
       'Water Pumping',
       'Fencing',
       'Pergolas',
       'Dryers',
+      'Energy Audits',
+      'Battery Storage Solutions',
+      'Inverters & Controllers',
+      'EV Charging Stations',
+      'LED Street Lighting'
     ];
-    const offeringsStartY = pageHeight - 60;
+
+    const boxWidth = 90;
+    const boxHeight = 10 + allOfferings.length * 5.5; // dynamic height
+    const boxX = margin;
+    const boxY = pageHeight - boxHeight - 35;
+
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(boxX, boxY, boxWidth, boxHeight, 3, 3, 'FD');
+
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
-    doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
-    doc.text('Other Offerings:', margin + 8, offeringsStartY);
-    doc.setFont('helvetica', 'normal');
-    offerings.forEach((item, idx) => {
-      doc.text(`• ${item}`, margin + 12, offeringsStartY + 6 + idx * 5);
-    });
-    // -----------------------------------------------------------
+    doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
+    doc.text('Other Offerings', boxX + 6, boxY + 7);
 
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+
+    allOfferings.forEach((item, idx) => {
+      const itemY = boxY + 13 + idx * 5.5;
+      doc.text(`• ${item}`, boxX + 6, itemY);
+    });
+
+    // ---------------- FOOTER ----------------
     const footerTop = pageHeight - 20;
     doc.setFont('helvetica', 'italic');
     doc.setFontSize(11);
