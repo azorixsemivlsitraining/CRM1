@@ -452,7 +452,7 @@ const Payments: React.FC = () => {
           width={{ base: "100%", md: "60%" }}
         >
           <Heading size="md" mb={4}>Payment History</Heading>
-          
+
           {loadingHistory ? (
             <Center py={10}>
               <Spinner size="lg" color="green.500" />
@@ -466,7 +466,7 @@ const Payments: React.FC = () => {
                   <Th isNumeric>Amount</Th>
                   <Th>Status</Th>
                   <Th>Payment ID</Th>
-                  {isEditor && <Th>Action</Th>}
+                  {(isEditor || isFinance) && <Th>Action</Th>}
                 </Tr>
               </Thead>
               <Tbody>
@@ -481,7 +481,7 @@ const Payments: React.FC = () => {
                       </Badge>
                     </Td>
                     <Td fontSize="xs">{payment.payment_id || '-'}</Td>
-                    {isEditor && (
+                    {(isEditor || isFinance) && (
                       <Td>
                         <Button colorScheme="red" size="xs" onClick={async () => {
                           const { error } = await supabase
