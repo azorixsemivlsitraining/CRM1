@@ -555,7 +555,7 @@ const renderPaymentHistory = () => {
             </Tr>
           </Thead>
           <Tbody>
-            {paymentHistory.map((p, idx) => (
+            {paymentHistory.map((p) => (
               <Tr key={p.id}>
                 <Td>{p.payment_date ? new Date(p.payment_date).toLocaleDateString() : (p.created_at ? new Date(p.created_at).toLocaleDateString() : '')}</Td>
                 <Td>{p.amount != null ? p.amount.toLocaleString() : ''}</Td>
