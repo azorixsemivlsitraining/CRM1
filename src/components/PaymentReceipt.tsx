@@ -230,69 +230,99 @@ export async function generatePaymentReceiptPDF({
       doc.text(addressLines, margin + 8, receivedBlockY + 19);
     }
 
-    // Offerings Section - in box
-    const offerings = [
-      'Solar Roof Top Power Plants (ON-Grid, OFF-Grid & Hybrid)',
-      'Solar Street Lights',
-      'Solar Water Pumping Systems',
-      'Solar Fencing',
-      'Solar Pergolas',
-      'Solar Dryers',
-      'Batteries and Inverters',
-      'Online UPS',
-      'Solar Water Heating Systems',
-    ];
+    // ===== OUR OFFERINGS BOX + SIGN/STAMP (CLEAN + SAME LAYOUT) =====
 
-    const offeringsBoxX = margin;
-    const offeringsBoxY = pageHeight - 82;
-    const offeringsBoxWidth = 95;
-    const offeringsBoxHeight = offerings.length * 4 + 12;
-    doc.roundedRect(offeringsBoxX, offeringsBoxY, offeringsBoxWidth, offeringsBoxHeight, 3, 3, 'S');
+const offerings = [
+  'Solar Roof Top Power Plants (ON-Grid, OFF-Grid & Hybrid)',
+  'Solar Street Lights',
+  'Solar Water Pumping Systems',
+  'Solar Fencing',
+  'Solar Pergolas',
+  'Solar Dryers',
+  'Batteries and Inverters',
+  'Online UPS',
+  'Solar Water Heating Systems',
+];
 
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9.5);
-    doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
-    doc.text('Our Offerings:', offeringsBoxX + 4, offeringsBoxY + 6);
+// Offerings box positioned above footer
+const offeringsBoxX = margin;
+const offeringsBoxY = pageHeight - 80;
+const offeringsBoxWidth = 95; // fixed to text width, not full
+const offeringsBoxHeight = offerings.length * 4 + 14;
 
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8.2);
-    doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+// Draw box
+doc.setDrawColor(BOX_BORDER.r, BOX_BORDER.g, BOX_BORDER.b);
+doc.setFillColor(248, 249, 250); // light grey background
+doc.roundedRect(offeringsBoxX, offeringsBoxY, offeringsBoxWidth, offeringsBoxHeight, 3, 3, 'FD');
 
-    let bulletY = offeringsBoxY + 11;
-    offerings.forEach((item) => {
-      doc.circle(offeringsBoxX + 4, bulletY - 2, 0.5, 'F');
-      const wrapped = doc.splitTextToSize(item, offeringsBoxWidth - 10);
-      doc.text(wrapped, offeringsBoxX + 7, bulletY);
-      bulletY += wrapped.length * 3.6;
-    });
+// Title
+doc.setFont('helvetica', 'bold');
+doc.setFontSize(9.5);
+doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
+doc.text('Our Offerings:', offeringsBoxX + 5, offeringsBoxY + 6);
 
-    // Footer message
-    const footerTop = pageHeight - 26;
-    doc.setFont('helvetica', 'italic');
-    doc.setFontSize(9);
-    doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
-    doc.text('Thank you for choosing sustainable energy solutions!', pageWidth / 2, footerTop, { align: 'center' });
+// List items
+doc.setFont('helvetica', 'normal');
+doc.setFontSize(8.2);
+doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
 
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
-    doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
-    doc.text('For AXISO GREEN ENERGIES PVT. LTD.', pageWidth - margin - 72, footerTop + 10);
+let bulletY = offeringsBoxY + 11;
+offerings.forEach((item) => {
+  doc.circle(offeringsBoxX + 5, bulletY - 2, 0.5, 'F');
+  const wrapped = doc.splitTextToSize(item, offeringsBoxWidth - 12);
+  doc.text(wrapped, offeringsBoxX + 8, bulletY);
+  bulletY += wrapped.length * 3.5;
+});
 
-    // Signature
-    const { dataUrl: signatureData, aspectRatio: signatureRatio } = await fetchImageAsset(SIGNATURE_IMAGE_URL);
-    const signatureWidth = 42;
-    const signatureHeight = signatureWidth * signatureRatio;
-    const signatureX = pageWidth - margin - signatureWidth;
-    const signatureY = footerTop + 12;
-    doc.addImage(signatureData, 'PNG', signatureX, signatureY, signatureWidth, signatureHeight, undefined, 'FAST');
+// ===== SIGNATURE + STAMP (RIGHT SIDE OF OFFERINGS BOX) =====
+const signBoxX = offeringsBoxX + offeringsBoxWidth + 10;
+const signBoxY = offeringsBoxY;
+const signAreaWidth = 75;
+const signAreaHeight = offeringsBoxHeight;
 
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8.5);
-    doc.text('Manager', signatureX + signatureWidth / 2, signatureY + signatureHeight + 6, { align: 'center' });
+// Optional border (for clarity)
+doc.setDrawColor(255, 255, 255);
+doc.roundedRect(signBoxX, signBoxY, signAreaWidth, signAreaHeight, 3, 3, 'S');
 
-    // Bottom bar
-    doc.setFillColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
-    doc.rect(0, pageHeight - 8, pageWidth, 8, 'F');
+// Label
+doc.setFont('helvetica', 'bold');
+doc.setFontSize(9);
+doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+doc.text('For AXISO GREEN ENERGIES PVT. LTD.', signBoxX + 4, signBoxY + 8);
+
+// Signature image
+const { dataUrl: signatureData, aspectRatio: signatureRatio } = await fetchImageAsset(SIGNATURE_IMAGE_URL);
+const signatureWidth = 40;
+const signatureHeight = signatureWidth * signatureRatio;
+const signatureX = signBoxX + signAreaWidth / 2 - signatureWidth / 2;
+const signatureY = signBoxY + 12;
+doc.addImage(signatureData, 'PNG', signatureX, signatureY, signatureWidth, signatureHeight, undefined, 'FAST');
+
+// Stamp image (optional)
+const STAMP_URL = '/images/axiso-stamp.png'; // <-- replace with your actual stamp URL
+const { dataUrl: stampData, aspectRatio: stampRatio } = await fetchImageAsset(STAMP_URL);
+const stampWidth = 32;
+const stampHeight = stampWidth * stampRatio;
+const stampX = signatureX + 10;
+const stampY = signatureY + signatureHeight - 5;
+doc.addImage(stampData, 'PNG', stampX, stampY, stampWidth, stampHeight, undefined, 'FAST');
+
+// Manager label
+doc.setFont('helvetica', 'bold');
+doc.setFontSize(8.5);
+doc.text('Manager', signBoxX + signAreaWidth / 2, signBoxY + signAreaHeight - 4, { align: 'center' });
+
+// ===== THANK YOU FOOTER =====
+const footerTop = pageHeight - 10;
+doc.setFont('helvetica', 'italic');
+doc.setFontSize(9);
+doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
+doc.text('Thank you for choosing sustainable energy solutions!', pageWidth / 2, footerTop - 2, { align: 'center' });
+
+// Bottom color bar
+doc.setFillColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
+doc.rect(0, pageHeight - 8, pageWidth, 8, 'F');
+
 
     const fileName = `Payment_Receipt_${referenceNumber}_${receivedFrom.replace(/\s+/g, '_')}.pdf`;
     doc.save(fileName);
