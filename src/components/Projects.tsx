@@ -639,26 +639,41 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
                     {projects.map(project => (
                       <Tr key={project.id} _hover={{ bg: 'gray.50' }} transition="all 0.2s">
                         <Td>
-                          <VStack align="start" spacing={1}>
-                            <Text fontWeight="medium" fontSize="sm" cursor="pointer" 
-                                  onClick={() => navigate(`/projects/${project.id}`)}>
-                              {project.name}
+                          <VStack align="start" spacing={2}>
+                          <Text
+                            fontWeight="medium"
+                            fontSize="sm"
+                            cursor="pointer"
+                            onClick={() => navigate(`/projects/${project.id}`)}
+                          >
+                            {project.name}
+                          </Text>
+                          <Badge
+                            colorScheme={getStatusColor(project.status)}
+                            variant="subtle"
+                            px={3}
+                            py={1}
+                            borderRadius="full"
+                            textTransform="capitalize"
+                            fontSize="xs"
+                          >
+                            {project.status || 'Unknown'}
+                          </Badge>
+                          <HStack spacing={2}>
+                            <Badge colorScheme={getProjectTypeColor(project.project_type)} size="sm">
+                              {project.project_type}
+                            </Badge>
+                            <Badge variant="outline" size="sm">
+                              {project.payment_mode}
+                            </Badge>
+                          </HStack>
+                          <HStack spacing={1}>
+                            <Text fontSize="xs" color="yellow.500">⚡</Text>
+                            <Text fontSize="xs" color="gray.600">
+                              {project.kwh || 'N/A'} kW
                             </Text>
-                            <HStack spacing={2}>
-                              <Badge colorScheme={getProjectTypeColor(project.project_type)} size="sm">
-                                {project.project_type}
-                              </Badge>
-                              <Badge variant="outline" size="sm">
-                                {project.payment_mode}
-                              </Badge>
-                            </HStack>
-                            <HStack spacing={1}>
-                              <Text fontSize="xs" color="yellow.500">⚡</Text>
-                              <Text fontSize="xs" color="gray.600">
-                                {project.kwh || 'N/A'} kW
-                              </Text>
-                            </HStack>
-                          </VStack>
+                          </HStack>
+                        </VStack>
                         </Td>
                         <Td>
                           <VStack align="start" spacing={1}>
