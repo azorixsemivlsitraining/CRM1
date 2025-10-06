@@ -561,11 +561,20 @@ const renderPaymentHistory = () => {
                 <Td>{p.amount != null ? p.amount.toLocaleString() : ''}</Td>
                 <Td>{p.payment_mode || '-'}</Td>
                 <Td>
-                  <Button size="sm" colorScheme="blue" onClick={() => handleDownloadReceipt(p, idx === 0)}>
+                  <Button size="sm" colorScheme="blue" onClick={() => handleDownloadReceipt(p)}>
                     Download Receipt
                   </Button>
-                  {p.id !== 'advance' && (
-                    <Button size="sm" colorScheme="red" ml={2} onClick={() => handleDeletePayment(p.id)}>
+                  {isEditor && (
+                    <Button
+                      size="sm"
+                      colorScheme="red"
+                      ml={2}
+                      onClick={() => {
+                        if (window.confirm('Are you sure you want to delete this payment record?')) {
+                          handleDeletePayment(p);
+                        }
+                      }}
+                    >
                       Delete
                     </Button>
                   )}
