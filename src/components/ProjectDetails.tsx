@@ -468,8 +468,9 @@ const handlePaymentModeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
 
 // ...
 // Download payment receipt as PDF
-const handleDownloadReceipt = async (payment: PaymentHistory, isAdvance: boolean) => {
+const handleDownloadReceipt = async (payment: PaymentHistory) => {
   if (!project) return;
+  const isAdvance = payment.id === 'advance';
   const receiptData = {
     date: payment.payment_date || payment.created_at,
     amount: payment.amount,
@@ -482,21 +483,44 @@ const handleDownloadReceipt = async (payment: PaymentHistory, isAdvance: boolean
 };
 
 // Delete payment handler
-const handleDeletePayment = async (paymentId: string) => {
-  if (!paymentId || paymentId === 'advance') return;
+const handleDeletePayment = async (payment: PaymentHistory) => {
+  if (!project) return;
+  const paymentId = payment.id;
   try {
-    const { error } = await supabase
-      .from('payment_history')
-      .delete()
-      .eq('id', paymentId);
-    if (error) throw error;
-    setPaymentHistory(prev => prev.filter(p => p.id !== paymentId));
-    toast({
-      title: 'Payment deleted',
-      status: 'success',
-      duration: 2000,
-      isClosable: true,
-    });
+    if (paymentId === 'advance') {
+      const updatedBalance = Math.max((project.proposal_amount || 0) - (project.paid_amount || 0), 0);
+      const { error } = await supabase
+        .from('projects')
+        .update({
+          advance_payment: 0,
+          balance_amount: updatedBalance,
+        })
+        .eq('id', project.id);
+      if (error) throw error;
+      setProject(prev => (prev ? { ...prev, advance_payment: 0, balance_amount: updatedBalance } : prev));
+      setPaymentHistory(prev => prev.filter(p => p.id !== 'advance'));
+      toast({
+        title: 'Advance removed',
+        description: 'Advance payment entry deleted successfully.',
+        status: 'success',
+        duration: 2000,
+        isClosable: true,
+      });
+    } else {
+      const { error } = await supabase
+        .from('payment_history')
+        .delete()
+        .eq('id', paymentId);
+      if (error) throw error;
+      setPaymentHistory(prev => prev.filter(p => p.id !== paymentId));
+      toast({
+        title: 'Payment deleted',
+        status: 'success',
+        duration: 2000,
+        isClosable: true,
+      });
+    }
+    await fetchProjectAndPayments();
   } catch (error) {
     toast({
       title: 'Error',
