@@ -74,7 +74,7 @@ interface Project {
   phone: string;
   address: string;
   project_type: 'DCR' | 'Non DCR';
-  payment_mode: 'Loan' | 'Cash'|;
+  payment_mode: 'Loan' | 'Cash' | 'UPI' | 'Cheque' | 'Subsidy';
   proposal_amount: number;
   advance_payment: number;
   balance_amount: number;
