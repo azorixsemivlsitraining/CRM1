@@ -133,11 +133,11 @@ export async function generatePaymentReceiptPDF({
 
     doc.setFontSize(8.5);
     companyLines.forEach((line, index) => {
-      doc.text(line, margin, 31 + index * 4);
+      doc.text(line, margin, 32 + index * 4);
     });
 
     doc.setDrawColor(BOX_BORDER.r, BOX_BORDER.g, BOX_BORDER.b);
-    doc.line(margin, 53, pageWidth - margin, 53);
+    doc.line(margin, 55, pageWidth - margin, 55);
 
     // Title
     doc.setFont('helvetica', 'bold');
@@ -146,8 +146,9 @@ export async function generatePaymentReceiptPDF({
     doc.text('PAYMENT RECEIPT', pageWidth / 2, 68, { align: 'center' });
 
     const detailTop = 80;
-    const detailHeight = 55;
-    doc.roundedRect(margin, detailTop, pageWidth - margin * 2, detailHeight, 3, 3, 'S');
+    const detailHeight = 50;
+    doc.setFillColor(255, 255, 255);
+    doc.roundedRect(margin, detailTop, pageWidth - margin * 2, detailHeight, 2, 2, 'S');
 
     const referenceNumber = `AGE${Date.now().toString().slice(-6)}`;
     const formattedDate = new Date(date).toLocaleDateString('en-GB', {
@@ -167,38 +168,38 @@ export async function generatePaymentReceiptPDF({
 
     doc.setFontSize(9);
     detailRows.forEach((row, index) => {
-      const rowY = detailTop + 10 + index * 10;
+      const rowY = detailTop + 10 + index * 9;
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
       doc.text(`${row.label}:`, margin + 6, rowY);
 
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
-      doc.text(row.value, margin + 42, rowY);
+      doc.text(row.value, margin + 44, rowY);
     });
 
     // Amount box
     const amountBoxWidth = 68;
-    const amountBoxHeight = 30;
+    const amountBoxHeight = 28;
     const amountBoxX = pageWidth - margin - amountBoxWidth - 4;
-    const amountBoxY = detailTop + 6;
+    const amountBoxY = detailTop + 8;
 
     doc.setFillColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
-    doc.roundedRect(amountBoxX, amountBoxY, amountBoxWidth, amountBoxHeight, 3, 3, 'F');
+    doc.roundedRect(amountBoxX, amountBoxY, amountBoxWidth, amountBoxHeight, 2, 2, 'F');
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
     doc.setTextColor(255, 255, 255);
     doc.text('AMOUNT RECEIVED', amountBoxX + amountBoxWidth / 2, amountBoxY + 8, { align: 'center' });
 
-    doc.setFontSize(15);
-    doc.text(`Rs. ${amount.toLocaleString('en-IN')}`, amountBoxX + amountBoxWidth / 2, amountBoxY + 22, { align: 'center' });
+    doc.setFontSize(14);
+    doc.text(`Rs. ${amount.toLocaleString('en-IN')}`, amountBoxX + amountBoxWidth / 2, amountBoxY + 20, { align: 'center' });
 
     // Amount in words
     const wordsBlockY = detailTop + detailHeight + 14;
     const wordsBlockHeight = 18;
     doc.setFillColor(248, 250, 252);
-    doc.roundedRect(margin, wordsBlockY, pageWidth - margin * 2, wordsBlockHeight, 3, 3, 'FD');
+    doc.roundedRect(margin, wordsBlockY, pageWidth - margin * 2, wordsBlockHeight, 2, 2, 'FD');
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
@@ -206,16 +207,16 @@ export async function generatePaymentReceiptPDF({
     doc.text('Amount in Words', margin + 6, wordsBlockY + 7);
 
     const amountText = `Indian Rupee ${convertToWords(amount)} Only`;
-    const wrappedAmountText = doc.splitTextToSize(amountText, pageWidth - margin * 2 - 16);
+    const wrappedAmountText = doc.splitTextToSize(amountText, pageWidth - margin * 2 - 12);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
     doc.text(wrappedAmountText, margin + 6, wordsBlockY + 13);
 
     // Received from
     const receivedBlockY = wordsBlockY + wordsBlockHeight + 10;
-    const receivedBlockHeight = 25 + (customerAddress ? 10 : 0);
+    const receivedBlockHeight = 26 + (customerAddress ? 8 : 0);
     doc.setFillColor(248, 250, 252);
-    doc.roundedRect(margin, receivedBlockY, pageWidth - margin * 2, receivedBlockHeight, 3, 3, 'FD');
+    doc.roundedRect(margin, receivedBlockY, pageWidth - margin * 2, receivedBlockHeight, 2, 2, 'FD');
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10.5);
@@ -223,19 +224,19 @@ export async function generatePaymentReceiptPDF({
     doc.text('Received From', margin + 6, receivedBlockY + 9);
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9.5);
+    doc.setFontSize(10);
     doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
     doc.text(receivedFrom, margin + 6, receivedBlockY + 16);
 
     if (customerAddress) {
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8.5);
+      doc.setFontSize(8.8);
       doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
       const addressLines = doc.splitTextToSize(customerAddress, pageWidth - margin * 2 - 12);
-      doc.text(addressLines, margin + 6, receivedBlockY + 23);
+      doc.text(addressLines, margin + 6, receivedBlockY + 22);
     }
 
-    // Offerings Section Box
+    // --- Offerings Section ---
     const offerings = [
       'Solar Roof Top Power Plants (ON-Grid, OFF-Grid & Hybrid)',
       'Solar Street Lights',
@@ -248,52 +249,53 @@ export async function generatePaymentReceiptPDF({
       'Solar Water Heating Systems',
     ];
 
-    const offeringsBoxY = receivedBlockY + receivedBlockHeight + 10;
-    const offeringsBoxHeight = 48;
-
-    doc.setFillColor(248, 250, 252);
-    doc.roundedRect(margin, offeringsBoxY, pageWidth - margin * 2, offeringsBoxHeight, 3, 3, 'FD');
+    const offeringsBoxX = margin;
+    const offeringsBoxY = pageHeight - 75;
+    const offeringsBoxWidth = pageWidth / 2 - margin + 8;
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10.5);
+    doc.setFontSize(10);
     doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
-    doc.text('Our Offerings:', margin + 6, offeringsBoxY + 8);
+    doc.text('Our Offerings:', offeringsBoxX + 4, offeringsBoxY + 5);
 
-    // Bullet list with proper spacing
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8.8);
     doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
 
-    let bulletY = offeringsBoxY + 14; // Added more top space
-    offerings.forEach((item) => {
-      doc.circle(margin + 8, bulletY - 2, 0.6, 'F');
-      const wrapped = doc.splitTextToSize(item, pageWidth - margin * 2 - 18);
-      doc.text(wrapped, margin + 12, bulletY);
-      bulletY += wrapped.length * 4;
+    let bulletY = offeringsBoxY + 11;
+    offerings.forEach((item, index) => {
+      doc.circle(offeringsBoxX + 6, bulletY - 2, 0.5, 'F');
+      const wrapped =
+        index === 0
+          ? [item] // first bullet stays in single line
+          : doc.splitTextToSize(item, offeringsBoxWidth - 10);
+      doc.text(wrapped, offeringsBoxX + 9, bulletY);
+      bulletY += wrapped.length * 3.8;
     });
 
     // Footer message
-    const footerTop = offeringsBoxY + offeringsBoxHeight + 10;
+    const footerTop = pageHeight - 30;
     doc.setFont('helvetica', 'italic');
-    doc.setFontSize(9);
+    doc.setFontSize(9.8);
     doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
     doc.text('Thank you for choosing sustainable energy solutions!', pageWidth / 2, footerTop, { align: 'center' });
 
-    // Signature and bottom section
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
+    doc.setFontSize(8.5);
     doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
-    doc.text('For AXISO GREEN ENERGIES PVT. LTD.', pageWidth - margin - 65, footerTop + 12);
+    doc.text('For AXISO GREEN ENERGIES PVT. LTD.', pageWidth - margin - 65, footerTop + 10);
 
+    // Signature
     const { dataUrl: signatureData, aspectRatio: signatureRatio } = await fetchImageAsset(SIGNATURE_IMAGE_URL);
-    const signatureWidth = 40;
+    const signatureWidth = 42;
     const signatureHeight = signatureWidth * signatureRatio;
     const signatureX = pageWidth - margin - signatureWidth;
-    const signatureY = footerTop + 14;
+    const signatureY = footerTop + 12;
     doc.addImage(signatureData, 'PNG', signatureX, signatureY, signatureWidth, signatureHeight, undefined, 'FAST');
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8.5);
+    doc.setFontSize(8.8);
+    doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
     doc.text('Manager', signatureX + signatureWidth / 2, signatureY + signatureHeight + 8, { align: 'center' });
 
     // Bottom bar
