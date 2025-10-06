@@ -102,24 +102,26 @@ export async function generatePaymentReceiptPDF({
     const pageWidth = doc.internal.pageSize.width;
     const pageHeight = doc.internal.pageSize.height;
 
-    // ===== HEADER =====
+    // Header bar
     doc.setFillColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
-    doc.rect(0, 0, pageWidth, 9, 'F');
+    doc.rect(0, 0, pageWidth, 8, 'F');
 
+    // Logo
     const { dataUrl: logoData, aspectRatio: logoRatio } = await fetchImageAsset(LOGO_URL);
-    const logoWidth = 46;
+    const logoWidth = 45;
     const logoHeight = logoWidth * logoRatio;
-    doc.addImage(logoData, 'PNG', pageWidth - margin - logoWidth, margin - 7, logoWidth, logoHeight, undefined, 'FAST');
+    doc.addImage(logoData, 'PNG', pageWidth - margin - logoWidth, margin - 6, logoWidth, logoHeight, undefined, 'FAST');
 
+    // Header text
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(14);
+    doc.setFontSize(13);
     doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
-    doc.text('AXISO GREEN ENERGIES PRIVATE LIMITED', margin, 21);
+    doc.text('AXISO GREEN ENERGIES PRIVATE LIMITED', margin, 20);
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9.5);
+    doc.setFontSize(9);
     doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
-    doc.text('Sustainable Energy Solutions for a Greener Tomorrow', margin, 26);
+    doc.text('Sustainable Energy Solutions for a Greener Tomorrow', margin, 25);
 
     const companyLines = [
       'Address: PLOT NO-102,103, TEMPLE LANE MYTHRI NAGAR',
@@ -128,23 +130,23 @@ export async function generatePaymentReceiptPDF({
       'Email: contact@axisogreen.in | Website: www.axisogreen.in',
       'GSTIN: 36ABBCA4478M1Z9',
     ];
+
     doc.setFontSize(8.5);
     companyLines.forEach((line, index) => {
-      doc.text(line, margin, 32 + index * 4);
+      doc.text(line, margin, 31 + index * 4);
     });
 
     doc.setDrawColor(BOX_BORDER.r, BOX_BORDER.g, BOX_BORDER.b);
-    doc.line(margin, 55, pageWidth - margin, 55);
+    doc.line(margin, 53, pageWidth - margin, 53);
 
-    // ===== TITLE =====
+    // Title
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(17);
+    doc.setFontSize(16);
     doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
     doc.text('PAYMENT RECEIPT', pageWidth / 2, 68, { align: 'center' });
 
-    // ===== DETAILS BOX =====
     const detailTop = 80;
-    const detailHeight = 50;
+    const detailHeight = 55;
     doc.roundedRect(margin, detailTop, pageWidth - margin * 2, detailHeight, 3, 3, 'S');
 
     const referenceNumber = `AGE${Date.now().toString().slice(-6)}`;
@@ -153,6 +155,7 @@ export async function generatePaymentReceiptPDF({
       month: 'long',
       year: 'numeric',
     });
+
     const placeDetail = placeOfSupply.includes('(') ? placeOfSupply : `${placeOfSupply} (36)`;
 
     const detailRows = [
@@ -162,63 +165,77 @@ export async function generatePaymentReceiptPDF({
       { label: 'Place of Supply', value: placeDetail },
     ];
 
-    doc.setFontSize(9.5);
+    doc.setFontSize(9);
     detailRows.forEach((row, index) => {
       const rowY = detailTop + 10 + index * 10;
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
-      doc.text(`${row.label}:`, margin + 8, rowY);
+      doc.text(`${row.label}:`, margin + 6, rowY);
 
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
-      doc.text(row.value, margin + 45, rowY);
+      doc.text(row.value, margin + 42, rowY);
     });
 
-    // ===== AMOUNT BOX =====
-    const amountBoxWidth = 70;
-    const amountBoxHeight = 28;
-    const amountBoxX = pageWidth - margin - amountBoxWidth - 5;
+    // Amount box
+    const amountBoxWidth = 68;
+    const amountBoxHeight = 30;
+    const amountBoxX = pageWidth - margin - amountBoxWidth - 4;
     const amountBoxY = detailTop + 6;
 
     doc.setFillColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
     doc.roundedRect(amountBoxX, amountBoxY, amountBoxWidth, amountBoxHeight, 3, 3, 'F');
+
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
     doc.setTextColor(255, 255, 255);
     doc.text('AMOUNT RECEIVED', amountBoxX + amountBoxWidth / 2, amountBoxY + 8, { align: 'center' });
-    doc.setFontSize(14);
-    doc.text(`Rs. ${amount.toLocaleString('en-IN')}`, amountBoxX + amountBoxWidth / 2, amountBoxY + 20, { align: 'center' });
 
-    // ===== AMOUNT IN WORDS =====
-    const wordsBlockY = detailTop + detailHeight + 10;
+    doc.setFontSize(15);
+    doc.text(`Rs. ${amount.toLocaleString('en-IN')}`, amountBoxX + amountBoxWidth / 2, amountBoxY + 22, { align: 'center' });
+
+    // Amount in words
+    const wordsBlockY = detailTop + detailHeight + 14;
+    const wordsBlockHeight = 18;
     doc.setFillColor(248, 250, 252);
-    doc.roundedRect(margin, wordsBlockY, pageWidth - margin * 2, 18, 3, 3, 'FD');
+    doc.roundedRect(margin, wordsBlockY, pageWidth - margin * 2, wordsBlockHeight, 3, 3, 'FD');
+
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9.5);
+    doc.setFontSize(9);
     doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
-    doc.text('Amount in Words', margin + 8, wordsBlockY + 7);
+    doc.text('Amount in Words', margin + 6, wordsBlockY + 7);
 
     const amountText = `Indian Rupee ${convertToWords(amount)} Only`;
     const wrappedAmountText = doc.splitTextToSize(amountText, pageWidth - margin * 2 - 16);
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9.5);
     doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
-    doc.text(wrappedAmountText, margin + 8, wordsBlockY + 13);
+    doc.text(wrappedAmountText, margin + 6, wordsBlockY + 13);
 
-    // ===== RECEIVED FROM BOX =====
-    const receivedBlockY = wordsBlockY + 25;
+    // Received from
+    const receivedBlockY = wordsBlockY + wordsBlockHeight + 10;
+    const receivedBlockHeight = 25 + (customerAddress ? 10 : 0);
     doc.setFillColor(248, 250, 252);
-    doc.roundedRect(margin, receivedBlockY, pageWidth - margin * 2, 22, 3, 3, 'FD');
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11);
-    doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
-    doc.text('Received From', margin + 8, receivedBlockY + 9);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
-    doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
-    doc.text(receivedFrom, margin + 8, receivedBlockY + 16);
+    doc.roundedRect(margin, receivedBlockY, pageWidth - margin * 2, receivedBlockHeight, 3, 3, 'FD');
 
-    // ===== OFFERINGS BOX =====
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10.5);
+    doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
+    doc.text('Received From', margin + 6, receivedBlockY + 9);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9.5);
+    doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+    doc.text(receivedFrom, margin + 6, receivedBlockY + 16);
+
+    if (customerAddress) {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8.5);
+      doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
+      const addressLines = doc.splitTextToSize(customerAddress, pageWidth - margin * 2 - 12);
+      doc.text(addressLines, margin + 6, receivedBlockY + 23);
+    }
+
+    // Offerings Section Box
     const offerings = [
       'Solar Roof Top Power Plants (ON-Grid, OFF-Grid & Hybrid)',
       'Solar Street Lights',
@@ -231,62 +248,62 @@ export async function generatePaymentReceiptPDF({
       'Solar Water Heating Systems',
     ];
 
-    const offeringsBoxY = receivedBlockY + 30;
-    const offeringsBoxHeight = 45;
+    const offeringsBoxY = receivedBlockY + receivedBlockHeight + 10;
+    const offeringsBoxHeight = 48;
+
     doc.setFillColor(248, 250, 252);
     doc.roundedRect(margin, offeringsBoxY, pageWidth - margin * 2, offeringsBoxHeight, 3, 3, 'FD');
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10.5);
     doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
-    doc.text('Our Offerings:', margin + 8, offeringsBoxY + 8);
+    doc.text('Our Offerings:', margin + 6, offeringsBoxY + 8);
 
+    // Bullet list with proper spacing
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8.5);
+    doc.setFontSize(8.8);
     doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
 
-    let bulletY = offeringsBoxY + 13;
-    const colWidth = (pageWidth - margin * 2 - 16) / 2;
-    offerings.forEach((item, i) => {
-      const colX = margin + 10 + (i >= offerings.length / 2 ? colWidth : 0);
-      const rowY = bulletY + (i % (offerings.length / 2)) * 5;
-      doc.circle(colX - 2, rowY - 1.5, 0.5, 'F');
-      const wrapped = doc.splitTextToSize(item, colWidth - 8);
-      doc.text(wrapped, colX, rowY);
+    let bulletY = offeringsBoxY + 14; // Added more top space
+    offerings.forEach((item) => {
+      doc.circle(margin + 8, bulletY - 2, 0.6, 'F');
+      const wrapped = doc.splitTextToSize(item, pageWidth - margin * 2 - 18);
+      doc.text(wrapped, margin + 12, bulletY);
+      bulletY += wrapped.length * 4;
     });
 
-    // ===== FOOTER =====
-    const footerY = offeringsBoxY + offeringsBoxHeight + 12;
+    // Footer message
+    const footerTop = offeringsBoxY + offeringsBoxHeight + 10;
     doc.setFont('helvetica', 'italic');
-    doc.setFontSize(9.5);
+    doc.setFontSize(9);
     doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
-    doc.text('Thank you for choosing sustainable energy solutions!', pageWidth / 2, footerY, { align: 'center' });
+    doc.text('Thank you for choosing sustainable energy solutions!', pageWidth / 2, footerTop, { align: 'center' });
 
+    // Signature and bottom section
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
     doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
-    doc.text('For AXISO GREEN ENERGIES PVT. LTD.', pageWidth - margin - 70, footerY + 10);
+    doc.text('For AXISO GREEN ENERGIES PVT. LTD.', pageWidth - margin - 65, footerTop + 12);
 
     const { dataUrl: signatureData, aspectRatio: signatureRatio } = await fetchImageAsset(SIGNATURE_IMAGE_URL);
-    const signatureWidth = 42;
+    const signatureWidth = 40;
     const signatureHeight = signatureWidth * signatureRatio;
     const signatureX = pageWidth - margin - signatureWidth;
-    const signatureY = footerY + 11;
+    const signatureY = footerTop + 14;
     doc.addImage(signatureData, 'PNG', signatureX, signatureY, signatureWidth, signatureHeight, undefined, 'FAST');
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
-    doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+    doc.setFontSize(8.5);
     doc.text('Manager', signatureX + signatureWidth / 2, signatureY + signatureHeight + 8, { align: 'center' });
 
-    // ===== BOTTOM BAR =====
+    // Bottom bar
     doc.setFillColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
     doc.rect(0, pageHeight - 8, pageWidth, 8, 'F');
 
     const fileName = `Payment_Receipt_${referenceNumber}_${receivedFrom.replace(/\s+/g, '_')}.pdf`;
     doc.save(fileName);
   } catch (error) {
-    console.error('Error generating receipt:', error);
+    console.error('Error:', error);
     throw new Error('Failed to generate receipt');
   }
 }
