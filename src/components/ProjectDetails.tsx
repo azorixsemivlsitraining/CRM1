@@ -87,7 +87,8 @@ interface Project {
   status: string;
   current_stage: string;
   project_type: 'DCR' | 'Non DCR';
-  payment_mode: 'Loan' | 'Cash';
+  payment_mode: 'Loan' | 'Cash' | 'UPI' | 'Cheque' | 'Subsidy';
+
   created_at: string;
   start_date: string;
   payment_history: PaymentHistory[];
