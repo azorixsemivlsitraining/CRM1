@@ -1051,6 +1051,8 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
                   >
                     <option value="Cash">Cash</option>
                     <option value="Loan">Loan</option>
+                    <option value="UPI">UPI</option>
+                    <option value="Cheque">Cheque</option>
                   </Select>
                 </FormControl>
 
