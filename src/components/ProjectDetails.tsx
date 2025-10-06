@@ -112,10 +112,13 @@ const ProjectDetails = () => {
     const savedDate = sessionStorage.getItem(`payment_date_${id}`);
     return savedDate || new Date().toISOString().split('T')[0];
   });
-  const [paymentMode, setPaymentMode] = useState(() => {
-    const savedMode = sessionStorage.getItem(`payment_mode_${id}`);
-    return savedMode || 'Cash';
-  });
+const [paymentMode, setPaymentMode] = useState(() => {
+  const savedMode = sessionStorage.getItem(`payment_mode_${id}`);
+  if (savedMode) return savedMode;
+  if (project && project.payment_mode) return project.payment_mode; // use project value if available
+  return 'Cash';
+});
+
   const [editCustomerLoading, setEditCustomerLoading] = useState(false);
   const [loading, setLoading] = useState(true);
 
