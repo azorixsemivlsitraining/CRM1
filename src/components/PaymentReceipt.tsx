@@ -14,7 +14,8 @@ const TEXT_PRIMARY = { r: 45, g: 55, b: 72 };
 const TEXT_MUTED = { r: 99, g: 110, b: 114 };
 const BOX_BORDER = { r: 209, g: 213, b: 219 };
 
-const SIGNATURE_IMAGE_URL = 'https://cdn.builder.io/api/v1/image/assets%2F07ba826074254d3191a55ee32e800a58%2Fdba80239da89463d902e6021298aa064?format=png&width=600';
+const SIGNATURE_IMAGE_URL =
+  'https://cdn.builder.io/api/v1/image/assets%2F07ba826074254d3191a55ee32e800a58%2Fdba80239da89463d902e6021298aa064?format=png&width=600';
 const LOGO_URL = '/images/axiso-logo.png';
 
 async function fetchImageAsDataURL(url: string): Promise<string> {
@@ -101,15 +102,17 @@ export async function generatePaymentReceiptPDF({
     const pageWidth = doc.internal.pageSize.width;
     const pageHeight = doc.internal.pageSize.height;
 
-    // ---------------- HEADER ----------------
+    // Header bar
     doc.setFillColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
     doc.rect(0, 0, pageWidth, 10, 'F');
 
+    // Logo
     const { dataUrl: logoData, aspectRatio: logoRatio } = await fetchImageAsset(LOGO_URL);
     const logoWidth = 52;
     const logoHeight = logoWidth * logoRatio;
     doc.addImage(logoData, 'PNG', pageWidth - margin - logoWidth, margin - 6, logoWidth, logoHeight, undefined, 'FAST');
 
+    // Header text
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(15);
     doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
@@ -136,13 +139,12 @@ export async function generatePaymentReceiptPDF({
     doc.setDrawColor(BOX_BORDER.r, BOX_BORDER.g, BOX_BORDER.b);
     doc.line(margin, 60, pageWidth - margin, 60);
 
-    // ---------------- PAYMENT RECEIPT TITLE ----------------
+    // Title
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(19);
     doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
     doc.text('PAYMENT RECEIPT', pageWidth / 2, 76, { align: 'center' });
 
-    // ---------------- PAYMENT DETAILS BOX ----------------
     const detailTop = 90;
     const detailHeight = 60;
     doc.setFillColor(255, 255, 255);
@@ -154,6 +156,7 @@ export async function generatePaymentReceiptPDF({
       month: 'long',
       year: 'numeric',
     });
+
     const placeDetail = placeOfSupply.includes('(') ? placeOfSupply : `${placeOfSupply} (36)`;
 
     const detailRows = [
@@ -175,7 +178,7 @@ export async function generatePaymentReceiptPDF({
       doc.text(row.value, margin + 48, rowY);
     });
 
-    // ---------------- AMOUNT BOX ----------------
+    // Amount box
     const amountBoxWidth = 72;
     const amountBoxHeight = 34;
     const amountBoxX = pageWidth - margin - amountBoxWidth - 6;
@@ -190,11 +193,9 @@ export async function generatePaymentReceiptPDF({
     doc.text('AMOUNT RECEIVED', amountBoxX + amountBoxWidth / 2, amountBoxY + 10, { align: 'center' });
 
     doc.setFontSize(17);
-    doc.text(`Rs. ${amount.toLocaleString('en-IN')}`, amountBoxX + amountBoxWidth / 2, amountBoxY + 24, {
-      align: 'center',
-    });
+    doc.text(`Rs. ${amount.toLocaleString('en-IN')}`, amountBoxX + amountBoxWidth / 2, amountBoxY + 24, { align: 'center' });
 
-    // ---------------- AMOUNT IN WORDS ----------------
+    // Amount in words
     const wordsBlockY = detailTop + detailHeight + 18;
     const wordsBlockHeight = 20;
     doc.setFillColor(248, 250, 252);
@@ -211,7 +212,7 @@ export async function generatePaymentReceiptPDF({
     doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
     doc.text(wrappedAmountText, margin + 8, wordsBlockY + 15);
 
-    // ---------------- RECEIVED FROM ----------------
+    // Received from
     const receivedBlockY = wordsBlockY + wordsBlockHeight + 14;
     const receivedBlockHeight = 28 + (customerAddress ? 10 : 0);
     doc.setFillColor(248, 250, 252);
@@ -235,72 +236,66 @@ export async function generatePaymentReceiptPDF({
       doc.text(addressLines, margin + 8, receivedBlockY + 26);
     }
 
-    // ---------------- OTHER OFFERINGS BOX ----------------
-    const allOfferings = [
-      'Solar Roof Top',
-      'Street Lights',
-      'Water Pumping',
-      'Fencing',
-      'Pergolas',
-      'Dryers',
-      'Energy Audits',
-      'Battery Storage Solutions',
-      'Inverters & Controllers',
-      'EV Charging Stations',
-      'LED Street Lighting'
+    // --- Offerings Section ---
+    const offerings = [
+      'Solar Roof Top Power Plants (ON-Grid, OFF-Grid & Hybrid)',
+      'Solar Street Lights',
+      'Solar Water Pumping Systems',
+      'Solar Fencing',
+      'Solar Pergolas',
+      'Solar Dryers',
+      'Batteries and Inverters',
+      'Online UPS',
+      'Solar Water Heating Systems',
     ];
 
-    const boxWidth = 90;
-    const boxHeight = 10 + allOfferings.length * 5.5; // dynamic height
-    const boxX = margin;
-    const boxY = pageHeight - boxHeight - 35;
-
-    doc.setFillColor(248, 250, 252);
-    doc.roundedRect(boxX, boxY, boxWidth, boxHeight, 3, 3, 'FD');
+    const offeringsBoxX = margin;
+    const offeringsBoxY = pageHeight - 85;
+    const offeringsBoxWidth = pageWidth / 2 - margin + 10;
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
+    doc.setFontSize(11);
     doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
-    doc.text('Other Offerings', boxX + 6, boxY + 7);
+    doc.text('Our Offerings:', offeringsBoxX + 4, offeringsBoxY + 6);
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
+    doc.setFontSize(9.5);
     doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
 
-    allOfferings.forEach((item, idx) => {
-      const itemY = boxY + 13 + idx * 5.5;
-      doc.text(`• ${item}`, boxX + 6, itemY);
+    let bulletY = offeringsBoxY + 12;
+    offerings.forEach((item) => {
+      doc.circle(offeringsBoxX + 6, bulletY - 2, 0.6, 'F');
+      const wrapped = doc.splitTextToSize(item, offeringsBoxWidth - 12);
+      doc.text(wrapped, offeringsBoxX + 10, bulletY);
+      bulletY += wrapped.length * 4.2;
     });
 
-    // ---------------- FOOTER ----------------
-    const footerTop = pageHeight - 20;
+    // Footer message
+    const footerTop = pageHeight - 38;
     doc.setFont('helvetica', 'italic');
     doc.setFontSize(11);
     doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
-    doc.text('Thank you for choosing sustainable energy solutions!', pageWidth / 2, footerTop, {
-      align: 'center',
-    });
+    doc.text('Thank you for choosing sustainable energy solutions!', pageWidth / 2, footerTop, { align: 'center' });
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9.5);
     doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
     doc.text('For AXISO GREEN ENERGIES PVT. LTD.', pageWidth - margin - 70, footerTop + 16);
 
+    // Signature
     const { dataUrl: signatureData, aspectRatio: signatureRatio } = await fetchImageAsset(SIGNATURE_IMAGE_URL);
     const signatureWidth = 48;
     const signatureHeight = signatureWidth * signatureRatio;
     const signatureX = pageWidth - margin - signatureWidth;
     const signatureY = footerTop + 18;
-
     doc.addImage(signatureData, 'PNG', signatureX, signatureY, signatureWidth, signatureHeight, undefined, 'FAST');
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
     doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
-    doc.text('Manager', signatureX + signatureWidth / 2, signatureY + signatureHeight + 10, {
-      align: 'center',
-    });
+    doc.text('Manager', signatureX + signatureWidth / 2, signatureY + signatureHeight + 10, { align: 'center' });
 
+    // Bottom bar
     doc.setFillColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
     doc.rect(0, pageHeight - 10, pageWidth, 10, 'F');
 
