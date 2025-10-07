@@ -271,34 +271,28 @@ export async function generatePaymentReceiptPDF({
     doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
     doc.text('Our Other Offerings', whyBoxX + 8, whyBoxY + 8);
 
-  // Render list with green checkmarks and all bold text
+    // Render list with green checkmarks and all bold text
 doc.setFont('helvetica', 'bold');
 doc.setFontSize(9);
 
-// Add extra spacing before first item (after heading)
-const extraTopGap = 6;
-
-itemsLayout.forEach((itemObj, index) => {
+itemsLayout.forEach(itemObj => {
   const raw = itemObj.wrapped.join(' ');
 
   const checkX = whyBoxX + 8;
   const textX = whyBoxX + 18;
+  const lineY = itemObj.y;
 
-  // Apply top gap only for first item
-  const adjustedY = index === 0 ? itemObj.y + extraTopGap : itemObj.y;
-
-  // ✅ Draw green checkmark
+  // Draw green check symbol
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
-  doc.text('✓', checkX, adjustedY);
+  doc.text('✓', checkX, lineY);
 
-  // ✅ Draw full bold black text
+  // Draw the full text in bold black
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(0, 0, 0);
   const wrappedText = doc.splitTextToSize(raw, contentWidth);
-  doc.text(wrappedText, textX, adjustedY);
+  doc.text(wrappedText, textX, lineY);
 });
-
 
 
     // ===== FOOTER =====
