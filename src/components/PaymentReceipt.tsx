@@ -108,9 +108,9 @@ export async function generatePaymentReceiptPDF({
     doc.rect(0, 0, pageWidth, 9, 'F');
 
     const { dataUrl: logoData, aspectRatio: logoRatio } = await fetchImageAsset(LOGO_URL);
-    // scale logo to fit without stretching
-    const maxLogoWidth = 88;
-    const maxLogoHeight = 40;
+    // scale logo to fit without stretching (reduced size)
+    const maxLogoWidth = 68;
+    const maxLogoHeight = 34;
     let logoWidth = maxLogoWidth;
     let logoHeight = logoWidth * logoRatio;
     if (logoHeight > maxLogoHeight) {
