@@ -233,37 +233,25 @@ export async function generatePaymentReceiptPDF({
 
     const offeringsBoxY = receivedBlockY + 30;
 
-    // Pre-measure dynamic height and layout to avoid overlap
-    const colWidth = (pageWidth - margin * 2 - 16) / 2;
-    const mid = Math.ceil(offerings.length / 2);
-    const leftItems = offerings.slice(0, mid);
-    const rightItems = offerings.slice(mid);
-    const lineGap = 5;
+    // Single-column offerings on the left with dynamic height
     const startY = offeringsBoxY + 13;
-
+    const lineGap = 6; // space between lines
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8.5);
     doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
 
-    const leftLayout: { y: number; wrapped: string[] }[] = [];
-    const rightLayout: { y: number; wrapped: string[] }[] = [];
+    let yCursor = startY;
+    const leftColX = margin + 12;
+    const textWidth = pageWidth - margin * 2 - 24; // allow for bullet and padding
 
-    let leftYCursor = startY;
-    let rightYCursor = startY;
-
-    leftItems.forEach((item) => {
-      const wrapped = doc.splitTextToSize(item, colWidth - 8) as string[];
-      leftLayout.push({ y: leftYCursor, wrapped });
-      leftYCursor += wrapped.length * lineGap;
+    const singleColumnLayout: { y: number; wrapped: string[] }[] = [];
+    offerings.forEach((item) => {
+      const wrapped = doc.splitTextToSize(item, textWidth) as string[];
+      singleColumnLayout.push({ y: yCursor, wrapped });
+      yCursor += wrapped.length * lineGap;
     });
 
-    rightItems.forEach((item) => {
-      const wrapped = doc.splitTextToSize(item, colWidth - 8) as string[];
-      rightLayout.push({ y: rightYCursor, wrapped });
-      rightYCursor += wrapped.length * lineGap;
-    });
-
-    const dynamicOfferingsBoxHeight = Math.max(leftYCursor, rightYCursor) - offeringsBoxY + 10;
+    const dynamicOfferingsBoxHeight = yCursor - offeringsBoxY + 8;
 
     // Draw background box
     doc.setFillColor(248, 250, 252);
@@ -275,22 +263,14 @@ export async function generatePaymentReceiptPDF({
     doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
     doc.text('Our Offerings:', margin + 8, offeringsBoxY + 8);
 
-    // Render content columns
+    // Render single-column items
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8.5);
     doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
 
-    const leftColX = margin + 10;
-    const rightColX = margin + 10 + colWidth;
-
-    leftLayout.forEach((row) => {
-      doc.circle(leftColX - 2, row.y - 1.5, 0.5, 'F');
+    singleColumnLayout.forEach((row) => {
+      doc.circle(leftColX - 4, row.y - 1.5, 0.5, 'F');
       doc.text(row.wrapped, leftColX, row.y);
-    });
-
-    rightLayout.forEach((row) => {
-      doc.circle(rightColX - 2, row.y - 1.5, 0.5, 'F');
-      doc.text(row.wrapped, rightColX, row.y);
     });
 
     // ===== FOOTER =====
