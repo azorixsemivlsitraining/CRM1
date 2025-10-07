@@ -321,7 +321,8 @@ export async function generatePaymentReceiptPDF({
     // place small stamp+signature to the right of the thank you note
     const sigStampTotalW = 56 + 8 + 36; // signature + gap + stamp
     const sigStampX = Math.min(pageWidth - margin - 8 -  sigStampTotalW/2, pageWidth - margin - sigStampTotalW);
-    const sigStampY = footerY - 8;
+    // place signature & stamp below the thank-you text to avoid overlap
+    const sigStampY = footerY + 8;
 
     const [{ dataUrl: signatureData, aspectRatio: signatureRatio }, { dataUrl: stampData, aspectRatio: stampRatio }] = await Promise.all([
       fetchImageAsset(SIGNATURE_IMAGE_URL),
