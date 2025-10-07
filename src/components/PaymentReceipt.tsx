@@ -296,7 +296,7 @@ export async function generatePaymentReceiptPDF({
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
     doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
-    doc.text('For AXISO GREEN ENERGIES PVT. LTD.', pageWidth - margin - 70, footerY + 10);
+    doc.text('For AXISO GREEN ENERGIES PVT. LTD.', pageWidth - margin - 6, footerY + 6, { align: 'right' });
 
     // Fetch signature and stamp images
     const [{ dataUrl: signatureData, aspectRatio: signatureRatio }, { dataUrl: stampData, aspectRatio: stampRatio }] = await Promise.all([
