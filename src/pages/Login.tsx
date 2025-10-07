@@ -76,17 +76,6 @@ const Login = () => {
 
     try {
       await login(email, password);
-      const fromHR = (location.state as any)?.fromHR;
-      navigate(fromHR ? '/hr' : '/welcome', { replace: true });
-    } catch (error: any) {
-      console.error('Login error:', error);
-      toast({
-        title: 'Error',
-        description: error.message,
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      });
     } finally {
       setLoading(false);
     }
