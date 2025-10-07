@@ -16,7 +16,13 @@ const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return (
+      <Navigate
+        to="/login"
+        replace
+        state={{ from: { pathname: location.pathname, search: location.search, hash: location.hash } }}
+      />
+    );
   }
 
   return <>{children}</>;
