@@ -229,16 +229,16 @@ export async function generatePaymentReceiptPDF({
 
     // ===== WHY CHOOSE US BOX =====
     const whyChoose = [
-      '45-day guaranteed project completion for all installations.',
-      'Over 250+ successful projects delivered across South India.',
-      '7+ years of trusted experience in solar energy solutions.',
-      '24/7 technical and maintenance support for every customer.',
-      'Project backup assistance ensuring uninterrupted performance.',
-      'Dedicated WhatsApp group for live updates and service alerts.',
-      'End-to-end solar services from design to maintenance.',
-      'High-quality MNRE-approved and BIS-certified components.',
-      'Supporting a cleaner and greener tomorrow through solar energy.',
-      'Note:Always confirm before sharing any OTP or confidential information.',
+      'Solar Roof Top Power Plants(ON-Grid, OFF-Grid & Hybrid).',
+      'Solar Street Lights',
+      'Solar Water Pumping System',
+      'Solar Fencing',
+      'Solar Pergolas',
+      'Solar Dryers',
+      'Batteries and Inverters',
+      'Online UPS',
+      'Solar Water Heating Systems',
+      
     ];
 
     const whyBoxY = receivedBlockY + 28;
@@ -269,7 +269,7 @@ export async function generatePaymentReceiptPDF({
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10.5);
     doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
-    doc.text('Why Choose Us', whyBoxX + 8, whyBoxY + 8);
+    doc.text('Our Other Offerings', whyBoxX + 8, whyBoxY + 8);
 
     // Render list with green checkmarks and bold black prefixes
     doc.setFont('helvetica', 'normal');
