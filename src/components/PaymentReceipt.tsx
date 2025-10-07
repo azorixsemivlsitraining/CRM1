@@ -108,9 +108,9 @@ export async function generatePaymentReceiptPDF({
     doc.rect(0, 0, pageWidth, 9, 'F');
 
     const { dataUrl: logoData, aspectRatio: logoRatio } = await fetchImageAsset(LOGO_URL);
-    // scale logo to fit without stretching
-    const maxLogoWidth = 88;
-    const maxLogoHeight = 40;
+    // scale logo to fit without stretching (reduced size)
+    const maxLogoWidth = 68;
+    const maxLogoHeight = 34;
     let logoWidth = maxLogoWidth;
     let logoHeight = logoWidth * logoRatio;
     if (logoHeight > maxLogoHeight) {
@@ -236,8 +236,9 @@ export async function generatePaymentReceiptPDF({
       'Project backup assistance ensuring uninterrupted performance',
       'Dedicated WhatsApp group for live updates and service alerts',
       'Never ask for OTP or confidential information',
+      'End-to-end solar services from design to maintenance',
       'High-quality MNRE-approved and BIS-certified components',
-      
+      'Supporting a cleaner and greener tomorrow through solar energy',
     ];
 
     const whyBoxY = receivedBlockY + 28;
@@ -270,20 +271,43 @@ export async function generatePaymentReceiptPDF({
     doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
     doc.text('Why Choose Us', whyBoxX + 8, whyBoxY + 8);
 
-    // Render list with green checkmarks
+    // Render list with green checkmarks and bold black prefixes
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
-    itemsLayout.forEach(item => {
+    const prefixWords = 3; // number of words to bold for each item
+    itemsLayout.forEach(itemObj => {
+      const raw = itemObj.wrapped.join(' ');
+      const words = raw.split(/\s+/);
+      const prefix = words.slice(0, prefixWords).join(' ');
+      const rest = words.slice(prefixWords).join(' ');
+
       const checkX = whyBoxX + 8;
-      const textX = whyBoxX + 16;
+      const textX = whyBoxX + 18;
+      const lineY = itemObj.y;
+
       // draw check symbol
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
-      doc.text('✓', checkX, item.y);
-      // draw wrapped text lines
+      doc.text('✓', checkX, lineY);
+
+      // draw prefix in bold black
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(0, 0, 0);
+      doc.text(prefix + ' ', textX, lineY);
+      const prefixWidth = doc.getTextWidth(prefix + ' ');
+
+      // draw the rest, wrapped
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
-      doc.text(item.wrapped, textX, item.y);
+      const restWrapped = doc.splitTextToSize(rest, contentWidth - prefixWidth);
+      if (restWrapped.length > 0) {
+        // first line after prefix
+        doc.text(restWrapped[0], textX + prefixWidth, lineY);
+        // subsequent lines
+        for (let i = 1; i < restWrapped.length; i++) {
+          doc.text(restWrapped[i], textX, lineY + i * lineGap);
+        }
+      }
     });
 
     // ===== FOOTER =====
@@ -293,46 +317,40 @@ export async function generatePaymentReceiptPDF({
     doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
     doc.text('Thank you for choosing sustainable energy solutions!', pageWidth / 2, footerY, { align: 'center' });
 
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
-    doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
-    doc.text('For AXISO GREEN ENERGIES PVT. LTD.', pageWidth - margin - 6, footerY + 6, { align: 'right' });
+    // place small stamp+signature to the right of the thank you note
+    const sigStampTotalW = 56 + 8 + 36; // signature + gap + stamp
+    const sigStampX = Math.min(pageWidth - margin - 8 -  sigStampTotalW/2, pageWidth - margin - sigStampTotalW);
+    const sigStampY = footerY - 8;
 
-    // Fetch signature and stamp images
     const [{ dataUrl: signatureData, aspectRatio: signatureRatio }, { dataUrl: stampData, aspectRatio: stampRatio }] = await Promise.all([
       fetchImageAsset(SIGNATURE_IMAGE_URL),
       fetchImageAsset('https://cdn.builder.io/api/v1/image/assets%2F59bf3e928fc9473a97d5e87470c824bb%2Fa982d303b87c4be9801daedaa72f7da3?format=webp&width=600').catch(() => ({ dataUrl: '', aspectRatio: 0.6 })),
     ]);
 
-    // Small sizes for signature and stamp
-    const signatureWidth = 56;
-    const signatureHeight = signatureWidth * (signatureRatio || 0.5) * 0.5;
-    const stampWidth = 38;
-    const stampHeight = stampWidth * (stampRatio || 0.6);
+    const signatureWidthSmall = 56;
+    const signatureHeightSmall = signatureWidthSmall * (signatureRatio || 0.5) * 0.5;
+    const stampWidthSmall = 36;
+    const stampHeightSmall = stampWidthSmall * (stampRatio || 0.6);
 
-    // Place stamp left of signature, both slightly above footer
-    const signatureX = pageWidth - margin - signatureWidth;
-    const signatureY = footerY + 6;
-    const stampX = signatureX - stampWidth - 8;
-    const stampY = signatureY + 6;
-
-    // Draw stamp first
-    if (stampData) {
-      try {
-        doc.addImage(stampData, 'PNG', stampX, stampY, stampWidth, stampHeight, undefined, 'FAST');
-      } catch (err) {}
-    }
-
-    // Draw signature
+    // draw signature then stamp (right aligned)
     try {
-      doc.addImage(signatureData, 'PNG', signatureX, signatureY, signatureWidth, signatureHeight, undefined, 'FAST');
+      doc.addImage(signatureData, 'PNG', pageWidth - margin - signatureWidthSmall, sigStampY, signatureWidthSmall, signatureHeightSmall, undefined, 'FAST');
+    } catch (err) {}
+    try {
+      doc.addImage(stampData, 'PNG', pageWidth - margin - signatureWidthSmall - 8 - stampWidthSmall, sigStampY + 4, stampWidthSmall, stampHeightSmall, undefined, 'FAST');
     } catch (err) {}
 
     // Manager label
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
     doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
-    doc.text('Manager', signatureX + signatureWidth / 2, signatureY + signatureHeight + 8, { align: 'center' });
+    doc.text('Manager', pageWidth - margin - signatureWidthSmall/2 - 0, sigStampY + signatureHeightSmall + 10, { align: 'center' });
+
+    // For backward compatibility, keep right company text
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+    doc.text('For AXISO GREEN ENERGIES PVT. LTD.', pageWidth - margin - 6, footerY + 14, { align: 'right' });
 
     // ===== BOTTOM BAR =====
     doc.setFillColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
