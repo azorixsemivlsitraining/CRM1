@@ -271,33 +271,37 @@ export async function generatePaymentReceiptPDF({
     doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
     doc.text('Our Other Offerings', whyBoxX + 8, whyBoxY + 8);
 
-  // Render list with green checkmarks and all bold text
+ // Render list with green checkmarks and all bold text
 doc.setFont('helvetica', 'bold');
 doc.setFontSize(9);
 
-// Add extra spacing before first item (after heading)
-const extraTopGap = 6;
+const itemLineGap = 6; // line gap for wrapped lines
+let yCursor = whyBoxY + 12 + 6; // heading y + heading bottom padding + extra gap before first item
 
-itemsLayout.forEach((itemObj, index) => {
+itemsLayout.forEach((itemObj) => {
   const raw = itemObj.wrapped.join(' ');
+  const wrappedText = doc.splitTextToSize(raw, contentWidth);
 
   const checkX = whyBoxX + 8;
   const textX = whyBoxX + 18;
 
-  // Apply top gap only for first item
-  const adjustedY = index === 0 ? itemObj.y + extraTopGap : itemObj.y;
-
-  // ✅ Draw green checkmark
+  // ✅ Draw green checkmark at the first line
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
-  doc.text('✓', checkX, adjustedY);
+  doc.text('✓', checkX, yCursor);
 
-  // ✅ Draw full bold black text
+  // ✅ Draw full bold text
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(0, 0, 0);
-  const wrappedText = doc.splitTextToSize(raw, contentWidth);
-  doc.text(wrappedText, textX, adjustedY);
+
+  wrappedText.forEach((line, lineIndex) => {
+    doc.text(line, textX, yCursor + lineIndex * itemLineGap);
+  });
+
+  // Update cursor for next item (last line y + gap)
+  yCursor += wrappedText.length * itemLineGap + 4; // 4 mm space between items
 });
+
 
 
 
