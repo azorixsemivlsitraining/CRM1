@@ -72,8 +72,18 @@ const Login = () => {
 
   useEffect(() => {
     if (!isAuthenticated) return;
-    navigate(fromHR ? '/hr' : '/welcome', { replace: true });
-  }, [fromHR, isAuthenticated, navigate]);
+
+    const fallbackPath = fromHR ? '/hr' : '/welcome';
+
+    if (pendingRedirect?.pathname && pendingRedirect.pathname !== '/login') {
+      const search = pendingRedirect.search ?? '';
+      const hash = pendingRedirect.hash ?? '';
+      navigate(`${pendingRedirect.pathname}${search}${hash}`, { replace: true });
+      return;
+    }
+
+    navigate(fallbackPath, { replace: true });
+  }, [fromHR, isAuthenticated, navigate, pendingRedirect]);
 
   useEffect(() => {
     if (fromHR && hrEmail) {
