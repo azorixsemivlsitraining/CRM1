@@ -27,6 +27,17 @@ import { EmailIcon, LockIcon, ViewIcon, ViewOffIcon, ArrowBackIcon } from '@chak
 // No react-icons imports needed
 import { supabase } from '../lib/supabase';
 
+interface RedirectLocation {
+  pathname: string;
+  search?: string;
+  hash?: string;
+}
+
+interface LoginLocationState {
+  from?: RedirectLocation;
+  fromHR?: boolean;
+}
+
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
