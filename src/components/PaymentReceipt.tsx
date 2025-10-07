@@ -308,38 +308,14 @@ export async function generatePaymentReceiptPDF({
     doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
     doc.text('For AXISO GREEN ENERGIES PVT. LTD.', pageWidth - margin - 6, footerY + 6, { align: 'right' });
 
-    // Fetch signature and stamp images
-    const [{ dataUrl: signatureData, aspectRatio: signatureRatio }, { dataUrl: stampData, aspectRatio: stampRatio }] = await Promise.all([
-      fetchImageAsset(SIGNATURE_IMAGE_URL),
-      fetchImageAsset(STAMP_IMAGE_URL),
-    ]);
+    // Fetch signature image only
+    const { dataUrl: signatureData, aspectRatio: signatureRatio } = await fetchImageAsset(SIGNATURE_IMAGE_URL);
 
-    const signatureWidth = 56; // slightly larger
-    const signatureHeight = signatureWidth * signatureRatio;
-
-    // Place signature on the bottom-right and the stamp image to its left (rotated look)
+    // Signature sizing and placement to match provided layout
+    const signatureWidth = 90;
+    const signatureHeight = signatureWidth * signatureRatio * 0.5;
     const signatureX = pageWidth - margin - signatureWidth;
-    const signatureY = footerY + 6;
-
-    // Stamp dimensions
-    const stampWidth = 56;
-    const stampHeight = stampWidth * (stampRatio || 0.6);
-    const stampX = signatureX - stampWidth - 12;
-    const stampY = signatureY - 4;
-
-    // Add stamp image (appear slightly rotated by offsetting)
-    try {
-      doc.addImage(stampData, 'PNG', stampX, stampY, stampWidth, stampHeight, undefined, 'FAST');
-    } catch (err) {
-      // fallback: draw placeholder box if image fails
-      doc.setDrawColor(BOX_BORDER.r, BOX_BORDER.g, BOX_BORDER.b);
-      doc.setFillColor(255, 255, 255);
-      doc.rect(stampX, stampY, stampWidth, stampHeight, 'S');
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(7);
-      doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
-      doc.text('Stamp', stampX + stampWidth / 2, stampY + stampHeight / 2 + 2, { align: 'center' });
-    }
+    const signatureY = footerY - signatureHeight - 4;
 
     // Add signature image
     try {
@@ -348,22 +324,11 @@ export async function generatePaymentReceiptPDF({
       // ignore if fails
     }
 
+    // Manager label
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
     doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
     doc.text('Manager', signatureX + signatureWidth / 2, signatureY + signatureHeight + 8, { align: 'center' });
-
-    // Clear small duplicate image at bottom-right (if any) by covering a small area to the right of the signature
-    try {
-      const clearX = signatureX + signatureWidth + 4;
-      const clearY = signatureY;
-      const clearW = Math.max(28, pageWidth - margin - clearX);
-      const clearH = signatureHeight + 6;
-      doc.setFillColor(255, 255, 255);
-      doc.rect(clearX, clearY, clearW, clearH, 'F');
-    } catch (err) {
-      // ignore if signature coords not available
-    }
 
     // ===== BOTTOM BAR =====
     doc.setFillColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
