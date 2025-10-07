@@ -229,16 +229,16 @@ export async function generatePaymentReceiptPDF({
 
     // ===== WHY CHOOSE US BOX =====
     const whyChoose = [
-      '45-day guaranteed project completion for all installations',
-      'Over 250+ successful projects delivered across South India',
-      '7+ years of trusted experience in solar energy solutions',
-      '24/7 technical and maintenance support for every customer',
-      'Project backup assistance ensuring uninterrupted performance',
-      'Dedicated WhatsApp group for live updates and service alerts',
-      'Never ask for OTP or confidential information',
-      'End-to-end solar services from design to maintenance',
-      'High-quality MNRE-approved and BIS-certified components',
-      'Supporting a cleaner and greener tomorrow through solar energy',
+      '45-day guaranteed project completion for all installations.',
+      'Over 250+ successful projects delivered across South India.',
+      '7+ years of trusted experience in solar energy solutions.',
+      '24/7 technical and maintenance support for every customer.',
+      'Project backup assistance ensuring uninterrupted performance.',
+      'Dedicated WhatsApp group for live updates and service alerts.',
+      'End-to-end solar services from design to maintenance.',
+      'High-quality MNRE-approved and BIS-certified components.',
+      'Supporting a cleaner and greener tomorrow through solar energy.',
+      'Note:Always confirm before sharing any OTP or confidential information.',
     ];
 
     const whyBoxY = receivedBlockY + 28;
