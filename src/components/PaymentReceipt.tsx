@@ -108,9 +108,9 @@ export async function generatePaymentReceiptPDF({
     doc.rect(0, 0, pageWidth, 9, 'F');
 
     const { dataUrl: logoData, aspectRatio: logoRatio } = await fetchImageAsset(LOGO_URL);
-    // scale logo to fit without stretching (reduced size)
-    const maxLogoWidth = 68;
-    const maxLogoHeight = 34;
+    // scale logo to fit without stretching
+    const maxLogoWidth = 88;
+    const maxLogoHeight = 40;
     let logoWidth = maxLogoWidth;
     let logoHeight = logoWidth * logoRatio;
     if (logoHeight > maxLogoHeight) {
@@ -236,9 +236,8 @@ export async function generatePaymentReceiptPDF({
       'Project backup assistance ensuring uninterrupted performance',
       'Dedicated WhatsApp group for live updates and service alerts',
       'Never ask for OTP or confidential information',
-      'End-to-end solar services from design to maintenance',
       'High-quality MNRE-approved and BIS-certified components',
-      'Supporting a cleaner and greener tomorrow through solar energy',
+      
     ];
 
     const whyBoxY = receivedBlockY + 28;
