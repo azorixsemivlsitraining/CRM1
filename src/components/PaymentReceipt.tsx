@@ -147,13 +147,13 @@ export async function generatePaymentReceiptPDF({
     const detailHeight = 50;
     doc.roundedRect(margin, detailTop, pageWidth - margin * 2, detailHeight, 3, 3, 'S');
 
-    const referenceNumber = AGE${Date.now().toString().slice(-6)};
+    const referenceNumber = `AGE${Date.now().toString().slice(-6)}`;
     const formattedDate = new Date(date).toLocaleDateString('en-GB', {
       day: '2-digit',
       month: 'long',
       year: 'numeric',
     });
-    const placeDetail = placeOfSupply.includes('(') ? placeOfSupply : ${placeOfSupply} (36);
+    const placeDetail = placeOfSupply.includes('(') ? placeOfSupply : `${placeOfSupply} (36)`;
 
     const detailRows = [
       { label: 'Payment Date', value: formattedDate },
@@ -167,7 +167,7 @@ export async function generatePaymentReceiptPDF({
       const rowY = detailTop + 10 + index * 10;
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
-      doc.text(${row.label}:, margin + 8, rowY);
+      doc.text(`${row.label}:`, margin + 8, rowY);
 
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
@@ -187,7 +187,7 @@ export async function generatePaymentReceiptPDF({
     doc.setTextColor(255, 255, 255);
     doc.text('AMOUNT RECEIVED', amountBoxX + amountBoxWidth / 2, amountBoxY + 8, { align: 'center' });
     doc.setFontSize(14);
-    doc.text(Rs. ${amount.toLocaleString('en-IN')}, amountBoxX + amountBoxWidth / 2, amountBoxY + 20, { align: 'center' });
+    doc.text(`Rs. ${amount.toLocaleString('en-IN')}`, amountBoxX + amountBoxWidth / 2, amountBoxY + 20, { align: 'center' });
 
     // ===== AMOUNT IN WORDS =====
     const wordsBlockY = detailTop + detailHeight + 10;
@@ -198,7 +198,7 @@ export async function generatePaymentReceiptPDF({
     doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
     doc.text('Amount in Words', margin + 8, wordsBlockY + 7);
 
-    const amountText = Indian Rupee ${convertToWords(amount)} Only;
+    const amountText = `Indian Rupee ${convertToWords(amount)} Only`;
     const wrappedAmountText = doc.splitTextToSize(amountText, pageWidth - margin * 2 - 16);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9.5);
@@ -283,7 +283,7 @@ export async function generatePaymentReceiptPDF({
     doc.setFillColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
     doc.rect(0, pageHeight - 8, pageWidth, 8, 'F');
 
-    const fileName = Payment_Receipt_${referenceNumber}_${receivedFrom.replace(/\s+/g, '_')}.pdf;
+    const fileName = `Payment_Receipt_${referenceNumber}_${receivedFrom.replace(/\s+/g, '_')}.pdf`;
     doc.save(fileName);
   } catch (error) {
     console.error('Error generating receipt:', error);
