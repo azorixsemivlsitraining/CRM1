@@ -654,7 +654,7 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
         <Card bg={cardBg} border="1px solid" borderColor={borderColor}>
           <CardBody p={0}>
             {projects.length > 0 ? (
-              <TableContainer>
+              <TableContainer overflowX={{ base: 'auto', md: 'hidden' }} sx={{ '&::-webkit-scrollbar': { height: '6px' }, '&::-webkit-scrollbar-thumb': { backgroundColor: 'rgba(0,0,0,0.18)', borderRadius: '3px' } }}>
                 <Table variant="simple" size="sm">
                   <Thead bg="gray.50">
                     <Tr>
