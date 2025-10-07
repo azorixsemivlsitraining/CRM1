@@ -16,7 +16,7 @@ const TEXT_MUTED = { r: 99, g: 110, b: 114 };
 const BOX_BORDER = { r: 209, g: 213, b: 219 };
 const BOX_BG = { r: 244, g: 252, b: 247 };
 
-const LOGO_URL = 'https://cdn.builder.io/api/v1/image/assets%2F59bf3e928fc9473a97d5e87470c824bb%2Fe73212a6556b469681e572b94a3fcc85?format=webp&width=800';
+const LOGO_URL = 'https://cdn.builder.io/api/v1/image/assets%2F379fc6e4730f4c788d839578cbf44f7f%2F80c7e07df9c94e6aa14ced8f1edbf799?format=webp&width=800';
 const FOOTER_SIGN_STAMP_URL = 'https://cdn.builder.io/api/v1/image/assets%2Fd6ed3a58ddbf4178909cabbd3ef86178%2F0237e5d9ea084a6abe20e0bc958c4e2c?format=webp&width=800';
 
 async function fetchImageAsDataURL(url: string): Promise<string> {
