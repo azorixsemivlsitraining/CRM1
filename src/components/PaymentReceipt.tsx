@@ -15,9 +15,8 @@ const TEXT_MUTED = { r: 99, g: 110, b: 114 };
 const BOX_BORDER = { r: 209, g: 213, b: 219 };
 const BOX_BG = { r: 244, g: 252, b: 247 };
 
-const SIGNATURE_IMAGE_URL = 'https://cdn.builder.io/api/v1/image/assets%2F59bf3e928fc9473a97d5e87470c824bb%2Fab79477e9fe14b3b9d38d772daa0cf18?format=webp&width=800';
-const STAMP_IMAGE_URL = 'https://cdn.builder.io/api/v1/image/assets%2F59bf3e928fc9473a97d5e87470c824bb%2F59f98a64427949d8936620ce90bf7a8e?format=webp&width=600';
-const LOGO_URL = '/images/axiso-logo.png';
+const SIGNATURE_IMAGE_URL = 'https://cdn.builder.io/api/v1/image/assets%2F59bf3e928fc9473a97d5e87470c824bb%2Fe7761deba40548afb13dbd440230d9df?format=webp&width=800';
+const LOGO_URL = 'https://cdn.builder.io/api/v1/image/assets%2F59bf3e928fc9473a97d5e87470c824bb%2Fe73212a6556b469681e572b94a3fcc85?format=webp&width=800';
 
 async function fetchImageAsDataURL(url: string): Promise<string> {
   const res = await fetch(url, { mode: 'cors' });
