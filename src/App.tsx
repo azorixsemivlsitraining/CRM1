@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ChakraProvider, Box, Center, Text } from '@chakra-ui/react';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
