@@ -334,19 +334,37 @@ export async function generatePaymentReceiptPDF({
     const stampWidthSmall = 36;
     const stampHeightSmall = stampWidthSmall * (stampRatio || 0.6);
 
-    // draw signature then stamp (right aligned)
+    // helper to detect image format from dataURL
+    const detectImageFormat = (dataUrl: string) => {
+      if (!dataUrl) return 'PNG';
+      const m = dataUrl.match(/^data:image\/(\w+);/);
+      return m ? m[1].toUpperCase() : 'PNG';
+    };
+
+    // draw signature then stamp (right aligned) using detected formats
     try {
-      doc.addImage(signatureData, 'PNG', pageWidth - margin - signatureWidthSmall, sigStampY, signatureWidthSmall, signatureHeightSmall, undefined, 'FAST');
-    } catch (err) {}
+      if (signatureData) {
+        const sigFormat = detectImageFormat(signatureData);
+        doc.addImage(signatureData, sigFormat as any, pageWidth - margin - signatureWidthSmall, sigStampY, signatureWidthSmall, signatureHeightSmall, undefined, 'FAST');
+      }
+    } catch (err) {
+      console.error('Failed to add signature image', err);
+    }
+
     try {
-      doc.addImage(stampData, 'PNG', pageWidth - margin - signatureWidthSmall - 8 - stampWidthSmall, sigStampY + 4, stampWidthSmall, stampHeightSmall, undefined, 'FAST');
-    } catch (err) {}
+      if (stampData) {
+        const stampFormat = detectImageFormat(stampData);
+        doc.addImage(stampData, stampFormat as any, pageWidth - margin - signatureWidthSmall - 8 - stampWidthSmall, sigStampY + 4, stampWidthSmall, stampHeightSmall, undefined, 'FAST');
+      }
+    } catch (err) {
+      console.error('Failed to add stamp image', err);
+    }
 
     // Manager label
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
     doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
-    doc.text('Manager', pageWidth - margin - signatureWidthSmall/2 - 0, sigStampY + signatureHeightSmall + 10, { align: 'center' });
+    doc.text('Manager', pageWidth - margin - signatureWidthSmall / 2 - 0, sigStampY + signatureHeightSmall + 10, { align: 'center' });
 
     // For backward compatibility, keep right company text
     doc.setFont('helvetica', 'bold');
