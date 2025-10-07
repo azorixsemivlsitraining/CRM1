@@ -15,8 +15,8 @@ const TEXT_MUTED = { r: 99, g: 110, b: 114 };
 const BOX_BORDER = { r: 209, g: 213, b: 219 };
 const BOX_BG = { r: 237, g: 249, b: 241 };
 
-const SIGNATURE_IMAGE_URL = 'https://cdn.builder.io/api/v1/image/assets%2F59bf3e928fc9473a97d5e87470c824bb%2Feba4ec5b748142949fa011d119922e71?format=webp&width=800';
-const STAMP_IMAGE_URL = 'https://cdn.builder.io/api/v1/image/assets%2F59bf3e928fc9473a97d5e87470c824bb%2Fa982d303b87c4be9801daedaa72f7da3?format=webp&width=600';
+const SIGNATURE_IMAGE_URL = 'https://cdn.builder.io/api/v1/image/assets%2F59bf3e928fc9473a97d5e87470c824bb%2Fab79477e9fe14b3b9d38d772daa0cf18?format=webp&width=800';
+const STAMP_IMAGE_URL = 'https://cdn.builder.io/api/v1/image/assets%2F59bf3e928fc9473a97d5e87470c824bb%2F59f98a64427949d8936620ce90bf7a8e?format=webp&width=600';
 const LOGO_URL = '/images/axiso-logo.png';
 
 async function fetchImageAsDataURL(url: string): Promise<string> {
