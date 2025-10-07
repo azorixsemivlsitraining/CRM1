@@ -81,6 +81,29 @@ const Login = () => {
     }
   };
 
+  const handleQuickHrLogin = async () => {
+    if (!isHrQuickLoginConfigured || loading) {
+      if (!isHrQuickLoginConfigured) {
+        toast({
+          title: 'Quick HR login unavailable',
+          description: 'Please enter your HR credentials manually.',
+          status: 'warning',
+          duration: 4000,
+          isClosable: true,
+        });
+      }
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      await login(hrEmail, hrPassword);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <Center h="100vh" bg={bgColor}>
