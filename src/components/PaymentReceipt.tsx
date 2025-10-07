@@ -320,24 +320,21 @@ export async function generatePaymentReceiptPDF({
     doc.text('Thank you for choosing sustainable energy solutions!', pageWidth / 2, footerY, { align: 'center' });
 
     // ===== SIGNATURE IMAGE (from uploaded file) =====
-    const RECEIPT_IMAGE_URL = 'https://cdn.builder.io/api/v1/image/assets%2F59bf3e928fc9473a97d5e87470c824bb%2F1d77e3579b17488d87a169e9960db736?format=webp&width=800';
-
-    // Fetch and place the receipt signature (blue stamp with manager)
     try {
       const { dataUrl: receiptSignData, aspectRatio: receiptSignRatio } = await fetchImageAsset(FOOTER_SIGN_STAMP_URL);
       const receiptWidth = 42;
-    const receiptHeight = receiptWidth * (receiptSignRatio || 0.45);
+      const receiptHeight = receiptWidth * (receiptSignRatio || 0.45);
 
-    const thankYouText = 'Thank you for choosing sustainable energy solutions!';
-    const thankYouWidth = doc.getTextWidth(thankYouText);
-    const thankYouEndX = pageWidth / 2 + thankYouWidth / 2;
+      const thankYouText = 'Thank you for choosing sustainable energy solutions!';
+      const thankYouWidth = doc.getTextWidth(thankYouText);
+      const thankYouEndX = pageWidth / 2 + thankYouWidth / 2;
 
-    const maxX = pageWidth - margin - receiptWidth;
-    const preferredX = thankYouEndX + 6;
-    const receiptX = Math.min(maxX, preferredX);
-    const receiptY = footerY - receiptHeight + 4;
+      const maxX = pageWidth - margin - receiptWidth;
+      const preferredX = thankYouEndX + 6;
+      const receiptX = Math.min(maxX, preferredX);
+      const receiptY = footerY - receiptHeight + 4;
 
-    doc.addImage(receiptSignData, 'PNG', receiptX, receiptY, receiptWidth, receiptHeight, undefined, 'FAST');
+      doc.addImage(receiptSignData, 'PNG', receiptX, receiptY, receiptWidth, receiptHeight, undefined, 'FAST');
     } catch (err) {
       console.error('Receipt signature image error:', err);
     }
