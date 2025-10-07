@@ -254,24 +254,37 @@ export async function generatePaymentReceiptPDF({
 
     const dynamicOfferingsBoxHeight = yCursor - offeringsBoxY + 8;
 
+    // Limit offerings box width slightly so it doesn't stretch full width
+    const offeringsBoxWidth = (pageWidth - margin * 2) * 0.92;
+    const offeringsBoxX = margin + ((pageWidth - margin * 2) - offeringsBoxWidth) / 2; // center a bit
+
     // Draw background box
     doc.setFillColor(BOX_BG.r, BOX_BG.g, BOX_BG.b);
-    doc.roundedRect(margin, offeringsBoxY, pageWidth - margin * 2, dynamicOfferingsBoxHeight, 3, 3, 'FD');
+    doc.roundedRect(offeringsBoxX, offeringsBoxY, offeringsBoxWidth, dynamicOfferingsBoxHeight, 3, 3, 'FD');
 
     // Heading
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10.5);
     doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
-    doc.text('Our Offerings:', margin + 8, offeringsBoxY + 8);
+    doc.text('Our Offerings:', offeringsBoxX + 8, offeringsBoxY + 8);
 
-    // Render single-column items
+    // Render single-column items and highlight key services
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8.5);
-    doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+
+    const highlightKeywords = ['Solar Roof', 'Solar Street', 'Batteries', 'Online UPS'];
 
     singleColumnLayout.forEach((row) => {
-      doc.circle(leftColX - 4, row.y - 1.5, 0.5, 'F');
-      doc.text(row.wrapped, leftColX, row.y);
+      const isHighlighted = row.wrapped.some(line => highlightKeywords.some(k => line.includes(k)));
+      if (isHighlighted) {
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
+      } else {
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+      }
+      doc.circle(offeringsBoxX + 8, row.y - 1.5, 0.6, 'F');
+      doc.text(row.wrapped, offeringsBoxX + 12, row.y);
     });
 
     // ===== FOOTER =====
