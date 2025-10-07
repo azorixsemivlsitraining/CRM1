@@ -271,44 +271,29 @@ export async function generatePaymentReceiptPDF({
     doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
     doc.text('Our Other Offerings', whyBoxX + 8, whyBoxY + 8);
 
-    // Render list with green checkmarks and bold black prefixes
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    const prefixWords = 3; // number of words to bold for each item
-    itemsLayout.forEach(itemObj => {
-      const raw = itemObj.wrapped.join(' ');
-      const words = raw.split(/\s+/);
-      const prefix = words.slice(0, prefixWords).join(' ');
-      const rest = words.slice(prefixWords).join(' ');
+    // Render list with green checkmarks and all bold text
+doc.setFont('helvetica', 'bold');
+doc.setFontSize(9);
 
-      const checkX = whyBoxX + 8;
-      const textX = whyBoxX + 18;
-      const lineY = itemObj.y;
+itemsLayout.forEach(itemObj => {
+  const raw = itemObj.wrapped.join(' ');
 
-      // draw check symbol
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
-      doc.text('✓', checkX, lineY);
+  const checkX = whyBoxX + 8;
+  const textX = whyBoxX + 18;
+  const lineY = itemObj.y;
 
-      // draw prefix in bold black
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(0, 0, 0);
-      doc.text(prefix + ' ', textX, lineY);
-      const prefixWidth = doc.getTextWidth(prefix + ' ');
+  // Draw green check symbol
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
+  doc.text('✓', checkX, lineY);
 
-      // draw the rest, wrapped
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
-      const restWrapped = doc.splitTextToSize(rest, contentWidth - prefixWidth);
-      if (restWrapped.length > 0) {
-        // first line after prefix
-        doc.text(restWrapped[0], textX + prefixWidth, lineY);
-        // subsequent lines
-        for (let i = 1; i < restWrapped.length; i++) {
-          doc.text(restWrapped[i], textX, lineY + i * lineGap);
-        }
-      }
-    });
+  // Draw the full text in bold black
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(0, 0, 0);
+  const wrappedText = doc.splitTextToSize(raw, contentWidth);
+  doc.text(wrappedText, textX, lineY);
+});
+
 
     // ===== FOOTER =====
     const footerY = whyBoxY + dynamicWhyBoxHeight + 14;
