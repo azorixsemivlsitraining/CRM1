@@ -229,22 +229,22 @@ export async function generatePaymentReceiptPDF({
 
     // ===== WHY CHOOSE US BOX =====
     const whyChoose = [
-      '45-day guaranteed project completion for all installations.',
-      'Over 250+ successful projects delivered across South India.',
-      '7+ years of trusted experience in solar energy solutions.',
-      '24/7 technical and maintenance support for every customer.',
-      'Project backup assistance ensuring uninterrupted performance.',
-      'Dedicated WhatsApp group for live updates and service alerts.',
-      'End-to-end solar services from design to maintenance.',
-      'High-quality MNRE-approved and BIS-certified components.',
-      'Supporting a cleaner and greener tomorrow through solar energy.',
-      'Note:Always confirm before sharing any OTP or confidential information.',
+      'Solar Roof Top Power Plants(ON-Grid, OFF-Grid & Hybrid).',
+      'Solar Street Lights',
+      'Solar Water Pumping System',
+      'Solar Fencing',
+      'Solar Pergolas',
+      'Solar Dryers',
+      'Batteries and Inverters',
+      'Online UPS',
+      'Solar Water Heating Systems',
+      
     ];
 
     const whyBoxY = receivedBlockY + 28;
     const startY = whyBoxY + 12;
     const lineGap = 6;
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
 
     // Pre-calculate wrapped lines and height
@@ -269,46 +269,31 @@ export async function generatePaymentReceiptPDF({
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10.5);
     doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
-    doc.text('Why Choose Us', whyBoxX + 8, whyBoxY + 8);
+    doc.text('Our Other Offerings', whyBoxX + 8, whyBoxY + 8);
 
-    // Render list with green checkmarks and bold black prefixes
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    const prefixWords = 3; // number of words to bold for each item
-    itemsLayout.forEach(itemObj => {
-      const raw = itemObj.wrapped.join(' ');
-      const words = raw.split(/\s+/);
-      const prefix = words.slice(0, prefixWords).join(' ');
-      const rest = words.slice(prefixWords).join(' ');
+    // Render list with green checkmarks and all bold text
+doc.setFont('helvetica', 'bold');
+doc.setFontSize(9);
 
-      const checkX = whyBoxX + 8;
-      const textX = whyBoxX + 18;
-      const lineY = itemObj.y;
+itemsLayout.forEach(itemObj => {
+  const raw = itemObj.wrapped.join(' ');
 
-      // draw check symbol
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
-      doc.text('✓', checkX, lineY);
+  const checkX = whyBoxX + 8;
+  const textX = whyBoxX + 18;
+  const lineY = itemObj.y;
 
-      // draw prefix in bold black
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(0, 0, 0);
-      doc.text(prefix + ' ', textX, lineY);
-      const prefixWidth = doc.getTextWidth(prefix + ' ');
+  // Draw green check symbol
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
+  doc.text('✓', checkX, lineY);
 
-      // draw the rest, wrapped
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
-      const restWrapped = doc.splitTextToSize(rest, contentWidth - prefixWidth);
-      if (restWrapped.length > 0) {
-        // first line after prefix
-        doc.text(restWrapped[0], textX + prefixWidth, lineY);
-        // subsequent lines
-        for (let i = 1; i < restWrapped.length; i++) {
-          doc.text(restWrapped[i], textX, lineY + i * lineGap);
-        }
-      }
-    });
+  // Draw the full text in bold black
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(0, 0, 0);
+  const wrappedText = doc.splitTextToSize(raw, contentWidth);
+  doc.text(wrappedText, textX, lineY);
+});
+
 
     // ===== FOOTER =====
     const footerY = whyBoxY + dynamicWhyBoxHeight + 14;
