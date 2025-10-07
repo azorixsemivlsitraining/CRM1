@@ -232,31 +232,69 @@ export async function generatePaymentReceiptPDF({
     ];
 
     const offeringsBoxY = receivedBlockY + 30;
-    const offeringsBoxHeight = 45;
-    doc.setFillColor(248, 250, 252);
-    doc.roundedRect(margin, offeringsBoxY, pageWidth - margin * 2, offeringsBoxHeight, 3, 3, 'FD');
 
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10.5);
-    doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
-    doc.text('Our Offerings:', margin + 8, offeringsBoxY + 8);
+    // Pre-measure dynamic height and layout to avoid overlap
+    const colWidth = (pageWidth - margin * 2 - 16) / 2;
+    const mid = Math.ceil(offerings.length / 2);
+    const leftItems = offerings.slice(0, mid);
+    const rightItems = offerings.slice(mid);
+    const lineGap = 5;
+    const startY = offeringsBoxY + 13;
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8.5);
     doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
 
-    let bulletY = offeringsBoxY + 13;
-    const colWidth = (pageWidth - margin * 2 - 16) / 2;
-    offerings.forEach((item, i) => {
-      const colX = margin + 10 + (i >= offerings.length / 2 ? colWidth : 0);
-      const rowY = bulletY + (i % (offerings.length / 2)) * 5;
-      doc.circle(colX - 2, rowY - 1.5, 0.5, 'F');
-      const wrapped = doc.splitTextToSize(item, colWidth - 8);
-      doc.text(wrapped, colX, rowY);
+    const leftLayout: { y: number; wrapped: string[] }[] = [];
+    const rightLayout: { y: number; wrapped: string[] }[] = [];
+
+    let leftYCursor = startY;
+    let rightYCursor = startY;
+
+    leftItems.forEach((item) => {
+      const wrapped = doc.splitTextToSize(item, colWidth - 8) as string[];
+      leftLayout.push({ y: leftYCursor, wrapped });
+      leftYCursor += wrapped.length * lineGap;
+    });
+
+    rightItems.forEach((item) => {
+      const wrapped = doc.splitTextToSize(item, colWidth - 8) as string[];
+      rightLayout.push({ y: rightYCursor, wrapped });
+      rightYCursor += wrapped.length * lineGap;
+    });
+
+    const dynamicOfferingsBoxHeight = Math.max(leftYCursor, rightYCursor) - offeringsBoxY + 10;
+
+    // Draw background box
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(margin, offeringsBoxY, pageWidth - margin * 2, dynamicOfferingsBoxHeight, 3, 3, 'FD');
+
+    // Heading
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10.5);
+    doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
+    doc.text('Our Offerings:', margin + 8, offeringsBoxY + 8);
+
+    // Render content columns
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+
+    const leftColX = margin + 10;
+    const rightColX = margin + 10 + colWidth;
+
+    leftLayout.forEach((row) => {
+      doc.circle(leftColX - 2, row.y - 1.5, 0.5, 'F');
+      doc.text(row.wrapped, leftColX, row.y);
+    });
+
+    rightLayout.forEach((row) => {
+      doc.circle(rightColX - 2, row.y - 1.5, 0.5, 'F');
+      doc.text(row.wrapped, rightColX, row.y);
     });
 
     // ===== FOOTER =====
-    const footerY = offeringsBoxY + offeringsBoxHeight + 12;
+    const footerY = offeringsBoxY + dynamicOfferingsBoxHeight + 12;
     doc.setFont('helvetica', 'italic');
     doc.setFontSize(9.5);
     doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
