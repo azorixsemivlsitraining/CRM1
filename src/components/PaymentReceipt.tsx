@@ -302,7 +302,7 @@ export async function generatePaymentReceiptPDF({
     // Fetch signature and stamp images
     const [{ dataUrl: signatureData, aspectRatio: signatureRatio }, { dataUrl: stampData, aspectRatio: stampRatio }] = await Promise.all([
       fetchImageAsset(SIGNATURE_IMAGE_URL),
-      fetchImageAsset(STAMP_IMAGE_URL).catch(() => ({ dataUrl: '', aspectRatio: 0.6 })),
+      fetchImageAsset('https://cdn.builder.io/api/v1/image/assets%2F59bf3e928fc9473a97d5e87470c824bb%2Fa982d303b87c4be9801daedaa72f7da3?format=webp&width=600').catch(() => ({ dataUrl: '', aspectRatio: 0.6 })),
     ]);
 
     // Small sizes for signature and stamp
