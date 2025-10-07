@@ -191,7 +191,7 @@ export async function generatePaymentReceiptPDF({
     doc.text(`Rs. ${amount.toLocaleString('en-IN')}`, amountBoxX + amountBoxWidth / 2, amountBoxY + 20, { align: 'center' });
 
     // ===== AMOUNT IN WORDS =====
-    const wordsBlockY = detailTop + detailHeight + 10;
+    const wordsBlockY = detailTop + detailHeight + 8;
     doc.setFillColor(BOX_BG.r, BOX_BG.g, BOX_BG.b);
     doc.roundedRect(margin, wordsBlockY, pageWidth - margin * 2, 18, 3, 3, 'FD');
     doc.setFont('helvetica', 'normal');
@@ -207,7 +207,7 @@ export async function generatePaymentReceiptPDF({
     doc.text(wrappedAmountText, margin + 8, wordsBlockY + 13);
 
     // ===== RECEIVED FROM BOX =====
-    const receivedBlockY = wordsBlockY + 25;
+    const receivedBlockY = wordsBlockY + 18;
     doc.setFillColor(BOX_BG.r, BOX_BG.g, BOX_BG.b);
     doc.roundedRect(margin, receivedBlockY, pageWidth - margin * 2, 22, 3, 3, 'FD');
     doc.setFont('helvetica', 'bold');
@@ -232,7 +232,7 @@ export async function generatePaymentReceiptPDF({
       'Solar Water Heating Systems',
     ];
 
-    const offeringsBoxY = receivedBlockY + 30;
+    const offeringsBoxY = receivedBlockY + 20;
 
     // Single-column offerings on the left with dynamic height
     const startY = offeringsBoxY + 13;
@@ -251,11 +251,11 @@ export async function generatePaymentReceiptPDF({
       yCursor += wrapped.length * lineGap;
     });
 
-    const dynamicOfferingsBoxHeight = yCursor - offeringsBoxY + 8;
+    const dynamicOfferingsBoxHeight = yCursor - offeringsBoxY + 6;
 
-    // Limit offerings box width slightly so it doesn't stretch full width
-    const offeringsBoxWidth = (pageWidth - margin * 2) * 0.92;
-    const offeringsBoxX = margin + ((pageWidth - margin * 2) - offeringsBoxWidth) / 2; // center a bit
+    // Make offerings box aligned with other boxes (full width inside margins)
+    const offeringsBoxWidth = pageWidth - margin * 2;
+    const offeringsBoxX = margin;
 
     // Draw background box
     doc.setFillColor(BOX_BG.r, BOX_BG.g, BOX_BG.b);
@@ -267,27 +267,20 @@ export async function generatePaymentReceiptPDF({
     doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
     doc.text('Our Offerings:', offeringsBoxX + 8, offeringsBoxY + 8);
 
-    // Render single-column items and highlight key services
-    doc.setFont('helvetica', 'normal');
+    // Render single-column items and highlight ALL services with bold black text
+    doc.setFont('helvetica', 'bold');
     doc.setFontSize(8.5);
-
-    const highlightKeywords = ['Solar Roof', 'Solar Street', 'Batteries', 'Online UPS'];
+    doc.setTextColor(0, 0, 0);
 
     singleColumnLayout.forEach((row) => {
-      const isHighlighted = row.wrapped.some(line => highlightKeywords.some(k => line.includes(k)));
-      if (isHighlighted) {
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
-      } else {
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
-      }
       doc.circle(offeringsBoxX + 8, row.y - 1.5, 0.6, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(0, 0, 0);
       doc.text(row.wrapped, offeringsBoxX + 12, row.y);
     });
 
     // ===== FOOTER =====
-    const footerY = offeringsBoxY + dynamicOfferingsBoxHeight + 12;
+    const footerY = offeringsBoxY + dynamicOfferingsBoxHeight + 10;
     doc.setFont('helvetica', 'italic');
     doc.setFontSize(9.5);
     doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
@@ -309,7 +302,7 @@ export async function generatePaymentReceiptPDF({
 
     // Place signature on the bottom-right and the stamp image to its left (rotated look)
     const signatureX = pageWidth - margin - signatureWidth;
-    const signatureY = footerY + 11;
+    const signatureY = footerY + 6;
 
     // Stamp dimensions
     const stampWidth = 56;
