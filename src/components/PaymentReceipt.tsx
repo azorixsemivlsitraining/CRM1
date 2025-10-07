@@ -244,7 +244,7 @@ export async function generatePaymentReceiptPDF({
     const whyBoxY = receivedBlockY + 28;
     const startY = whyBoxY + 12;
     const lineGap = 6;
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
 
     // Pre-calculate wrapped lines and height
