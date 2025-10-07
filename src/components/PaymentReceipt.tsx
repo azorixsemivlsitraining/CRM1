@@ -298,21 +298,35 @@ export async function generatePaymentReceiptPDF({
     doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
     doc.text('For AXISO GREEN ENERGIES PVT. LTD.', pageWidth - margin - 6, footerY + 6, { align: 'right' });
 
-    // Fetch signature image only
-    const { dataUrl: signatureData, aspectRatio: signatureRatio } = await fetchImageAsset(SIGNATURE_IMAGE_URL);
+    // Fetch signature and stamp images
+    const [{ dataUrl: signatureData, aspectRatio: signatureRatio }, { dataUrl: stampData, aspectRatio: stampRatio }] = await Promise.all([
+      fetchImageAsset(SIGNATURE_IMAGE_URL),
+      fetchImageAsset(STAMP_IMAGE_URL).catch(() => ({ dataUrl: '', aspectRatio: 0.6 })),
+    ]);
 
-    // Reduce signature size and move slightly down
-    const signatureWidth = 60;
+    // Small sizes for signature and stamp
+    const signatureWidth = 56;
     const signatureHeight = signatureWidth * (signatureRatio || 0.5) * 0.5;
-    const signatureX = pageWidth - margin - signatureWidth;
-    const signatureY = footerY + 6; // place slightly below footer text
+    const stampWidth = 38;
+    const stampHeight = stampWidth * (stampRatio || 0.6);
 
-    // Add signature image
+    // Place stamp left of signature, both slightly above footer
+    const signatureX = pageWidth - margin - signatureWidth;
+    const signatureY = footerY + 6;
+    const stampX = signatureX - stampWidth - 8;
+    const stampY = signatureY + 6;
+
+    // Draw stamp first
+    if (stampData) {
+      try {
+        doc.addImage(stampData, 'PNG', stampX, stampY, stampWidth, stampHeight, undefined, 'FAST');
+      } catch (err) {}
+    }
+
+    // Draw signature
     try {
       doc.addImage(signatureData, 'PNG', signatureX, signatureY, signatureWidth, signatureHeight, undefined, 'FAST');
-    } catch (err) {
-      // ignore if fails
-    }
+    } catch (err) {}
 
     // Manager label
     doc.setFont('helvetica', 'bold');
