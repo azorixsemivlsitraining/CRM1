@@ -1,4 +1,5 @@
-import { jsPDF } from 'jspdf';
+import React from 'react';
+import jsPDF from 'jspdf';
 
 interface PaymentReceiptProps {
   date: string;
@@ -13,10 +14,11 @@ const BRAND_PRIMARY = { r: 72, g: 187, b: 120 };
 const TEXT_PRIMARY = { r: 45, g: 55, b: 72 };
 const TEXT_MUTED = { r: 99, g: 110, b: 114 };
 const BOX_BORDER = { r: 209, g: 213, b: 219 };
+const BOX_BG = { r: 244, g: 252, b: 247 };
 
-const SIGNATURE_IMAGE_URL =
-  'https://cdn.builder.io/api/v1/image/assets%2F07ba826074254d3191a55ee32e800a58%2Fdba80239da89463d902e6021298aa064?format=png&width=600';
-const LOGO_URL = '/images/axiso-logo.png';
+const SIGNATURE_IMAGE_URL = 'https://cdn.builder.io/api/v1/image/assets%2F59bf3e928fc9473a97d5e87470c824bb%2Fe7761deba40548afb13dbd440230d9df?format=webp&width=800';
+const STAMP_IMAGE_URL = 'https://cdn.builder.io/api/v1/image/assets%2F59bf3e928fc9473a97d5e87470c824bb%2F7bbcfa1607bc4ab0ad47d1a2efdf32a1?format=webp&width=800';
+const LOGO_URL = 'https://cdn.builder.io/api/v1/image/assets%2F59bf3e928fc9473a97d5e87470c824bb%2Fe73212a6556b469681e572b94a3fcc85?format=webp&width=800';
 
 async function fetchImageAsDataURL(url: string): Promise<string> {
   const res = await fetch(url, { mode: 'cors' });
@@ -107,9 +109,17 @@ export async function generatePaymentReceiptPDF({
     doc.rect(0, 0, pageWidth, 9, 'F');
 
     const { dataUrl: logoData, aspectRatio: logoRatio } = await fetchImageAsset(LOGO_URL);
-    const logoWidth = 46;
-    const logoHeight = logoWidth * logoRatio;
-    doc.addImage(logoData, 'PNG', pageWidth - margin - logoWidth, margin - 7, logoWidth, logoHeight, undefined, 'FAST');
+    // scale logo to fit without stretching (reduced size)
+    const maxLogoWidth = 68;
+    const maxLogoHeight = 34;
+    let logoWidth = maxLogoWidth;
+    let logoHeight = logoWidth * logoRatio;
+    if (logoHeight > maxLogoHeight) {
+      logoHeight = maxLogoHeight;
+      logoWidth = logoHeight / logoRatio;
+    }
+    // position logo top-right
+    doc.addImage(logoData, 'PNG', pageWidth - margin - logoWidth, margin - 8, logoWidth, logoHeight, undefined, 'FAST');
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(14);
@@ -123,7 +133,7 @@ export async function generatePaymentReceiptPDF({
 
     const companyLines = [
       'Address: PLOT NO-102,103, TEMPLE LANE MYTHRI NAGAR',
-      'Shri Ambika Vidya Mandir, MATHRUSRINAGAR, SERILINGAMPALLY',
+      'Shri Ambika Vidya Mandir, MATHRUSRINAGAR, SERLINGAMPALLY',
       'Hyderabad, Rangareddy, Telangana, 500049',
       'Email: contact@axisogreen.in | Website: www.axisogreen.in',
       'GSTIN: 36ABBCA4478M1Z9',
@@ -147,13 +157,13 @@ export async function generatePaymentReceiptPDF({
     const detailHeight = 50;
     doc.roundedRect(margin, detailTop, pageWidth - margin * 2, detailHeight, 3, 3, 'S');
 
-    const referenceNumber = AGE${Date.now().toString().slice(-6)};
+    const referenceNumber = `AGE${Date.now().toString().slice(-6)}`;
     const formattedDate = new Date(date).toLocaleDateString('en-GB', {
       day: '2-digit',
       month: 'long',
       year: 'numeric',
     });
-    const placeDetail = placeOfSupply.includes('(') ? placeOfSupply : ${placeOfSupply} (36);
+    const placeDetail = placeOfSupply.includes('(') ? placeOfSupply : `${placeOfSupply} (36)`;
 
     const detailRows = [
       { label: 'Payment Date', value: formattedDate },
@@ -167,7 +177,7 @@ export async function generatePaymentReceiptPDF({
       const rowY = detailTop + 10 + index * 10;
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
-      doc.text(${row.label}:, margin + 8, rowY);
+      doc.text(`${row.label}:`, margin + 8, rowY);
 
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
@@ -187,18 +197,18 @@ export async function generatePaymentReceiptPDF({
     doc.setTextColor(255, 255, 255);
     doc.text('AMOUNT RECEIVED', amountBoxX + amountBoxWidth / 2, amountBoxY + 8, { align: 'center' });
     doc.setFontSize(14);
-    doc.text(Rs. ${amount.toLocaleString('en-IN')}, amountBoxX + amountBoxWidth / 2, amountBoxY + 20, { align: 'center' });
+    doc.text(`Rs. ${amount.toLocaleString('en-IN')}`, amountBoxX + amountBoxWidth / 2, amountBoxY + 20, { align: 'center' });
 
     // ===== AMOUNT IN WORDS =====
-    const wordsBlockY = detailTop + detailHeight + 10;
-    doc.setFillColor(248, 250, 252);
+    const wordsBlockY = detailTop + detailHeight + 12;
+    doc.setFillColor(BOX_BG.r, BOX_BG.g, BOX_BG.b);
     doc.roundedRect(margin, wordsBlockY, pageWidth - margin * 2, 18, 3, 3, 'FD');
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9.5);
     doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
     doc.text('Amount in Words', margin + 8, wordsBlockY + 7);
 
-    const amountText = Indian Rupee ${convertToWords(amount)} Only;
+    const amountText = `Indian Rupee ${convertToWords(amount)} Only`;
     const wrappedAmountText = doc.splitTextToSize(amountText, pageWidth - margin * 2 - 16);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9.5);
@@ -206,8 +216,8 @@ export async function generatePaymentReceiptPDF({
     doc.text(wrappedAmountText, margin + 8, wordsBlockY + 13);
 
     // ===== RECEIVED FROM BOX =====
-    const receivedBlockY = wordsBlockY + 25;
-    doc.setFillColor(248, 250, 252);
+    const receivedBlockY = wordsBlockY + 22;
+    doc.setFillColor(BOX_BG.r, BOX_BG.g, BOX_BG.b);
     doc.roundedRect(margin, receivedBlockY, pageWidth - margin * 2, 22, 3, 3, 'FD');
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(11);
@@ -218,72 +228,155 @@ export async function generatePaymentReceiptPDF({
     doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
     doc.text(receivedFrom, margin + 8, receivedBlockY + 16);
 
-    // ===== OFFERINGS BOX =====
-    const offerings = [
-      'Solar Roof Top Power Plants (ON-Grid, OFF-Grid & Hybrid)',
-      'Solar Street Lights',
-      'Solar Water Pumping Systems',
-      'Solar Fencing',
-      'Solar Pergolas',
-      'Solar Dryers',
-      'Batteries and Inverters',
-      'Online UPS',
-      'Solar Water Heating Systems',
+    // ===== WHY CHOOSE US BOX =====
+    const whyChoose = [
+      '45-day guaranteed project completion for all installations',
+      'Over 250+ successful projects delivered across South India',
+      '7+ years of trusted experience in solar energy solutions',
+      '24/7 technical and maintenance support for every customer',
+      'Project backup assistance ensuring uninterrupted performance',
+      'Dedicated WhatsApp group for live updates and service alerts',
+      'Never ask for OTP or confidential information',
+      'End-to-end solar services from design to maintenance',
+      'High-quality MNRE-approved and BIS-certified components',
+      'Supporting a cleaner and greener tomorrow through solar energy',
     ];
 
-    const offeringsBoxY = receivedBlockY + 30;
-    const offeringsBoxHeight = 45;
-    doc.setFillColor(248, 250, 252);
-    doc.roundedRect(margin, offeringsBoxY, pageWidth - margin * 2, offeringsBoxHeight, 3, 3, 'FD');
+    const whyBoxY = receivedBlockY + 28;
+    const startY = whyBoxY + 12;
+    const lineGap = 6;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
 
+    // Pre-calculate wrapped lines and height
+    const contentWidth = pageWidth - margin * 2 - 24;
+    let yCursor = startY;
+    const itemsLayout: { wrapped: string[]; y: number }[] = [];
+    whyChoose.forEach(item => {
+      const wrapped = doc.splitTextToSize(item, contentWidth) as string[];
+      itemsLayout.push({ wrapped, y: yCursor });
+      yCursor += wrapped.length * lineGap;
+    });
+
+    const dynamicWhyBoxHeight = yCursor - whyBoxY + 8;
+
+    // Draw background box
+    const whyBoxX = margin;
+    const whyBoxWidth = pageWidth - margin * 2;
+    doc.setFillColor(BOX_BG.r, BOX_BG.g, BOX_BG.b);
+    doc.roundedRect(whyBoxX, whyBoxY, whyBoxWidth, dynamicWhyBoxHeight, 3, 3, 'FD');
+
+    // Heading
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10.5);
     doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
-    doc.text('Our Offerings:', margin + 8, offeringsBoxY + 8);
+    doc.text('Why Choose Us', whyBoxX + 8, whyBoxY + 8);
 
+    // Render list with green checkmarks and bold black prefixes
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8.5);
-    doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+    doc.setFontSize(9);
+    const prefixWords = 3; // number of words to bold for each item
+    itemsLayout.forEach(itemObj => {
+      const raw = itemObj.wrapped.join(' ');
+      const words = raw.split(/\s+/);
+      const prefix = words.slice(0, prefixWords).join(' ');
+      const rest = words.slice(prefixWords).join(' ');
 
-    let bulletY = offeringsBoxY + 13;
-    const colWidth = (pageWidth - margin * 2 - 16) / 2;
-    offerings.forEach((item, i) => {
-      const colX = margin + 10 + (i >= offerings.length / 2 ? colWidth : 0);
-      const rowY = bulletY + (i % (offerings.length / 2)) * 5;
-      doc.circle(colX - 2, rowY - 1.5, 0.5, 'F');
-      const wrapped = doc.splitTextToSize(item, colWidth - 8);
-      doc.text(wrapped, colX, rowY);
+      const checkX = whyBoxX + 8;
+      const textX = whyBoxX + 18;
+      const lineY = itemObj.y;
+
+      // draw check symbol
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
+      doc.text('✓', checkX, lineY);
+
+      // draw prefix in bold black
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(0, 0, 0);
+      doc.text(prefix + ' ', textX, lineY);
+      const prefixWidth = doc.getTextWidth(prefix + ' ');
+
+      // draw the rest, wrapped
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+      const restWrapped = doc.splitTextToSize(rest, contentWidth - prefixWidth);
+      if (restWrapped.length > 0) {
+        // first line after prefix
+        doc.text(restWrapped[0], textX + prefixWidth, lineY);
+        // subsequent lines
+        for (let i = 1; i < restWrapped.length; i++) {
+          doc.text(restWrapped[i], textX, lineY + i * lineGap);
+        }
+      }
     });
 
     // ===== FOOTER =====
-    const footerY = offeringsBoxY + offeringsBoxHeight + 12;
+    const footerY = whyBoxY + dynamicWhyBoxHeight + 14;
     doc.setFont('helvetica', 'italic');
     doc.setFontSize(9.5);
     doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
     doc.text('Thank you for choosing sustainable energy solutions!', pageWidth / 2, footerY, { align: 'center' });
 
+    // place small stamp+signature to the right of the thank you note
+    const sigStampTotalW = 56 + 8 + 36; // signature + gap + stamp
+    const sigStampX = Math.min(pageWidth - margin - 8 -  sigStampTotalW/2, pageWidth - margin - sigStampTotalW);
+    // place signature & stamp below the thank-you text to avoid overlap
+    const sigStampY = footerY + 8;
+
+    const [{ dataUrl: signatureData, aspectRatio: signatureRatio }, { dataUrl: stampData, aspectRatio: stampRatio }] = await Promise.all([
+      fetchImageAsset(SIGNATURE_IMAGE_URL),
+      fetchImageAsset(STAMP_IMAGE_URL).catch(() => ({ dataUrl: '', aspectRatio: 0.6 })),
+    ]);
+
+    const signatureWidthSmall = 56;
+    const signatureHeightSmall = signatureWidthSmall * (signatureRatio || 0.5) * 0.5;
+    const stampWidthSmall = 36;
+    const stampHeightSmall = stampWidthSmall * (stampRatio || 0.6);
+
+    // helper to detect image format from dataURL
+    const detectImageFormat = (dataUrl: string) => {
+      if (!dataUrl) return 'PNG';
+      const m = dataUrl.match(/^data:image\/(\w+);/);
+      return m ? m[1].toUpperCase() : 'PNG';
+    };
+
+    // draw signature then stamp (right aligned) using detected formats
+    try {
+      if (signatureData) {
+        const sigFormat = detectImageFormat(signatureData);
+        doc.addImage(signatureData, sigFormat as any, pageWidth - margin - signatureWidthSmall, sigStampY, signatureWidthSmall, signatureHeightSmall, undefined, 'FAST');
+      }
+    } catch (err) {
+      console.error('Failed to add signature image', err);
+    }
+
+    try {
+      if (stampData) {
+        const stampFormat = detectImageFormat(stampData);
+        doc.addImage(stampData, stampFormat as any, pageWidth - margin - signatureWidthSmall - 8 - stampWidthSmall, sigStampY + 4, stampWidthSmall, stampHeightSmall, undefined, 'FAST');
+      }
+    } catch (err) {
+      console.error('Failed to add stamp image', err);
+    }
+
+    // Manager label
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
     doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
-    doc.text('For AXISO GREEN ENERGIES PVT. LTD.', pageWidth - margin - 70, footerY + 10);
+    doc.text('Manager', pageWidth - margin - signatureWidthSmall / 2 - 0, sigStampY + signatureHeightSmall + 10, { align: 'center' });
 
-    const { dataUrl: signatureData, aspectRatio: signatureRatio } = await fetchImageAsset(SIGNATURE_IMAGE_URL);
-    const signatureWidth = 42;
-    const signatureHeight = signatureWidth * signatureRatio;
-    const signatureX = pageWidth - margin - signatureWidth;
-    const signatureY = footerY + 11;
-    doc.addImage(signatureData, 'PNG', signatureX, signatureY, signatureWidth, signatureHeight, undefined, 'FAST');
-
+    // For backward compatibility, keep right company text
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
     doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
-    doc.text('Manager', signatureX + signatureWidth / 2, signatureY + signatureHeight + 8, { align: 'center' });
+    doc.text('For AXISO GREEN ENERGIES PVT. LTD.', pageWidth - margin - 6, footerY + 14, { align: 'right' });
 
     // ===== BOTTOM BAR =====
     doc.setFillColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
     doc.rect(0, pageHeight - 8, pageWidth, 8, 'F');
 
-    const fileName = Payment_Receipt_${referenceNumber}_${receivedFrom.replace(/\s+/g, '_')}.pdf;
+    const fileName = `Payment_Receipt_${referenceNumber}_${receivedFrom.replace(/\s+/g, '_')}.pdf`;
     doc.save(fileName);
   } catch (error) {
     console.error('Error generating receipt:', error);
