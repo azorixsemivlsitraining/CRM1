@@ -35,7 +35,11 @@ const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const toast = useToast();
-  const { login, isAuthenticated, isLoading, user } = useAuth();
+  const { login, isAuthenticated, isLoading } = useAuth();
+  const hrEmail = process.env.REACT_APP_HR_EMAIL || '';
+  const hrPassword = process.env.REACT_APP_HR_PASSWORD || '';
+  const fromHR = Boolean((location.state as any)?.fromHR);
+  const isHrQuickLoginConfigured = Boolean(hrEmail && hrPassword);
   const handleForgot = async () => {
     if (!email) {
       toast({ title: 'Enter your email first', status: 'warning', duration: 3000, isClosable: true });
