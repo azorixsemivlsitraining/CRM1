@@ -491,7 +491,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           ml={{ base: 0, lg: isCollapsed ? '72px' : '240px' }}
           transition="margin-left 0.2s"
           minH="100vh"
-          overflowX="hidden"
+          overflowX="auto"
         >
           {/* Navigation Header */}
           <NavigationHeader />
