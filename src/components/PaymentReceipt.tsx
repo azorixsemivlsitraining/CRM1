@@ -288,8 +288,25 @@ export async function generatePaymentReceiptPDF({
     const { dataUrl: signatureData, aspectRatio: signatureRatio } = await fetchImageAsset(SIGNATURE_IMAGE_URL);
     const signatureWidth = 42;
     const signatureHeight = signatureWidth * signatureRatio;
+
+    // Place signature on the bottom-right and a stamp box to its left
     const signatureX = pageWidth - margin - signatureWidth;
     const signatureY = footerY + 11;
+
+    // Draw stamp box left of the signature
+    const stampWidth = 48;
+    const stampHeight = 28;
+    const stampX = signatureX - stampWidth - 8;
+    const stampY = signatureY;
+    doc.setDrawColor(BOX_BORDER.r, BOX_BORDER.g, BOX_BORDER.b);
+    doc.setFillColor(255, 255, 255);
+    doc.rect(stampX, stampY, stampWidth, stampHeight, 'S');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
+    doc.text(['Stamp'], stampX + stampWidth / 2, stampY + stampHeight / 2 + 3, { align: 'center' });
+
+    // Add signature image
     doc.addImage(signatureData, 'PNG', signatureX, signatureY, signatureWidth, signatureHeight, undefined, 'FAST');
 
     doc.setFont('helvetica', 'bold');
