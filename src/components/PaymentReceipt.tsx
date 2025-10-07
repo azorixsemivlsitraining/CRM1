@@ -336,6 +336,18 @@ export async function generatePaymentReceiptPDF({
     doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
     doc.text('Manager', signatureX + signatureWidth / 2, signatureY + signatureHeight + 8, { align: 'center' });
 
+    // Clear small duplicate image at bottom-right (if any) by covering a small area to the right of the signature
+    try {
+      const clearX = signatureX + signatureWidth + 4;
+      const clearY = signatureY;
+      const clearW = Math.max(28, pageWidth - margin - clearX);
+      const clearH = signatureHeight + 6;
+      doc.setFillColor(255, 255, 255);
+      doc.rect(clearX, clearY, clearW, clearH, 'F');
+    } catch (err) {
+      // ignore if signature coords not available
+    }
+
     // ===== BOTTOM BAR =====
     doc.setFillColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
     doc.rect(0, pageHeight - 8, pageWidth, 8, 'F');
