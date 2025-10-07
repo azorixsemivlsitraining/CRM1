@@ -259,25 +259,21 @@ const Login = () => {
                 >
                   Sign In
                 </Button>
-                {(location.state as any)?.fromHR && (
+                {fromHR && isHrQuickLoginConfigured && (
                   <Button
                     variant="outline"
                     colorScheme="green"
                     size="sm"
-                    onClick={async () => {
-                      try {
-                        setLoading(true);
-                        await login('yellesh@axisogreen.in','yellesh@2024');
-                        navigate('/hr', { replace: true });
-                      } catch (e: any) {
-                        toast({ title: 'HR login failed', description: e?.message || String(e), status: 'error', duration: 5000, isClosable: true });
-                      } finally {
-                        setLoading(false);
-                      }
-                    }}
+                    onClick={handleQuickHrLogin}
+                    isDisabled={loading}
                   >
                     Quick HR Login
                   </Button>
+                )}
+                {fromHR && !isHrQuickLoginConfigured && (
+                  <Text fontSize="sm" color="orange.500" textAlign="center">
+                    Quick HR login is not configured. Please sign in with your HR email and password.
+                  </Text>
                 )}
                 <HStack justify="center">
                   <Text fontSize="sm" color="gray.600">
