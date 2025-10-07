@@ -13,6 +13,7 @@ const BRAND_PRIMARY = { r: 72, g: 187, b: 120 };
 const TEXT_PRIMARY = { r: 45, g: 55, b: 72 };
 const TEXT_MUTED = { r: 99, g: 110, b: 114 };
 const BOX_BORDER = { r: 209, g: 213, b: 219 };
+const BOX_BG = { r: 237, g: 249, b: 241 };
 
 const SIGNATURE_IMAGE_URL =
   'https://cdn.builder.io/api/v1/image/assets%2F07ba826074254d3191a55ee32e800a58%2Fdba80239da89463d902e6021298aa064?format=png&width=600';
@@ -191,7 +192,7 @@ export async function generatePaymentReceiptPDF({
 
     // ===== AMOUNT IN WORDS =====
     const wordsBlockY = detailTop + detailHeight + 10;
-    doc.setFillColor(248, 250, 252);
+    doc.setFillColor(BOX_BG.r, BOX_BG.g, BOX_BG.b);
     doc.roundedRect(margin, wordsBlockY, pageWidth - margin * 2, 18, 3, 3, 'FD');
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9.5);
@@ -207,7 +208,7 @@ export async function generatePaymentReceiptPDF({
 
     // ===== RECEIVED FROM BOX =====
     const receivedBlockY = wordsBlockY + 25;
-    doc.setFillColor(248, 250, 252);
+    doc.setFillColor(BOX_BG.r, BOX_BG.g, BOX_BG.b);
     doc.roundedRect(margin, receivedBlockY, pageWidth - margin * 2, 22, 3, 3, 'FD');
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(11);
@@ -254,7 +255,7 @@ export async function generatePaymentReceiptPDF({
     const dynamicOfferingsBoxHeight = yCursor - offeringsBoxY + 8;
 
     // Draw background box
-    doc.setFillColor(248, 250, 252);
+    doc.setFillColor(BOX_BG.r, BOX_BG.g, BOX_BG.b);
     doc.roundedRect(margin, offeringsBoxY, pageWidth - margin * 2, dynamicOfferingsBoxHeight, 3, 3, 'FD');
 
     // Heading
