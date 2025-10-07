@@ -45,11 +45,13 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const locationState = (location.state as LoginLocationState | null) ?? null;
   const toast = useToast();
   const { login, isAuthenticated, isLoading } = useAuth();
   const hrEmail = process.env.REACT_APP_HR_EMAIL || '';
   const hrPassword = process.env.REACT_APP_HR_PASSWORD || '';
-  const fromHR = Boolean((location.state as any)?.fromHR);
+  const fromHR = Boolean(locationState?.fromHR);
+  const pendingRedirect = locationState?.from;
   const isHrQuickLoginConfigured = Boolean(hrEmail && hrPassword);
   const handleForgot = async () => {
     if (!email) {
