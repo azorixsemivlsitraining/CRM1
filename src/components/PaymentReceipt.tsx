@@ -294,9 +294,10 @@ itemsLayout.forEach((itemObj) => {
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(0, 0, 0);
 
-  wrappedText.forEach((line, lineIndex) => {
-    doc.text(line, textX, yCursor + lineIndex * itemLineGap);
-  });
+  wwrappedText.forEach((line: string, lineIndex: number) => {
+  doc.text(line, textX, yCursor + lineIndex * itemLineGap);
+});
+
 
   // Update cursor for next item (last line y + gap)
   yCursor += wrappedText.length * itemLineGap + 4; // 4 mm space between items
