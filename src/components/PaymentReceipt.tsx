@@ -365,18 +365,6 @@ export async function generatePaymentReceiptPDF({
       // ignore if signature coords not available
     }
 
-    // Additional center-bottom clear area to remove any stray thumbnail image above footer
-    try {
-      const centerClearW = Math.min(160, pageWidth - margin * 2);
-      const centerClearX = (pageWidth - centerClearW) / 2;
-      const centerClearY = footerY - 6;
-      const centerClearH = 48;
-      doc.setFillColor(255, 255, 255);
-      doc.rect(centerClearX, centerClearY, centerClearW, centerClearH, 'F');
-    } catch (err) {
-      // ignore
-    }
-
     // ===== BOTTOM BAR =====
     doc.setFillColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
     doc.rect(0, pageHeight - 8, pageWidth, 8, 'F');
