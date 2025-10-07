@@ -107,9 +107,10 @@ export async function generatePaymentReceiptPDF({
     doc.rect(0, 0, pageWidth, 9, 'F');
 
     const { dataUrl: logoData, aspectRatio: logoRatio } = await fetchImageAsset(LOGO_URL);
-    const logoWidth = 46;
+    const logoWidth = 88;
     const logoHeight = logoWidth * logoRatio;
-    doc.addImage(logoData, 'PNG', pageWidth - margin - logoWidth, margin - 7, logoWidth, logoHeight, undefined, 'FAST');
+    // position logo top-right
+    doc.addImage(logoData, 'PNG', pageWidth - margin - logoWidth, margin - 8, logoWidth, logoHeight, undefined, 'FAST');
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(14);
