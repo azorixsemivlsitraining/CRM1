@@ -234,30 +234,41 @@ export async function generatePaymentReceiptPDF({
 
     const offeringsBoxY = receivedBlockY + 20;
 
-    // Single-column offerings on the left with dynamic height
+    // Two-column offerings with balanced columns
     const startY = offeringsBoxY + 13;
-    const lineGap = 6; // space between lines
+    const lineGap = 5; // space between wrapped lines
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8.5);
     doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
 
-    let yCursor = startY;
-    const textWidth = pageWidth - margin * 2 - 24; // allow for bullet and padding
+    const colWidth = (pageWidth - margin * 2 - 16) / 2;
+    const mid = Math.ceil(offerings.length / 2);
+    const leftItems = offerings.slice(0, mid);
+    const rightItems = offerings.slice(mid);
 
-    const singleColumnLayout: { y: number; wrapped: string[] }[] = [];
-    offerings.forEach((item) => {
-      const wrapped = doc.splitTextToSize(item, textWidth) as string[];
-      singleColumnLayout.push({ y: yCursor, wrapped });
-      yCursor += wrapped.length * lineGap;
+    const leftLayout: { y: number; wrapped: string[] }[] = [];
+    const rightLayout: { y: number; wrapped: string[] }[] = [];
+
+    let leftYCursor = startY;
+    let rightYCursor = startY;
+
+    leftItems.forEach(item => {
+      const wrapped = doc.splitTextToSize(item, colWidth - 8) as string[];
+      leftLayout.push({ y: leftYCursor, wrapped });
+      leftYCursor += wrapped.length * lineGap;
     });
 
-    const dynamicOfferingsBoxHeight = yCursor - offeringsBoxY + 6;
+    rightItems.forEach(item => {
+      const wrapped = doc.splitTextToSize(item, colWidth - 8) as string[];
+      rightLayout.push({ y: rightYCursor, wrapped });
+      rightYCursor += wrapped.length * lineGap;
+    });
 
-    // Make offerings box aligned with other boxes (full width inside margins)
+    const dynamicOfferingsBoxHeight = Math.max(leftYCursor, rightYCursor) - offeringsBoxY + 8;
+
+    // Draw background box (aligned with other boxes)
     const offeringsBoxWidth = pageWidth - margin * 2;
     const offeringsBoxX = margin;
-
-    // Draw background box
     doc.setFillColor(BOX_BG.r, BOX_BG.g, BOX_BG.b);
     doc.roundedRect(offeringsBoxX, offeringsBoxY, offeringsBoxWidth, dynamicOfferingsBoxHeight, 3, 3, 'FD');
 
@@ -267,16 +278,22 @@ export async function generatePaymentReceiptPDF({
     doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
     doc.text('Our Offerings:', offeringsBoxX + 8, offeringsBoxY + 8);
 
-    // Render single-column items and highlight ALL services with bold black text
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8.5);
-    doc.setTextColor(0, 0, 0);
+    // Render left and right columns, keep normal text color (not green highlight)
+    const leftColX = offeringsBoxX + 10;
+    const rightColX = offeringsBoxX + 10 + colWidth;
 
-    singleColumnLayout.forEach((row) => {
-      doc.circle(offeringsBoxX + 8, row.y - 1.5, 0.6, 'F');
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(0, 0, 0);
-      doc.text(row.wrapped, offeringsBoxX + 12, row.y);
+    leftLayout.forEach(row => {
+      doc.circle(leftColX - 2, row.y - 1.5, 0.5, 'F');
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+      doc.text(row.wrapped, leftColX, row.y);
+    });
+
+    rightLayout.forEach(row => {
+      doc.circle(rightColX - 2, row.y - 1.5, 0.5, 'F');
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+      doc.text(row.wrapped, rightColX, row.y);
     });
 
     // ===== FOOTER =====
