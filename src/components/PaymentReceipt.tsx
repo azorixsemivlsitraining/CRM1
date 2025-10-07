@@ -275,24 +275,27 @@ export async function generatePaymentReceiptPDF({
 doc.setFont('helvetica', 'bold');
 doc.setFontSize(9);
 
-itemsLayout.forEach(itemObj => {
+itemsLayout.forEach((itemObj, index) => {
   const raw = itemObj.wrapped.join(' ');
 
   const checkX = whyBoxX + 8;
   const textX = whyBoxX + 18;
-  const lineY = itemObj.y;
+  // Add extra gap only before the first item
+  const extraGap = index === 0 ? 6 : 0;
+  const lineY = itemObj.y + extraGap;
 
   // Draw green check symbol
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
   doc.text('✓', checkX, lineY);
 
-  // Draw the full text in bold black
+  // Draw full bold black text
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(0, 0, 0);
   const wrappedText = doc.splitTextToSize(raw, contentWidth);
   doc.text(wrappedText, textX, lineY);
 });
+
 
 
     // ===== FOOTER =====
