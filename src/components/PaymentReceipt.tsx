@@ -219,81 +219,64 @@ export async function generatePaymentReceiptPDF({
     doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
     doc.text(receivedFrom, margin + 8, receivedBlockY + 16);
 
-    // ===== OFFERINGS BOX =====
-    const offerings = [
-      'Solar Roof Top Power Plants (ON-Grid, OFF-Grid & Hybrid)',
-      'Solar Street Lights',
-      'Solar Water Pumping Systems',
-      'Solar Fencing',
-      'Solar Pergolas',
-      'Solar Dryers',
-      'Batteries and Inverters',
-      'Online UPS',
-      'Solar Water Heating Systems',
+    // ===== WHY CHOOSE US BOX =====
+    const whyChoose = [
+      '45-day guaranteed project completion for all installations',
+      'Over 250+ successful projects delivered across South India',
+      '7+ years of trusted experience in solar energy solutions',
+      '24/7 technical and maintenance support for every customer',
+      'Project backup assistance ensuring uninterrupted performance',
+      'Dedicated WhatsApp group for live updates and service alerts',
+      'Never ask for OTP or confidential information',
+      'End-to-end solar services from design to maintenance',
+      'High-quality MNRE-approved and BIS-certified components',
+      'Supporting a cleaner and greener tomorrow through solar energy',
     ];
 
-    const offeringsBoxY = receivedBlockY + 20;
-
-    // Two-column offerings with balanced columns
-    const startY = offeringsBoxY + 13;
-    const lineGap = 5; // space between wrapped lines
+    const whyBoxY = receivedBlockY + 20;
+    const startY = whyBoxY + 12;
+    const lineGap = 6;
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8.5);
-    doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+    doc.setFontSize(9);
 
-    const colWidth = (pageWidth - margin * 2 - 16) / 2;
-    const mid = Math.ceil(offerings.length / 2);
-    const leftItems = offerings.slice(0, mid);
-    const rightItems = offerings.slice(mid);
-
-    const leftLayout: { y: number; wrapped: string[] }[] = [];
-    const rightLayout: { y: number; wrapped: string[] }[] = [];
-
-    let leftYCursor = startY;
-    let rightYCursor = startY;
-
-    leftItems.forEach(item => {
-      const wrapped = doc.splitTextToSize(item, colWidth - 8) as string[];
-      leftLayout.push({ y: leftYCursor, wrapped });
-      leftYCursor += wrapped.length * lineGap;
+    // Pre-calculate wrapped lines and height
+    const contentWidth = pageWidth - margin * 2 - 24;
+    let yCursor = startY;
+    const itemsLayout: { wrapped: string[]; y: number }[] = [];
+    whyChoose.forEach(item => {
+      const wrapped = doc.splitTextToSize(item, contentWidth) as string[];
+      itemsLayout.push({ wrapped, y: yCursor });
+      yCursor += wrapped.length * lineGap;
     });
 
-    rightItems.forEach(item => {
-      const wrapped = doc.splitTextToSize(item, colWidth - 8) as string[];
-      rightLayout.push({ y: rightYCursor, wrapped });
-      rightYCursor += wrapped.length * lineGap;
-    });
+    const dynamicWhyBoxHeight = yCursor - whyBoxY + 8;
 
-    const dynamicOfferingsBoxHeight = Math.max(leftYCursor, rightYCursor) - offeringsBoxY + 8;
-
-    // Draw background box (aligned with other boxes)
-    const offeringsBoxWidth = pageWidth - margin * 2;
-    const offeringsBoxX = margin;
+    // Draw background box
+    const whyBoxX = margin;
+    const whyBoxWidth = pageWidth - margin * 2;
     doc.setFillColor(BOX_BG.r, BOX_BG.g, BOX_BG.b);
-    doc.roundedRect(offeringsBoxX, offeringsBoxY, offeringsBoxWidth, dynamicOfferingsBoxHeight, 3, 3, 'FD');
+    doc.roundedRect(whyBoxX, whyBoxY, whyBoxWidth, dynamicWhyBoxHeight, 3, 3, 'FD');
 
     // Heading
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10.5);
     doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
-    doc.text('Our Offerings:', offeringsBoxX + 8, offeringsBoxY + 8);
+    doc.text('Why Choose Us', whyBoxX + 8, whyBoxY + 8);
 
-    // Render left and right columns, keep normal text color (not green highlight)
-    const leftColX = offeringsBoxX + 10;
-    const rightColX = offeringsBoxX + 10 + colWidth;
-
-    leftLayout.forEach(row => {
-      doc.circle(leftColX - 2, row.y - 1.5, 0.5, 'F');
+    // Render list with green checkmarks
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    itemsLayout.forEach(item => {
+      const checkX = whyBoxX + 8;
+      const textX = whyBoxX + 16;
+      // draw check symbol
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
+      doc.text('✓', checkX, item.y);
+      // draw wrapped text lines
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
-      doc.text(row.wrapped, leftColX, row.y);
-    });
-
-    rightLayout.forEach(row => {
-      doc.circle(rightColX - 2, row.y - 1.5, 0.5, 'F');
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
-      doc.text(row.wrapped, rightColX, row.y);
+      doc.text(item.wrapped, textX, item.y);
     });
 
     // ===== FOOTER =====
