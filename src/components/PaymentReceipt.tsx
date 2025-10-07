@@ -280,7 +280,7 @@ export async function generatePaymentReceiptPDF({
     });
 
     // ===== FOOTER =====
-    const footerY = offeringsBoxY + dynamicOfferingsBoxHeight + 10;
+    const footerY = whyBoxY + dynamicWhyBoxHeight + 10;
     doc.setFont('helvetica', 'italic');
     doc.setFontSize(9.5);
     doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
