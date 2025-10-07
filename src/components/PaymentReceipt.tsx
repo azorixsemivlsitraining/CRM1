@@ -16,6 +16,7 @@ const BOX_BORDER = { r: 209, g: 213, b: 219 };
 const BOX_BG = { r: 244, g: 252, b: 247 };
 
 const SIGNATURE_IMAGE_URL = 'https://cdn.builder.io/api/v1/image/assets%2F59bf3e928fc9473a97d5e87470c824bb%2Fe7761deba40548afb13dbd440230d9df?format=webp&width=800';
+const STAMP_IMAGE_URL = 'https://cdn.builder.io/api/v1/image/assets%2F59bf3e928fc9473a97d5e87470c824bb%2Fa982d303b87c4be9801daedaa72f7da3?format=webp&width=600';
 const LOGO_URL = 'https://cdn.builder.io/api/v1/image/assets%2F59bf3e928fc9473a97d5e87470c824bb%2Fe73212a6556b469681e572b94a3fcc85?format=webp&width=800';
 
 async function fetchImageAsDataURL(url: string): Promise<string> {
