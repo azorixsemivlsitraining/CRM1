@@ -299,29 +299,45 @@ export async function generatePaymentReceiptPDF({
     doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
     doc.text('For AXISO GREEN ENERGIES PVT. LTD.', pageWidth - margin - 70, footerY + 10);
 
-    const { dataUrl: signatureData, aspectRatio: signatureRatio } = await fetchImageAsset(SIGNATURE_IMAGE_URL);
-    const signatureWidth = 42;
+    // Fetch signature and stamp images
+    const [{ dataUrl: signatureData, aspectRatio: signatureRatio }, { dataUrl: stampData, aspectRatio: stampRatio }] = await Promise.all([
+      fetchImageAsset(SIGNATURE_IMAGE_URL),
+      fetchImageAsset(STAMP_IMAGE_URL),
+    ]);
+
+    const signatureWidth = 56; // slightly larger
     const signatureHeight = signatureWidth * signatureRatio;
 
-    // Place signature on the bottom-right and a stamp box to its left
+    // Place signature on the bottom-right and the stamp image to its left (rotated look)
     const signatureX = pageWidth - margin - signatureWidth;
     const signatureY = footerY + 11;
 
-    // Draw stamp box left of the signature
-    const stampWidth = 48;
-    const stampHeight = 28;
-    const stampX = signatureX - stampWidth - 8;
-    const stampY = signatureY;
-    doc.setDrawColor(BOX_BORDER.r, BOX_BORDER.g, BOX_BORDER.b);
-    doc.setFillColor(255, 255, 255);
-    doc.rect(stampX, stampY, stampWidth, stampHeight, 'S');
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8);
-    doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
-    doc.text(['Stamp'], stampX + stampWidth / 2, stampY + stampHeight / 2 + 3, { align: 'center' });
+    // Stamp dimensions
+    const stampWidth = 56;
+    const stampHeight = stampWidth * (stampRatio || 0.6);
+    const stampX = signatureX - stampWidth - 12;
+    const stampY = signatureY - 4;
+
+    // Add stamp image (appear slightly rotated by offsetting)
+    try {
+      doc.addImage(stampData, 'PNG', stampX, stampY, stampWidth, stampHeight, undefined, 'FAST');
+    } catch (err) {
+      // fallback: draw placeholder box if image fails
+      doc.setDrawColor(BOX_BORDER.r, BOX_BORDER.g, BOX_BORDER.b);
+      doc.setFillColor(255, 255, 255);
+      doc.rect(stampX, stampY, stampWidth, stampHeight, 'S');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7);
+      doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
+      doc.text('Stamp', stampX + stampWidth / 2, stampY + stampHeight / 2 + 2, { align: 'center' });
+    }
 
     // Add signature image
-    doc.addImage(signatureData, 'PNG', signatureX, signatureY, signatureWidth, signatureHeight, undefined, 'FAST');
+    try {
+      doc.addImage(signatureData, 'PNG', signatureX, signatureY, signatureWidth, signatureHeight, undefined, 'FAST');
+    } catch (err) {
+      // ignore if fails
+    }
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
