@@ -1,5 +1,5 @@
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Center, Spinner } from '@chakra-ui/react';
 
@@ -21,4 +21,4 @@ const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   return <>{children}</>;
 };
 
-export default PrivateRoute; 
+export default PrivateRoute;
