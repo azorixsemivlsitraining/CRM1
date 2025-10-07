@@ -59,20 +59,14 @@ const Login = () => {
 
   useEffect(() => {
     if (!isAuthenticated) return;
-    const fromHR = (location.state as any)?.fromHR;
-    if (fromHR) {
-      navigate('/hr', { replace: true });
-    } else {
-      navigate('/welcome', { replace: true });
-    }
-  }, [isAuthenticated, location.state, navigate]);
+    navigate(fromHR ? '/hr' : '/welcome', { replace: true });
+  }, [fromHR, isAuthenticated, navigate]);
 
   useEffect(() => {
-    const fromHR = (location.state as any)?.fromHR;
-    if (fromHR) {
-      setEmail('yellesh@axisogreen.in');
+    if (fromHR && hrEmail) {
+      setEmail(hrEmail);
     }
-  }, [location.state]);
+  }, [fromHR, hrEmail]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
