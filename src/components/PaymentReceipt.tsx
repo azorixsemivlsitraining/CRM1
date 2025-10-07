@@ -313,68 +313,35 @@ export async function generatePaymentReceiptPDF({
 
     // ===== FOOTER =====
     const footerY = whyBoxY + dynamicWhyBoxHeight + 14;
+
+    // Thank you line
     doc.setFont('helvetica', 'italic');
     doc.setFontSize(9.5);
     doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
     doc.text('Thank you for choosing sustainable energy solutions!', pageWidth / 2, footerY, { align: 'center' });
 
-    // place small stamp+signature to the right of the thank you note
-    const sigStampTotalW = 56 + 8 + 36; // signature + gap + stamp
-    const sigStampX = Math.min(pageWidth - margin - 8 -  sigStampTotalW/2, pageWidth - margin - sigStampTotalW);
-    // place signature & stamp below the thank-you text to avoid overlap
-    const sigStampY = footerY + 8;
+    // ===== SIGNATURE IMAGE (from uploaded file) =====
+    const RECEIPT_IMAGE_URL = 'https://cdn.builder.io/api/v1/image/assets%2F59bf3e928fc9473a97d5e87470c824bb%2F1d77e3579b17488d87a169e9960db736?format=webp&width=800';
 
-    const [{ dataUrl: signatureData, aspectRatio: signatureRatio }, { dataUrl: stampData, aspectRatio: stampRatio }] = await Promise.all([
-      fetchImageAsset(SIGNATURE_IMAGE_URL),
-      fetchImageAsset(STAMP_IMAGE_URL).catch(() => ({ dataUrl: '', aspectRatio: 0.6 })),
-    ]);
-
-    const signatureWidthSmall = 56;
-    const signatureHeightSmall = signatureWidthSmall * (signatureRatio || 0.5) * 0.5;
-    const stampWidthSmall = 36;
-    const stampHeightSmall = stampWidthSmall * (stampRatio || 0.6);
-
-    // helper to detect image format from dataURL
-    const detectImageFormat = (dataUrl: string) => {
-      if (!dataUrl) return 'PNG';
-      const m = dataUrl.match(/^data:image\/(\w+);/);
-      return m ? m[1].toUpperCase() : 'PNG';
-    };
-
-    // draw signature then stamp (right aligned) using detected formats
+    // Fetch and place the receipt signature (blue stamp with manager)
     try {
-      if (signatureData) {
-        const sigFormat = detectImageFormat(signatureData);
-        doc.addImage(signatureData, sigFormat as any, pageWidth - margin - signatureWidthSmall, sigStampY, signatureWidthSmall, signatureHeightSmall, undefined, 'FAST');
-      }
+      const { dataUrl: receiptSignData, aspectRatio: receiptSignRatio } = await fetchImageAsset(RECEIPT_IMAGE_URL);
+      const receiptWidth = 58;
+      const receiptHeight = receiptWidth * (receiptSignRatio || 0.45);
+
+      // Position it neatly to the right of "Thank You" text
+      const receiptX = pageWidth - margin - receiptWidth - 2;
+      const receiptY = footerY - receiptHeight + 4;
+
+      doc.addImage(receiptSignData, 'PNG', receiptX, receiptY, receiptWidth, receiptHeight, undefined, 'FAST');
     } catch (err) {
-      console.error('Failed to add signature image', err);
+      console.error('Receipt signature image error:', err);
     }
 
-    try {
-      if (stampData) {
-        const stampFormat = detectImageFormat(stampData);
-        doc.addImage(stampData, stampFormat as any, pageWidth - margin - signatureWidthSmall - 8 - stampWidthSmall, sigStampY + 4, stampWidthSmall, stampHeightSmall, undefined, 'FAST');
-      }
-    } catch (err) {
-      console.error('Failed to add stamp image', err);
-    }
-
-    // Manager label
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
-    doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
-    doc.text('Manager', pageWidth - margin - signatureWidthSmall / 2 - 0, sigStampY + signatureHeightSmall + 10, { align: 'center' });
-
-    // For backward compatibility, keep right company text
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
-    doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
-    doc.text('For AXISO GREEN ENERGIES PVT. LTD.', pageWidth - margin - 6, footerY + 14, { align: 'right' });
-
-    // ===== BOTTOM BAR =====
+    // ===== BOTTOM GREEN BAR =====
     doc.setFillColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
     doc.rect(0, pageHeight - 8, pageWidth, 8, 'F');
+
 
     const fileName = `Payment_Receipt_${referenceNumber}_${receivedFrom.replace(/\s+/g, '_')}.pdf`;
     doc.save(fileName);
