@@ -242,7 +242,6 @@ export async function generatePaymentReceiptPDF({
     doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
 
     let yCursor = startY;
-    const leftColX = margin + 12;
     const textWidth = pageWidth - margin * 2 - 24; // allow for bullet and padding
 
     const singleColumnLayout: { y: number; wrapped: string[] }[] = [];
