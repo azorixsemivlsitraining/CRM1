@@ -16,7 +16,7 @@ interface AuthContextType {
   assignedRegions: string[];
   allowedModules: string[];
   regionAccess: RegionAccessMap;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
 }
 
@@ -30,7 +30,7 @@ export const AuthContext = createContext<AuthContextType>({
   assignedRegions: [],
   allowedModules: [],
   regionAccess: {},
-  login: async () => {},
+  login: async () => false,
   logout: async () => {},
 });
 
@@ -199,73 +199,75 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<boolean> => {
     try {
       const normalizedEmail = email.trim().toLowerCase();
       const cleanedPassword = password.trim();
+
+      if (!normalizedEmail || !cleanedPassword) {
+        throw new Error('Email and password are required');
+      }
 
       const { data, error } = await supabase.auth.signInWithPassword({
         email: normalizedEmail,
         password: cleanedPassword,
       });
 
-      if (error) throw error;
-
-      if (data.user) {
-        setUser(data.user);
-        setIsAuthenticated(true);
-
-        // Check if the user is the finance user
-        if (normalizedEmail === 'dhanush@axisogreen.in') {
-          setIsFinance(true);
-        } else {
-          setIsFinance(false);
-        }
-
-        // Check if the user has edit permissions
-        if (normalizedEmail === 'admin@axisogreen.in' || normalizedEmail === 'contact@axisogreen.in') {
-          setIsEditor(true);
-        } else {
-          setIsEditor(false);
-        }
-
-        // Check if user exists in users table by user id
-        const { data: userData, error: userError } = await supabase
-          .from('users')
-          .select('role')
-          .eq('id', data.user.id)
-          .single();
-
-        let adminFlag = false;
-        if (!userError && userData) {
-          adminFlag = (userData as any).role === 'admin';
-        } else if (userError) {
-          console.warn('User role lookup failed; defaulting to non-admin.', (userError as any)?.message || userError);
-        }
-        setIsAdmin(adminFlag);
-
-        // Ensure a row exists in public.users for management views (will not override role here)
-        try {
-          await supabase.from('users').upsert({ id: data.user.id, email: normalizedEmail });
-        } catch {}
-
-        // Fetch assigned regions and permissions
-        const { regions, modules, regionMap } = await fetchUserAccess(normalizedEmail);
-        setAssignedRegions(regions);
-        setAllowedModules(Array.isArray(modules) ? modules : []);
-        setRegionAccess(regionMap || {});
-
-        toast({
-          title: 'Login successful',
-          status: 'success',
-          duration: 3000,
-          isClosable: true,
-        });
-
+      if (error) {
+        throw error;
       }
+
+      if (!data.user) {
+        throw new Error('Login failed. Please verify your credentials and try again.');
+      }
+
+      setUser(data.user);
+      setIsAuthenticated(true);
+      setIsFinance(normalizedEmail === 'dhanush@axisogreen.in');
+      setIsEditor(normalizedEmail === 'admin@axisogreen.in' || normalizedEmail === 'contact@axisogreen.in');
+
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', data.user.id)
+        .single();
+
+      let adminFlag = false;
+      if (!userError && userData) {
+        adminFlag = (userData as any).role === 'admin';
+      } else if (userError) {
+        console.warn('User role lookup failed; defaulting to non-admin.', (userError as any)?.message || userError);
+      }
+      setIsAdmin(adminFlag);
+
+      try {
+        await supabase.from('users').upsert({ id: data.user.id, email: normalizedEmail });
+      } catch {}
+
+      const { regions, modules, regionMap } = await fetchUserAccess(normalizedEmail);
+      setAssignedRegions(regions);
+      setAllowedModules(Array.isArray(modules) ? modules : []);
+      setRegionAccess(regionMap || {});
+
+      toast({
+        title: 'Login successful',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+
+      return true;
     } catch (error: any) {
       const message = (error && (error as any).message) || String(error);
       console.error('Login error:', message, error);
+      setIsAuthenticated(false);
+      setIsAdmin(false);
+      setIsFinance(false);
+      setIsEditor(false);
+      setUser(null);
+      setAssignedRegions([]);
+      setAllowedModules([]);
+      setRegionAccess({});
       toast({
         title: 'Login failed',
         description: message,
@@ -273,6 +275,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         duration: 5000,
         isClosable: true,
       });
+      return false;
     }
   };
 

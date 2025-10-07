@@ -35,7 +35,11 @@ const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const toast = useToast();
-  const { login, isAuthenticated, isLoading, user } = useAuth();
+  const { login, isAuthenticated, isLoading } = useAuth();
+  const hrEmail = process.env.REACT_APP_HR_EMAIL || '';
+  const hrPassword = process.env.REACT_APP_HR_PASSWORD || '';
+  const fromHR = Boolean((location.state as any)?.fromHR);
+  const isHrQuickLoginConfigured = Boolean(hrEmail && hrPassword);
   const handleForgot = async () => {
     if (!email) {
       toast({ title: 'Enter your email first', status: 'warning', duration: 3000, isClosable: true });
@@ -55,20 +59,14 @@ const Login = () => {
 
   useEffect(() => {
     if (!isAuthenticated) return;
-    const fromHR = (location.state as any)?.fromHR;
-    if (fromHR) {
-      navigate('/hr', { replace: true });
-    } else {
-      navigate('/welcome', { replace: true });
-    }
-  }, [isAuthenticated, location.state, navigate]);
+    navigate(fromHR ? '/hr' : '/welcome', { replace: true });
+  }, [fromHR, isAuthenticated, navigate]);
 
   useEffect(() => {
-    const fromHR = (location.state as any)?.fromHR;
-    if (fromHR) {
-      setEmail('yellesh@axisogreen.in');
+    if (fromHR && hrEmail) {
+      setEmail(hrEmail);
     }
-  }, [location.state]);
+  }, [fromHR, hrEmail]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,17 +76,29 @@ const Login = () => {
 
     try {
       await login(email, password);
-      const fromHR = (location.state as any)?.fromHR;
-      navigate(fromHR ? '/hr' : '/welcome', { replace: true });
-    } catch (error: any) {
-      console.error('Login error:', error);
-      toast({
-        title: 'Error',
-        description: error.message,
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleQuickHrLogin = async () => {
+    if (!isHrQuickLoginConfigured || loading) {
+      if (!isHrQuickLoginConfigured) {
+        toast({
+          title: 'Quick HR login unavailable',
+          description: 'Please enter your HR credentials manually.',
+          status: 'warning',
+          duration: 4000,
+          isClosable: true,
+        });
+      }
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      await login(hrEmail, hrPassword);
     } finally {
       setLoading(false);
     }
@@ -249,25 +259,21 @@ const Login = () => {
                 >
                   Sign In
                 </Button>
-                {(location.state as any)?.fromHR && (
+                {fromHR && isHrQuickLoginConfigured && (
                   <Button
                     variant="outline"
                     colorScheme="green"
                     size="sm"
-                    onClick={async () => {
-                      try {
-                        setLoading(true);
-                        await login('yellesh@axisogreen.in','yellesh@2024');
-                        navigate('/hr', { replace: true });
-                      } catch (e: any) {
-                        toast({ title: 'HR login failed', description: e?.message || String(e), status: 'error', duration: 5000, isClosable: true });
-                      } finally {
-                        setLoading(false);
-                      }
-                    }}
+                    onClick={handleQuickHrLogin}
+                    isDisabled={loading}
                   >
                     Quick HR Login
                   </Button>
+                )}
+                {fromHR && !isHrQuickLoginConfigured && (
+                  <Text fontSize="sm" color="orange.500" textAlign="center">
+                    Quick HR login is not configured. Please sign in with your HR email and password.
+                  </Text>
                 )}
                 <HStack justify="center">
                   <Text fontSize="sm" color="gray.600">
