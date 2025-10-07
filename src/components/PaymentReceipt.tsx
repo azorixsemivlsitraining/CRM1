@@ -191,7 +191,7 @@ export async function generatePaymentReceiptPDF({
     doc.text(`Rs. ${amount.toLocaleString('en-IN')}`, amountBoxX + amountBoxWidth / 2, amountBoxY + 20, { align: 'center' });
 
     // ===== AMOUNT IN WORDS =====
-    const wordsBlockY = detailTop + detailHeight + 8;
+    const wordsBlockY = detailTop + detailHeight + 12;
     doc.setFillColor(BOX_BG.r, BOX_BG.g, BOX_BG.b);
     doc.roundedRect(margin, wordsBlockY, pageWidth - margin * 2, 18, 3, 3, 'FD');
     doc.setFont('helvetica', 'normal');
@@ -207,7 +207,7 @@ export async function generatePaymentReceiptPDF({
     doc.text(wrappedAmountText, margin + 8, wordsBlockY + 13);
 
     // ===== RECEIVED FROM BOX =====
-    const receivedBlockY = wordsBlockY + 18;
+    const receivedBlockY = wordsBlockY + 22;
     doc.setFillColor(BOX_BG.r, BOX_BG.g, BOX_BG.b);
     doc.roundedRect(margin, receivedBlockY, pageWidth - margin * 2, 22, 3, 3, 'FD');
     doc.setFont('helvetica', 'bold');
@@ -233,7 +233,7 @@ export async function generatePaymentReceiptPDF({
       'Supporting a cleaner and greener tomorrow through solar energy',
     ];
 
-    const whyBoxY = receivedBlockY + 20;
+    const whyBoxY = receivedBlockY + 28;
     const startY = whyBoxY + 12;
     const lineGap = 6;
     doc.setFont('helvetica', 'normal');
@@ -280,7 +280,7 @@ export async function generatePaymentReceiptPDF({
     });
 
     // ===== FOOTER =====
-    const footerY = whyBoxY + dynamicWhyBoxHeight + 10;
+    const footerY = whyBoxY + dynamicWhyBoxHeight + 14;
     doc.setFont('helvetica', 'italic');
     doc.setFontSize(9.5);
     doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
@@ -294,11 +294,11 @@ export async function generatePaymentReceiptPDF({
     // Fetch signature image only
     const { dataUrl: signatureData, aspectRatio: signatureRatio } = await fetchImageAsset(SIGNATURE_IMAGE_URL);
 
-    // Signature sizing and placement to match provided layout
-    const signatureWidth = 90;
-    const signatureHeight = signatureWidth * signatureRatio * 0.5;
+    // Reduce signature size and move slightly down
+    const signatureWidth = 60;
+    const signatureHeight = signatureWidth * (signatureRatio || 0.5) * 0.5;
     const signatureX = pageWidth - margin - signatureWidth;
-    const signatureY = footerY - signatureHeight - 4;
+    const signatureY = footerY + 6; // place slightly below footer text
 
     // Add signature image
     try {
