@@ -13,7 +13,7 @@ const BRAND_PRIMARY = { r: 72, g: 187, b: 120 };
 const TEXT_PRIMARY = { r: 45, g: 55, b: 72 };
 const TEXT_MUTED = { r: 99, g: 110, b: 114 };
 const BOX_BORDER = { r: 209, g: 213, b: 219 };
-const BOX_BG = { r: 237, g: 249, b: 241 };
+const BOX_BG = { r: 244, g: 252, b: 247 };
 
 const SIGNATURE_IMAGE_URL = 'https://cdn.builder.io/api/v1/image/assets%2F59bf3e928fc9473a97d5e87470c824bb%2Fab79477e9fe14b3b9d38d772daa0cf18?format=webp&width=800';
 const STAMP_IMAGE_URL = 'https://cdn.builder.io/api/v1/image/assets%2F59bf3e928fc9473a97d5e87470c824bb%2F59f98a64427949d8936620ce90bf7a8e?format=webp&width=600';
