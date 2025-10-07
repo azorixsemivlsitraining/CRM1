@@ -17,7 +17,7 @@ const BOX_BORDER = { r: 209, g: 213, b: 219 };
 const BOX_BG = { r: 244, g: 252, b: 247 };
 
 const LOGO_URL = 'https://cdn.builder.io/api/v1/image/assets%2F59bf3e928fc9473a97d5e87470c824bb%2Fe73212a6556b469681e572b94a3fcc85?format=webp&width=800';
-const FOOTER_SIGN_STAMP_URL = 'https://cdn.builder.io/api/v1/image/assets%2Fd6ed3a58ddbf4178909cabbd3ef86178%2F321f61f2aa804e0884c691efdebe2c3a?format=webp&width=800';
+const FOOTER_SIGN_STAMP_URL = 'https://cdn.builder.io/api/v1/image/assets%2Fd6ed3a58ddbf4178909cabbd3ef86178%2Fc8a909bb22064135a7097c4f476d4533?format=webp&width=800';
 
 async function fetchImageAsDataURL(url: string): Promise<string> {
   const res = await fetch(url, { mode: 'cors' });
