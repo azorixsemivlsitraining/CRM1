@@ -23,6 +23,7 @@ import {
   useDisclosure,
   Divider,
 } from '@chakra-ui/react';
+import ChitoorProjectsTile from '../components/ChitoorProjectsTile';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -36,6 +37,7 @@ interface Tile {
 const tiles: Tile[] = [
   { label: 'Overall Dashboard', description: 'KPIs and performance overview', icon: '📊', to: '/dashboard' },
   { label: 'Projects', description: 'Track and manage all projects', icon: '📈', to: '/projects' },
+  { label: 'Chitoor Projects', description: 'Dedicated dashboard for Chitoor initiatives', icon: '🏗️', to: '/projects/chitoor' },
   { label: 'Reports', description: 'Insights and analytics', icon: '📑', to: '/reports' },
   { label: 'Service Tickets', description: 'Track and resolve issues', icon: '🎫', to: '/service-tickets' },
   { label: 'Finance', description: 'Billing, payments and receipts', icon: '💰', to: '/finance' },
@@ -59,6 +61,52 @@ const Welcome: React.FC = () => {
     { label: 'Logistics', description: 'Dispatches and deliveries', icon: '🚚', to: '/logistics' },
     { label: 'Modules & Inventory', description: 'Module listings and intake', icon: '📦', to: '/logistics/modules' },
   ];
+
+  const renderTile = (tile: Tile, isMobileVariant: boolean) => {
+    if (tile.label === 'Chitoor Projects') {
+      return (
+        <ChitoorProjectsTile
+          key={tile.label}
+          isMobile={isMobileVariant}
+          cardBg={cardBg}
+          borderColor={borderColor}
+          titleColor={titleColor}
+          accentColor="green.600"
+          onNavigateToFull={() => handleOpenPath('/projects/chitoor')}
+          canApprove={Boolean(isAdmin)}
+        />
+      );
+    }
+
+    return (
+      <LinkBox
+        key={tile.label}
+        as="article"
+        role="group"
+        minW={isMobileVariant ? '260px' : undefined}
+        maxW={isMobileVariant ? '260px' : undefined}
+        bg={cardBg}
+        border="1px solid"
+        borderColor={borderColor}
+        borderRadius="xl"
+        p={isMobileVariant ? 5 : 6}
+        boxShadow="sm"
+        _hover={{ boxShadow: 'md', transform: 'translateY(-2px)' }}
+        transition="all 0.2s"
+      >
+        <Text fontSize={isMobileVariant ? '3xl' : '4xl'} mb={2}>{tile.icon}</Text>
+        <Heading size="sm" mb={1} color="green.600">{tile.label}</Heading>
+        <Text fontSize="sm" color={titleColor} noOfLines={isMobileVariant ? 2 : undefined}>{tile.description}</Text>
+        <Box mt={3}>
+          {tile.label === 'Admin Settings' ? (
+            <LinkOverlay as="button" onClick={handleAdminAccess} color="green.600">Open</LinkOverlay>
+          ) : (
+            <LinkOverlay as="button" onClick={() => handleOpenPath(tile.to)} color="green.600">Open</LinkOverlay>
+          )}
+        </Box>
+      </LinkBox>
+    );
+  };
 
   const handleLogout = async () => {
     try {
@@ -131,65 +179,13 @@ const Welcome: React.FC = () => {
       <Text fontSize="xs" color={titleColor} mb={2} display={{ base: 'block', lg: 'none' }}>Swipe to explore modules →</Text>
       <Box display={{ base: 'block', lg: 'none' }} overflowX="auto" pb={2} className="mobile-tiles-scroll" sx={{ scrollbarWidth: 'thin', WebkitOverflowScrolling: 'touch' }}>
         <Flex gap={4} minW="max-content" pr={2}>
-          {tiles.map((t) => (
-            <LinkBox
-              key={t.label}
-              as="article"
-              role="group"
-              minW="260px"
-              maxW="260px"
-              bg={cardBg}
-              border="1px solid"
-              borderColor={borderColor}
-              borderRadius="xl"
-              p={5}
-              boxShadow="sm"
-              _hover={{ boxShadow: 'md', transform: 'translateY(-2px)' }}
-              transition="all 0.2s"
-            >
-              <Text fontSize="3xl" mb={2}>{t.icon}</Text>
-              <Heading size="sm" mb={1} color="green.600">{t.label}</Heading>
-              <Text fontSize="sm" color={titleColor} noOfLines={2}>{t.description}</Text>
-              <Box mt={3}>
-                {t.label === 'Admin Settings' ? (
-                  <LinkOverlay as="button" onClick={handleAdminAccess} color="green.600">Open</LinkOverlay>
-                ) : (
-                  <LinkOverlay as="button" onClick={() => handleOpenPath(t.to)} color="green.600">Open</LinkOverlay>
-                )}
-              </Box>
-            </LinkBox>
-          ))}
+          {tiles.map((tile) => renderTile(tile, true))}
         </Flex>
       </Box>
 
       {/* Desktop/Tablet: grid tiles */}
       <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={5} display={{ base: 'none', lg: 'grid' }}>
-        {tiles.map((t) => (
-          <LinkBox
-            key={t.label}
-            as="article"
-            role="group"
-            bg={cardBg}
-            border="1px solid"
-            borderColor={borderColor}
-            borderRadius="xl"
-            p={6}
-            boxShadow="sm"
-            _hover={{ boxShadow: 'md', transform: 'translateY(-2px)' }}
-            transition="all 0.2s"
-          >
-            <Text fontSize="4xl" mb={2}>{t.icon}</Text>
-            <Heading size="sm" mb={1} color="green.600">{t.label}</Heading>
-            <Text fontSize="sm" color={titleColor}>{t.description}</Text>
-            <Box mt={3}>
-              {t.label === 'Admin Settings' ? (
-                <LinkOverlay as="button" onClick={handleAdminAccess} color="green.600">Open</LinkOverlay>
-              ) : (
-                <LinkOverlay as="button" onClick={() => handleOpenPath(t.to)} color="green.600">Open</LinkOverlay>
-              )}
-            </Box>
-          </LinkBox>
-        ))}
+        {tiles.map((tile) => renderTile(tile, false))}
       </SimpleGrid>
 
       <Divider my={8} />
