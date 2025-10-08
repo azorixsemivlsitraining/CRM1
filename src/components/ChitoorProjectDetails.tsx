@@ -130,7 +130,13 @@ const ChitoorProjectDetails = () => {
       const projectDataRaw = res.data;
 
       if (projectError) {
-        console.error('Error fetching project:', projectError);
+        try {
+          // print full error details to console for debugging
+          console.error('Error fetching project:', JSON.stringify(projectError, Object.getOwnPropertyNames(projectError), 2));
+        } catch (e) {
+          console.error('Error fetching project (non-serializable):', projectError);
+        }
+
         // If navigation included an approvalRecord, show it as fallback instead of failing hard
         const approvalRec = (location && (location as any).state && (location as any).state.approvalRecord) || null;
         if (approvalRec) {
@@ -146,11 +152,12 @@ const ChitoorProjectDetails = () => {
           return;
         }
 
+        const formatted = formatSupabaseError(projectError) || (typeof projectError === 'string' ? projectError : JSON.stringify(projectError));
         toast({
           title: 'Error',
-          description: `Failed to fetch project details. ${formatSupabaseError(projectError)}`,
+          description: formatted,
           status: 'error',
-          duration: 5000,
+          duration: 7000,
           isClosable: true,
         });
         return;
