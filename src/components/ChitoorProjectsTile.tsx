@@ -42,6 +42,7 @@ import {
 } from '@chakra-ui/react';
 import { ChevronDownIcon, RepeatIcon } from '@chakra-ui/icons';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { useNavigate } from 'react-router-dom';
 import { formatSupabaseError } from '../utils/error';
 
 interface ChitoorProjectsTileProps {
