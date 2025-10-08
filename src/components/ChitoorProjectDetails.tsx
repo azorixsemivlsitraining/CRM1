@@ -79,6 +79,7 @@ const ChitoorProjectDetails = () => {
   const { isOpen: isCustomerEditOpen, onOpen: onCustomerEditOpen, onClose: onCustomerEditClose } = useDisclosure();
   
   const [project, setProject] = useState<ChitoorProject | null>(null);
+  const [approvalFallback, setApprovalFallback] = useState<any | null>(null);
   const [paymentHistory, setPaymentHistory] = useState<PaymentHistory[]>([]);
   const [paymentsTable, setPaymentsTable] = useState<'payment_history' | 'chitoor_payment_history'>('payment_history');
   const [loading, setLoading] = useState(true);
@@ -118,23 +119,101 @@ const ChitoorProjectDetails = () => {
     try {
       setLoading(true);
 
+      // If the route id encodes an approval fallback (prefix 'approval-<uuid>'), fetch the approval record instead
+      if (typeof id === 'string' && id.startsWith('approval-')) {
+        const potentialApprovalId = id.replace(/^approval-/, '');
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (uuidRegex.test(potentialApprovalId)) {
+          try {
+            const { data: approvalRows, error: approvalErr } = await supabase
+              .from('chitoor_project_approvals')
+              .select('*')
+              .eq('id', potentialApprovalId)
+              .limit(1);
+            if (!approvalErr && approvalRows && Array.isArray(approvalRows) && approvalRows.length > 0) {
+              setApprovalFallback(approvalRows[0]);
+              toast({ title: 'Approval record', description: 'Showing approval record for this id.', status: 'info', duration: 5000 });
+              setLoading(false);
+              return;
+            }
+          } catch (e) {
+            console.warn('Error fetching approval fallback by id', e);
+          }
+        } else {
+          // malformed uuid after prefix — avoid querying projects with invalid UUID
+          toast({ title: 'Invalid approval id', description: 'Approval identifier is malformed.', status: 'error', duration: 5000 });
+          setLoading(false);
+          return;
+        }
+      }
+
       // Fetch project details
-      const { data: projectData, error: projectError } = await supabase
+      // Fetch project details robustly (handle 0/1/multiple rows)
+      const res = await supabase
         .from('chitoor_projects')
         .select('*')
-        .eq('id', id)
-        .single();
+        .eq('id', id);
+
+      const projectError = res.error;
+      const projectDataRaw = res.data;
 
       if (projectError) {
-        console.error('Error fetching project:', projectError);
+        try {
+          // print full error details to console for debugging
+          console.error('Error fetching project:', JSON.stringify(projectError, Object.getOwnPropertyNames(projectError), 2));
+        } catch (e) {
+          console.error('Error fetching project (non-serializable):', projectError);
+        }
+
+        // If navigation included an approvalRecord, show it as fallback instead of failing hard
+        const approvalRec = (location && (location as any).state && (location as any).state.approvalRecord) || null;
+        if (approvalRec) {
+          setApprovalFallback(approvalRec);
+          toast({
+            title: 'Project not found',
+            description: 'Could not fetch project; showing approval record instead.',
+            status: 'info',
+            duration: 5000,
+            isClosable: true,
+          });
+          setLoading(false);
+          return;
+        }
+
+        const formatted = formatSupabaseError(projectError) || (typeof projectError === 'string' ? projectError : JSON.stringify(projectError));
         toast({
           title: 'Error',
-          description: `Failed to fetch project details. ${formatSupabaseError(projectError)}`,
+          description: formatted,
           status: 'error',
-          duration: 5000,
+          duration: 7000,
           isClosable: true,
         });
         return;
+      }
+
+      if (!projectDataRaw || (Array.isArray(projectDataRaw) && projectDataRaw.length === 0)) {
+        // If navigation passed an approval record, use it as a fallback to show useful info
+        const approvalRec = (location && (location as any).state && (location as any).state.approvalRecord) || null;
+        if (approvalRec) {
+          setApprovalFallback(approvalRec);
+          setProject(null);
+          toast({ title: 'Project not found', description: 'Project not found; showing approval record instead.', status: 'info', duration: 5000 });
+          return;
+        }
+
+        toast({ title: 'Project not found', description: 'Project not found', status: 'error', duration: 4000 });
+        setProject(null);
+        return;
+      }
+
+      let projectData: any = null;
+      if (Array.isArray(projectDataRaw)) {
+        if (projectDataRaw.length > 1) {
+          console.warn('Multiple projects returned for id, using first', projectDataRaw);
+        }
+        projectData = projectDataRaw[0];
+      } else {
+        projectData = projectDataRaw as any;
       }
 
       if (projectData) {
@@ -395,6 +474,60 @@ const ChitoorProjectDetails = () => {
   }
 
   if (!project) {
+    if (approvalFallback) {
+      // Render approval details in the same two-card layout as a regular project, without edit actions
+      const a = approvalFallback as any;
+      const safeDate = (d: any) => { try { return d ? new Date(d).toLocaleDateString() : '—'; } catch { return String(d); } };
+      return (
+        <Box p={6}>
+          <VStack spacing={6} align="stretch">
+            <Flex justify="space-between" align="center">
+              <Box>
+                <Text fontSize="2xl" fontWeight="bold" color="gray.800">Chitoor Project Details</Text>
+                <Text color="gray.600">Approval ID: {a.id || '—'}</Text>
+              </Box>
+              <Button variant="ghost" onClick={() => navigate('/projects/chitoor')}>Back</Button>
+            </Flex>
+
+            <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6}>
+              <Card>
+                <CardHeader>
+                  <Text fontSize="lg" fontWeight="semibold" color="gray.700">Overview</Text>
+                </CardHeader>
+                <CardBody>
+                  <VStack align="stretch" spacing={3}>
+                    <Text><strong>Project Name:</strong> {a.project_name || '—'}</Text>
+                    <Text><strong>Date:</strong> {safeDate(a.date)}</Text>
+                    <Text><strong>Capacity (kW):</strong> {a.capacity_kw ?? a.capacity ?? '—'}</Text>
+                    <Text><strong>Villages / Location:</strong> {a.location || '—'}</Text>
+                    <Text><strong>Power Bill Number:</strong> {a.power_bill_number || '—'}</Text>
+                    <Text><strong>Project Cost:</strong> {a.project_cost != null ? `₹${Number(a.project_cost).toLocaleString()}` : '—'}</Text>
+                  </VStack>
+                </CardBody>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <Text fontSize="lg" fontWeight="semibold" color="gray.700">Status & Billing</Text>
+                </CardHeader>
+                <CardBody>
+                  <VStack align="stretch" spacing={3}>
+                    <Text><strong>Site Visit Status:</strong> {a.site_visit_status || '—'}</Text>
+                    <Text><strong>Payment Request (₹):</strong> {a.payment_amount != null ? `₹${Number(a.payment_amount).toLocaleString()}` : '—'}</Text>
+                    <Text><strong>Banking Ref ID:</strong> {a.banking_ref_id || a.banking_ref || '—'}</Text>
+                    <Text><strong>Service Number:</strong> {a.service_number || '—'}</Text>
+                    <Text><strong>Service Status:</strong> {a.service_status || '—'}</Text>
+                    <Text><strong>Approval (CRM):</strong> {a.approval_status || a.approval || '—'}</Text>
+                    <Text fontSize="xs" color="gray.500">Updated: {safeDate(a.approval_updated_at || a.updated_at || a.created_at)}</Text>
+                  </VStack>
+                </CardBody>
+              </Card>
+            </SimpleGrid>
+          </VStack>
+        </Box>
+      );
+    }
+
     return (
       <Box p={8} textAlign="center">
         <Text>Project not found</Text>
@@ -428,17 +561,19 @@ const ChitoorProjectDetails = () => {
               </Text>
             </Box>
           </HStack>
-          <HStack spacing={2}>
-            <Tooltip label="Edit customer" hasArrow>
-              <IconButton aria-label="Edit customer" icon={<EditIcon />} variant="ghost" onClick={onCustomerEditOpen} />
-            </Tooltip>
-            <Tooltip label="Edit project" hasArrow>
-              <IconButton aria-label="Edit project" icon={<EditIcon />} variant="ghost" onClick={onEditOpen} />
-            </Tooltip>
-            <Button leftIcon={<CalendarIcon />} colorScheme="blue" onClick={onPaymentOpen}>
-              Add Payment
-            </Button>
-          </HStack>
+          {project && (
+            <HStack spacing={2}>
+              <Tooltip label="Edit customer" hasArrow>
+                <IconButton aria-label="Edit customer" icon={<EditIcon />} variant="ghost" onClick={onCustomerEditOpen} />
+              </Tooltip>
+              <Tooltip label="Edit project" hasArrow>
+                <IconButton aria-label="Edit project" icon={<EditIcon />} variant="ghost" onClick={onEditOpen} />
+              </Tooltip>
+              <Button leftIcon={<CalendarIcon />} colorScheme="blue" onClick={onPaymentOpen}>
+                Add Payment
+              </Button>
+            </HStack>
+          )}
         </Flex>
 
         {/* Project Info Cards */}
@@ -924,7 +1059,7 @@ const ChitoorProjectDetails = () => {
               </FormControl>
 
               <FormControl isRequired>
-                <FormLabel>Project Cost (₹)</FormLabel>
+                <FormLabel>Project Cost (��)</FormLabel>
                 <Input
                   type="number"
                   value={projectFormData.project_cost}
