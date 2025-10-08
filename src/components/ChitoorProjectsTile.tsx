@@ -34,6 +34,11 @@ import {
   useDisclosure,
   useToast,
   VStack,
+  Tabs,
+  TabList,
+  TabPanels,
+  Tab,
+  TabPanel,
 } from '@chakra-ui/react';
 import { ChevronDownIcon, RepeatIcon } from '@chakra-ui/icons';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
