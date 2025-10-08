@@ -364,7 +364,7 @@ const ChitoorProjectsTile = ({
             variant="outline"
             size="sm"
             colorScheme="green"
-            onClick={onNavigateToFull}
+            onClick={() => { setFilter('all'); onOpen(); }}
           >
             View page
           </Button>
