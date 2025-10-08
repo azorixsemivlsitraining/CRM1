@@ -142,6 +142,15 @@ const ChitoorProjectDetails = () => {
       }
 
       if (!projectDataRaw || (Array.isArray(projectDataRaw) && projectDataRaw.length === 0)) {
+        // If navigation passed an approval record, use it as a fallback to show useful info
+        const approvalRec = (location && (location as any).state && (location as any).state.approvalRecord) || null;
+        if (approvalRec) {
+          setApprovalFallback(approvalRec);
+          setProject(null);
+          toast({ title: 'Project not found', description: 'Project not found; showing approval record instead.', status: 'info', duration: 5000 });
+          return;
+        }
+
         toast({ title: 'Project not found', description: 'Project not found', status: 'error', duration: 4000 });
         setProject(null);
         return;
