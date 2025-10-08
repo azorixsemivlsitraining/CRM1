@@ -525,8 +525,36 @@ const ChitoorProjectsTile = ({
                           ) : (
                             displayedRecords.map((record) => {
                               const status = (record.approval_status || 'pending').toLowerCase() as ApprovalStatus;
+                              const openProjectFromApproval = async (rec: any) => {
+                                // prefer explicit fk fields if present
+                                const projectId = rec.project_id || rec.chitoor_project_id || rec.chitoor_id || rec.project_uuid;
+                                if (projectId) {
+                                  navigate(`/projects/chitoor/${projectId}`);
+                                  return;
+                                }
+
+                                // fallback: try to find matching project by service_number or power_bill_number
+                                try {
+                                  const q = supabase
+                                    .from('chitoor_projects')
+                                    .select('id')
+                                    .or(`service_number.eq.${rec.service_number},power_bill_number.eq.${rec.power_bill_number}`)
+                                    .limit(1);
+                                  const { data: found, error: findErr } = await q;
+                                  if (findErr) throw findErr;
+                                  if (found && Array.isArray(found) && found.length > 0) {
+                                    navigate(`/projects/chitoor/${found[0].id}`);
+                                    return;
+                                  }
+                                } catch (e) {
+                                  console.warn('Project lookup from approval failed', e);
+                                }
+
+                                toast({ title: 'Project not found', description: 'Could not find corresponding project for this approval.', status: 'error' });
+                              };
+
                               return (
-                                <Tr key={record.id} _hover={{ bg: 'gray.50' }} onClick={() => navigate(`/projects/chitoor/${record.id}`)} style={{ cursor: 'pointer' }}>
+                                <Tr key={record.id} _hover={{ bg: 'gray.50' }} onClick={() => openProjectFromApproval(record)} style={{ cursor: 'pointer' }}>
                               <Td>
                                 <VStack align="start" spacing={1}>
                                   <Text fontWeight="medium" color="gray.800">
