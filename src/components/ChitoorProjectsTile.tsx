@@ -410,7 +410,7 @@ const ChitoorProjectsTile = ({
                       {statusLabels[key]}
                     </Text>
                     <Heading size="md" color="gray.800">
-                      {key === 'all' ? summary.total : summary[key]}
+                      {summaryByFilter[key]}
                     </Heading>
                   </Box>
                 ))}
