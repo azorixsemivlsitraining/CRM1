@@ -22,7 +22,6 @@ import {
   ModalOverlay,
   SimpleGrid,
   Spinner,
-  Stack,
   Table,
   TableContainer,
   Tbody,
@@ -426,9 +425,6 @@ const ChitoorProjectsTile = ({
   }, [approvals]);
 
   const approvalsColumnCount = 9 + dynamicFields.length + (canApprove ? 1 : 0);
-
-  const latestRecord = approvals[0];
-  const latestStatus = (latestRecord?.approval_status || 'pending').toLowerCase() as ApprovalStatus;
 
   const sendApprovalStatus = useCallback(
     async (recordId: string, status: ApprovalStatus) => {
