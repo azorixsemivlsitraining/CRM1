@@ -197,6 +197,28 @@ const ChitoorProjectsTile = ({
 
   useEffect(() => {
     fetchApprovals();
+    // also fetch projects for the tabs
+    const fetchProjects = async () => {
+      if (!isSupabaseConfigured) return;
+      try {
+        setProjectsLoading(true);
+        const { data, error } = await supabase
+          .from('chitoor_projects')
+          .select('*')
+          .order('created_at', { ascending: false });
+        if (error) {
+          console.error('Error fetching projects', error);
+          return;
+        }
+        setProjects(data ?? []);
+      } catch (err) {
+        console.error('Fetch projects error', err);
+      } finally {
+        setProjectsLoading(false);
+      }
+    };
+
+    fetchProjects();
   }, [fetchApprovals]);
 
   const summary = useMemo(() => {
