@@ -223,24 +223,41 @@ const ChitoorProjectsTile = ({
 
   const sendApprovalStatus = useCallback(
     async (recordId: string, status: ApprovalStatus) => {
-      if (!approvalEndpoint) {
-        throw new Error('Set REACT_APP_CRM_APPROVAL_ENDPOINT to allow approval updates.');
+      // If a CRM endpoint is configured, call it. Otherwise fall back to updating Supabase directly.
+      if (approvalEndpoint) {
+        const response = await fetch(approvalEndpoint, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ id: recordId, approval_status: status }),
+        });
+
+        if (!response.ok) {
+          const text = await response.text();
+          throw new Error(text || 'Approval sync failed.');
+        }
+
+        return;
       }
 
-      const response = await fetch(approvalEndpoint, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ id: recordId, approval_status: status }),
-      });
-
-      if (!response.ok) {
-        const text = await response.text();
-        throw new Error(text || 'Approval sync failed.');
+      // Fallback: update Supabase directly (requires table policies to permit client updates)
+      if (!isSupabaseConfigured) {
+        throw new Error('Supabase is not configured; cannot update approval status.');
       }
+
+      const { data: updData, error: updError } = await supabase
+        .from('chittoor_project_approvals')
+        .update({ approval_status: status })
+        .eq('id', recordId);
+
+      if (updError) {
+        throw updError;
+      }
+
+      return updData;
     },
-    []
+    [approvalEndpoint]
   );
 
   const handleStatusChange = useCallback(
