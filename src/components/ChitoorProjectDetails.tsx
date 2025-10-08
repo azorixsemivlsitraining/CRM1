@@ -424,6 +424,35 @@ const ChitoorProjectDetails = () => {
   }
 
   if (!project) {
+    if (approvalFallback) {
+      return (
+        <Box p={8}>
+          <Text fontSize="lg" fontWeight="bold" mb={3}>Project not found</Text>
+          <Text mb={4} color="gray.600">Could not locate the full project record. Showing approval data received from the approvals table.</Text>
+
+          <Box border="1px solid" borderColor="gray.100" borderRadius="md" p={4} mb={4}>
+            <Text fontSize="md" fontWeight="semibold">Approval Record</Text>
+            <VStack align="stretch" spacing={2} mt={2}>
+              {Object.entries(approvalFallback).map(([k, v]) => (
+                <Box key={k}>
+                  <Text fontSize="xs" color="gray.500" textTransform="capitalize">{k.replace(/_/g, ' ')}</Text>
+                  <Text fontWeight="medium">{v === null || v === undefined ? '—' : String(v)}</Text>
+                </Box>
+              ))}
+            </VStack>
+          </Box>
+
+          <HStack spacing={3}>
+            <Button onClick={() => navigate('/projects/chitoor')}>Back to Chitoor Projects</Button>
+            <Button colorScheme="green" onClick={() => {
+              // Try opening the corresponding projects page in a new tab for manual inspection
+              window.open('/projects/chitoor', '_blank');
+            }}>Open Projects List</Button>
+          </HStack>
+        </Box>
+      );
+    }
+
     return (
       <Box p={8} textAlign="center">
         <Text>Project not found</Text>
