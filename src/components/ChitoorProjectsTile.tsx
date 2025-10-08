@@ -132,7 +132,7 @@ const ChitoorProjectsTile = ({
     try {
       setLoading(true);
       const res = await supabase
-        .from('chitoor_project_approvals')
+        .from('chittoor_project_approvals')
         .select('*')
         .order('created_at', { ascending: false });
 
@@ -356,7 +356,7 @@ const ChitoorProjectsTile = ({
 
         <Box mt={3}>
           <LinkOverlay as="button" onClick={handleOpenDetails} color={accentColor}>
-            Open approvals
+            Open
           </LinkOverlay>
         </Box>
       </LinkBox>
