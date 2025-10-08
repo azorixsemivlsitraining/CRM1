@@ -588,56 +588,57 @@ const ChitoorProjectsTile = ({
                             displayedRecords.map((record) => {
                               const status = (record.approval_status || 'pending').toLowerCase() as ApprovalStatus;
                               return (
-                                <Tr key={record.id} _hover={{ bg: 'gray.50' }}>
-                                  <Td>
-                                    <VStack align="start" spacing={1}>
-                                      <Text fontWeight="medium" color="gray.800">
-                                        {record.project_name || '—'}
-                                      </Text>
-                                      <Text fontSize="xs" color="gray.500">
-                                        Service #{record.service_number || '—'}
-                                      </Text>
-                                    </VStack>
-                                  </Td>
-                                  <Td>{dateFormatter(record.date)}</Td>
-                                  <Td>{record.capacity_kw ?? '—'}</Td>
-                                  <Td textTransform="capitalize">{record.location || '—'}</Td>
-                                  <Td>{record.power_bill_number || '—'}</Td>
-                                  <Td>{record.project_cost != null ? currencyFormatter.format(record.project_cost) : '—'}</Td>
-                                  <Td>{record.site_visit_status || '—'}</Td>
-                                  <Td>{record.payment_amount != null ? currencyFormatter.format(record.payment_amount) : '—'}</Td>
-                                  <Td>
-                                    <Badge colorScheme={statusBadgeColors[status]} textTransform="capitalize">
-                                      {status}
-                                    </Badge>
-                                  </Td>
-                                  {canApprove && (
-                                    <Td>
-                                      <Menu>
-                                        <MenuButton
-                                          as={Button}
-                                          rightIcon={<ChevronDownIcon />}
-                                          size="sm"
-                                          colorScheme="green"
-                                          variant="outline"
-                                          isLoading={updatingId === record.id}
+                                <Tr key={record.id} _hover={{ bg: 'gray.50' }} onClick={() => navigate(`/projects/chitoor/${record.id}`)} style={{ cursor: 'pointer' }}>
+                              <Td>
+                                <VStack align="start" spacing={1}>
+                                  <Text fontWeight="medium" color="gray.800">
+                                    {record.project_name || '—'}
+                                  </Text>
+                                  <Text fontSize="xs" color="gray.500">
+                                    Service #{record.service_number || '—'}
+                                  </Text>
+                                </VStack>
+                              </Td>
+                              <Td>{dateFormatter(record.date)}</Td>
+                              <Td>{record.capacity_kw ?? '—'}</Td>
+                              <Td textTransform="capitalize">{record.location || '—'}</Td>
+                              <Td>{record.power_bill_number || '—'}</Td>
+                              <Td>{record.project_cost != null ? currencyFormatter.format(record.project_cost) : '—'}</Td>
+                              <Td>{record.site_visit_status || '—'}</Td>
+                              <Td>{record.payment_amount != null ? currencyFormatter.format(record.payment_amount) : '—'}</Td>
+                              <Td>
+                                <Badge colorScheme={statusBadgeColors[status]} textTransform="capitalize">
+                                  {status}
+                                </Badge>
+                              </Td>
+                              {canApprove && (
+                                <Td>
+                                  <Menu>
+                                    <MenuButton
+                                      as={Button}
+                                      rightIcon={<ChevronDownIcon />}
+                                      size="sm"
+                                      colorScheme="green"
+                                      variant="outline"
+                                      isLoading={updatingId === record.id}
+                                      onClick={(e:any) => e.stopPropagation()}
+                                    >
+                                      Update
+                                    </MenuButton>
+                                    <MenuList>
+                                      {( ['approved', 'pending', 'rejected'] as ApprovalStatus[] ).map((option) => (
+                                        <MenuItem
+                                          key={option}
+                                          onClick={() => handleStatusChange(record.id, option)}
+                                          isDisabled={option === status}
                                         >
-                                          Update
-                                        </MenuButton>
-                                        <MenuList>
-                                          {( ['approved', 'pending', 'rejected'] as ApprovalStatus[] ).map((option) => (
-                                            <MenuItem
-                                              key={option}
-                                              onClick={() => handleStatusChange(record.id, option)}
-                                              isDisabled={option === status}
-                                            >
-                                              Mark as {statusLabels[option]}
-                                            </MenuItem>
-                                          ))}
-                                        </MenuList>
-                                      </Menu>
-                                    </Td>
-                                  )}
+                                          Mark as {statusLabels[option]}
+                                        </MenuItem>
+                                      ))}
+                                    </MenuList>
+                                  </Menu>
+                                </Td>
+                              )}
                                 </Tr>
                               );
                             })
