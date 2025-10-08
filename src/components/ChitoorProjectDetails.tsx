@@ -533,17 +533,19 @@ const ChitoorProjectDetails = () => {
               </Text>
             </Box>
           </HStack>
-          <HStack spacing={2}>
-            <Tooltip label="Edit customer" hasArrow>
-              <IconButton aria-label="Edit customer" icon={<EditIcon />} variant="ghost" onClick={onCustomerEditOpen} />
-            </Tooltip>
-            <Tooltip label="Edit project" hasArrow>
-              <IconButton aria-label="Edit project" icon={<EditIcon />} variant="ghost" onClick={onEditOpen} />
-            </Tooltip>
-            <Button leftIcon={<CalendarIcon />} colorScheme="blue" onClick={onPaymentOpen}>
-              Add Payment
-            </Button>
-          </HStack>
+          {project && (
+            <HStack spacing={2}>
+              <Tooltip label="Edit customer" hasArrow>
+                <IconButton aria-label="Edit customer" icon={<EditIcon />} variant="ghost" onClick={onCustomerEditOpen} />
+              </Tooltip>
+              <Tooltip label="Edit project" hasArrow>
+                <IconButton aria-label="Edit project" icon={<EditIcon />} variant="ghost" onClick={onEditOpen} />
+              </Tooltip>
+              <Button leftIcon={<CalendarIcon />} colorScheme="blue" onClick={onPaymentOpen}>
+                Add Payment
+              </Button>
+            </HStack>
+          )}
         </Flex>
 
         {/* Project Info Cards */}
