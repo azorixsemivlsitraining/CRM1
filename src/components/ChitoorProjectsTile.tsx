@@ -411,11 +411,168 @@ const ChitoorProjectsTile = ({
           <ModalBody>
             <Tabs>
               <TabList>
-                <Tab>All Projects</Tab>
                 <Tab>Approvals</Tab>
+                <Tab>All Projects</Tab>
               </TabList>
 
               <TabPanels>
+                <TabPanel>
+                  {/* Approvals panel (was second) */}
+                  <SimpleGrid columns={{ base: 1, md: 4 }} spacing={4} mb={4}>
+                    {(['all', 'pending', 'approved', 'rejected'] as FilterKey[]).map((key) => (
+                      <Box
+                        key={key}
+                        border="1px solid"
+                        borderColor={filter === key ? 'green.200' : 'gray.200'}
+                        borderRadius="lg"
+                        p={4}
+                        bg={filter === key ? 'green.50' : 'white'}
+                        cursor="pointer"
+                        onClick={() => setFilter(key)}
+                        transition="all 0.2s"
+                        _hover={{ borderColor: 'green.300' }}
+                      >
+                        <Text fontSize="xs" color="gray.500">
+                          {statusLabels[key]}
+                        </Text>
+                        <Heading size="md" color="gray.800">
+                          {summaryByFilter[key]}
+                        </Heading>
+                      </Box>
+                    ))}
+                  </SimpleGrid>
+
+                  <Box>
+                    <Flex justify="space-between" align="center" mb={3}>
+                      <Heading size="sm" color="gray.700">
+                        {statusLabels[filter]} projects
+                      </Heading>
+                      {loading && (
+                        <HStack spacing={2} color="gray.500" fontSize="sm">
+                          <Spinner size="sm" />
+                          <Text>Loading approvals…</Text>
+                        </HStack>
+                      )}
+                    </Flex>
+
+                    <TableContainer border="1px solid" borderColor="gray.100" borderRadius="lg">
+                      <Table variant="simple" size="sm">
+                        <Thead bg="gray.50">
+                          <Tr>
+                            <Th color="gray.600">Project</Th>
+                            <Th color="gray.600">Date</Th>
+                            <Th color="gray.600">Capacity (kW)</Th>
+                            <Th color="gray.600">Location</Th>
+                            <Th color="gray.600">Power Bill #</Th>
+                            <Th color="gray.600">Cost</Th>
+                            <Th color="gray.600">Site Visit</Th>
+                            <Th color="gray.600">Payment</Th>
+                            <Th color="gray.600">Approval</Th>
+                            {canApprove && <Th color="gray.600">Actions</Th>}
+                          </Tr>
+                        </Thead>
+                        <Tbody>
+                          {displayedRecords.length === 0 && !loading ? (
+                            <Tr>
+                              <Td colSpan={canApprove ? 10 : 9}>
+                                <Text textAlign="center" color="gray.500" py={6}>
+                                  No records in this view.
+                                </Text>
+                              </Td>
+                            </Tr>
+                          ) : (
+                            displayedRecords.map((record) => {
+                              const status = (record.approval_status || 'pending').toLowerCase() as ApprovalStatus;
+                              const openProjectFromApproval = async (rec: any) => {
+                                // prefer explicit fk fields if present
+                                const projectId = rec.project_id || rec.chitoor_project_id || rec.chitoor_id || rec.project_uuid;
+                                if (projectId) {
+                                  navigate(`/projects/chitoor/${projectId}`);
+                                  return;
+                                }
+
+                                // fallback: try to find matching project by service_number or power_bill_number
+                                try {
+                                  const q = supabase
+                                    .from('chitoor_projects')
+                                    .select('id')
+                                    .or(`service_number.eq.${rec.service_number},power_bill_number.eq.${rec.power_bill_number}`)
+                                    .limit(1);
+                                  const { data: found, error: findErr } = await q;
+                                  if (findErr) throw findErr;
+                                  if (found && Array.isArray(found) && found.length > 0) {
+                                    navigate(`/projects/chitoor/${found[0].id}`);
+                                    return;
+                                  }
+                                } catch (e) {
+                                  console.warn('Project lookup from approval failed', e);
+                                }
+
+                                toast({ title: 'Project not found', description: 'Could not find corresponding project for this approval.', status: 'error' });
+                              };
+
+                              return (
+                                <Tr key={record.id} _hover={{ bg: 'gray.50' }} onClick={() => openProjectFromApproval(record)} style={{ cursor: 'pointer' }}>
+                                  <Td>
+                                    <VStack align="start" spacing={1}>
+                                      <Text fontWeight="medium" color="gray.800">
+                                        {record.project_name || '—'}
+                                      </Text>
+                                      <Text fontSize="xs" color="gray.500">
+                                        Service #{record.service_number || '—'}
+                                      </Text>
+                                    </VStack>
+                                  </Td>
+                                  <Td>{dateFormatter(record.date)}</Td>
+                                  <Td>{record.capacity_kw ?? '—'}</Td>
+                                  <Td textTransform="capitalize">{record.location || '—'}</Td>
+                                  <Td>{record.power_bill_number || '—'}</Td>
+                                  <Td>{record.project_cost != null ? currencyFormatter.format(record.project_cost) : '—'}</Td>
+                                  <Td>{record.site_visit_status || '—'}</Td>
+                                  <Td>{record.payment_amount != null ? currencyFormatter.format(record.payment_amount) : '—'}</Td>
+                                  <Td>
+                                    <Badge colorScheme={statusBadgeColors[status]} textTransform="capitalize">
+                                      {status}
+                                    </Badge>
+                                  </Td>
+                                  {canApprove && (
+                                    <Td>
+                                      <Menu>
+                                        <MenuButton
+                                          as={Button}
+                                          rightIcon={<ChevronDownIcon />}
+                                          size="sm"
+                                          colorScheme="green"
+                                          variant="outline"
+                                          isLoading={updatingId === record.id}
+                                          onClick={(e:any) => e.stopPropagation()}
+                                        >
+                                          Update
+                                        </MenuButton>
+                                        <MenuList>
+                                          {( ['approved', 'pending', 'rejected'] as ApprovalStatus[] ).map((option) => (
+                                            <MenuItem
+                                              key={option}
+                                              onClick={() => handleStatusChange(record.id, option)}
+                                              isDisabled={option === status}
+                                            >
+                                              Mark as {statusLabels[option]}
+                                            </MenuItem>
+                                          ))}
+                                        </MenuList>
+                                      </Menu>
+                                    </Td>
+                                  )}
+                                </Tr>
+                              );
+                            })
+                          )}
+                        </Tbody>
+                      </Table>
+                    </TableContainer>
+                  </Box>
+                </TabPanel>
+
                 <TabPanel>
                   {projectsLoading ? (
                     <Spinner />
