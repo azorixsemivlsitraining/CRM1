@@ -595,7 +595,9 @@ const ChitoorProjectsTile = ({
                                     <VStack align="start" spacing={1}>
                                       <HStack>
                                         <Text fontWeight="medium" color="gray.800">{record.project_name || '—'}</Text>
+                                        {(record.project_id || record.chitoor_project_id || record.chitoor_id || record.project_uuid) ? (
                                         <Button size="xs" variant="ghost" onClick={(e:any) => { e.stopPropagation(); openProjectFromApproval(record); }}>Open project</Button>
+                                      ) : null}
                                       </HStack>
                                       <Text fontSize="xs" color="gray.500">Service #{record.service_number || '—'}</Text>
                                     </VStack>
@@ -868,7 +870,9 @@ const ChitoorProjectsTile = ({
                                     <VStack align="start" spacing={1}>
                                       <HStack>
                                         <Text fontWeight="medium" color="gray.800">{record.project_name || '—'}</Text>
+                                        {(record.project_id || record.chitoor_project_id || record.chitoor_id || record.project_uuid) ? (
                                         <Button size="xs" variant="ghost" onClick={(e:any) => { e.stopPropagation(); openProjectFromApproval(record); }}>Open project</Button>
+                                      ) : null}
                                       </HStack>
                                       <Text fontSize="xs" color="gray.500">Service #{record.service_number || '—'}</Text>
                                     </VStack>
