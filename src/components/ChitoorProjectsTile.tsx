@@ -504,14 +504,14 @@ const ChitoorProjectsTile = ({
                             </Tr>
                           ) : (
                             projects.map((p) => (
-                              <Tr key={p.id} _hover={{ bg: 'gray.50' }} onClick={() => { setSelectedRecord(p); onDetailsOpen(); }} style={{ cursor: 'pointer' }}>
+                              <Tr key={p.id} _hover={{ bg: 'gray.50' }} onClick={() => { navigate(`/projects/chitoor/${p.id}`); }} style={{ cursor: 'pointer' }}>
                                 <Td>{p.customer_name || p.project_name || '—'}</Td>
                                 <Td>{dateFormatter(p.date_of_order || p.date || p.created_at)}</Td>
                                 <Td>{p.capacity ?? p.capacity_kw ?? '—'}</Td>
                                 <Td>{p.address_mandal_village || p.location || '—'}</Td>
                                 <Td>{p.project_cost ? currencyFormatter.format(p.project_cost) : '—'}</Td>
                                 <Td>{p.project_status || p.service_status || '—'}</Td>
-                                <Td><Button size="sm" onClick={(e) => { e.stopPropagation(); setSelectedRecord(p); onDetailsOpen(); }}>View</Button></Td>
+                                <Td><Button size="sm" onClick={(e) => { e.stopPropagation(); navigate(`/projects/chitoor/${p.id}`); }}>View</Button></Td>
                               </Tr>
                             ))
                           )}
