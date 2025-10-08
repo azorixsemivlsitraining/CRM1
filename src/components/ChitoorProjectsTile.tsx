@@ -175,6 +175,16 @@ const ChitoorProjectsTile = ({
     return base;
   }, [approvals]);
 
+  const summaryByFilter: Record<FilterKey, number> = useMemo(
+    () => ({
+      all: summary.total,
+      pending: summary.pending,
+      approved: summary.approved,
+      rejected: summary.rejected,
+    }),
+    [summary]
+  );
+
   const displayedRecords = useMemo(() => {
     if (filter === 'all') {
       return approvals;
