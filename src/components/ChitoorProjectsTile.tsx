@@ -131,19 +131,35 @@ const ChitoorProjectsTile = ({
 
     try {
       setLoading(true);
-      const res = await supabase
-        .from('chittoor_project_approvals')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const tableCandidates = ['chittoor_project_approvals', 'chitoor_project_approvals'];
+      let res: any = null;
+      let lastError: any = null;
 
-      const data = res.data as ApprovalRecord[] | null;
-      const error = res.error;
+      for (const table of tableCandidates) {
+        res = await supabase
+          .from(table)
+          .select('*')
+          .order('created_at', { ascending: false });
 
-      if (error) {
-        throw error;
+        if (res?.error) {
+          const errMsg = formatSupabaseError(res.error) || (res.error as any)?.message || '';
+          if (typeof errMsg === 'string' && errMsg.includes('Could not find the table')) {
+            lastError = res.error;
+            continue; // try next candidate
+          }
+          throw res.error; // unexpected error
+        }
+
+        // success
+        const data = res.data as ApprovalRecord[] | null;
+        setApprovals(data ?? []);
+        lastError = null;
+        break;
       }
 
-      setApprovals(data ?? []);
+      if (lastError) {
+        throw lastError;
+      }
     } catch (error: any) {
       try {
         console.error('Failed to load Chitoor approvals', JSON.stringify(error, Object.getOwnPropertyNames(error)));
