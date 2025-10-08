@@ -362,14 +362,10 @@ const ChitoorProjectsTile = ({
               Track district approvals with CRM sync
             </Text>
           </Box>
-          <Button
-            variant="outline"
-            size="sm"
-            colorScheme="green"
-            onClick={() => { setFilter('all'); onOpen(); }}
-          >
-            View page
-          </Button>
+                  {/* Open modal (no View page button) */}
+          <Box>
+            {/* empty placeholder to maintain layout */}
+          </Box>
         </Flex>
 
         <SimpleGrid columns={2} spacing={3} mb={4}>
