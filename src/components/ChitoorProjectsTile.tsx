@@ -491,18 +491,52 @@ const ChitoorProjectsTile = ({
                                   return;
                                 }
 
-                                // fallback: try to find matching project by service_number or power_bill_number
+                                // Try to match against already-fetched projects first (fast, offline)
                                 try {
-                                  const q = supabase
-                                    .from('chitoor_projects')
-                                    .select('id')
-                                    .or(`service_number.eq.${rec.service_number},power_bill_number.eq.${rec.power_bill_number}`)
-                                    .limit(1);
-                                  const { data: found, error: findErr } = await q;
-                                  if (findErr) throw findErr;
-                                  if (found && Array.isArray(found) && found.length > 0) {
-                                    navigate(`/projects/chitoor/${found[0].id}`);
-                                    return;
+                                  if (projects && projects.length > 0) {
+                                    const match = projects.find((p: any) => {
+                                      if (!p) return false;
+                                      if (rec.service_number && (p.service_number === rec.service_number || String(p.service_number) === String(rec.service_number))) return true;
+                                      if (rec.power_bill_number && (p.power_bill_number === rec.power_bill_number || String(p.power_bill_number) === String(rec.power_bill_number))) return true;
+                                      const pname = (rec.project_name || '').toString().trim().toLowerCase();
+                                      const candidateNames = [p.customer_name, p.project_name, p.customer || p.name].filter(Boolean).map((s: any) => String(s).toLowerCase());
+                                      if (pname && candidateNames.some((n: string) => n.includes(pname))) return true;
+                                      return false;
+                                    });
+                                    if (match) {
+                                      navigate(`/projects/chitoor/${match.id}`);
+                                      return;
+                                    }
+                                  }
+                                } catch (e) {
+                                  console.warn('Local project lookup failed', e);
+                                }
+
+                                // Fallback: query Supabase using available unique-ish fields
+                                try {
+                                  const conditions: string[] = [];
+                                  if (rec.service_number) conditions.push(`service_number.eq.${rec.service_number}`);
+                                  if (rec.power_bill_number) conditions.push(`power_bill_number.eq.${rec.power_bill_number}`);
+                                  if (rec.banking_ref_id) conditions.push(`banking_ref_id.eq.${rec.banking_ref_id}`);
+                                  if (rec.banking_ref) conditions.push(`banking_ref.eq.${rec.banking_ref}`);
+                                  if (rec.project_name) {
+                                    // use ilike for partial name matches
+                                    const safeName = rec.project_name.replace(/%/g, '').replace(/,/g, '');
+                                    if (safeName) conditions.push(`project_name.ilike.%${safeName}%`);
+                                  }
+
+                                  if (conditions.length > 0) {
+                                    const orStr = conditions.join(',');
+                                    const { data: found, error: findErr } = await supabase
+                                      .from('chitoor_projects')
+                                      .select('id')
+                                      .or(orStr)
+                                      .limit(1);
+                                    if (findErr) throw findErr;
+                                    if (found && Array.isArray(found) && found.length > 0) {
+                                      navigate(`/projects/chitoor/${found[0].id}`);
+                                      return;
+                                    }
                                   }
                                 } catch (e) {
                                   console.warn('Project lookup from approval failed', e);
@@ -690,18 +724,52 @@ const ChitoorProjectsTile = ({
                                   return;
                                 }
 
-                                // fallback: try to find matching project by service_number or power_bill_number
+                                // Try to match against already-fetched projects first (fast, offline)
                                 try {
-                                  const q = supabase
-                                    .from('chitoor_projects')
-                                    .select('id')
-                                    .or(`service_number.eq.${rec.service_number},power_bill_number.eq.${rec.power_bill_number}`)
-                                    .limit(1);
-                                  const { data: found, error: findErr } = await q;
-                                  if (findErr) throw findErr;
-                                  if (found && Array.isArray(found) && found.length > 0) {
-                                    navigate(`/projects/chitoor/${found[0].id}`);
-                                    return;
+                                  if (projects && projects.length > 0) {
+                                    const match = projects.find((p: any) => {
+                                      if (!p) return false;
+                                      if (rec.service_number && (p.service_number === rec.service_number || String(p.service_number) === String(rec.service_number))) return true;
+                                      if (rec.power_bill_number && (p.power_bill_number === rec.power_bill_number || String(p.power_bill_number) === String(rec.power_bill_number))) return true;
+                                      const pname = (rec.project_name || '').toString().trim().toLowerCase();
+                                      const candidateNames = [p.customer_name, p.project_name, p.customer || p.name].filter(Boolean).map((s: any) => String(s).toLowerCase());
+                                      if (pname && candidateNames.some((n: string) => n.includes(pname))) return true;
+                                      return false;
+                                    });
+                                    if (match) {
+                                      navigate(`/projects/chitoor/${match.id}`);
+                                      return;
+                                    }
+                                  }
+                                } catch (e) {
+                                  console.warn('Local project lookup failed', e);
+                                }
+
+                                // Fallback: query Supabase using available unique-ish fields
+                                try {
+                                  const conditions: string[] = [];
+                                  if (rec.service_number) conditions.push(`service_number.eq.${rec.service_number}`);
+                                  if (rec.power_bill_number) conditions.push(`power_bill_number.eq.${rec.power_bill_number}`);
+                                  if (rec.banking_ref_id) conditions.push(`banking_ref_id.eq.${rec.banking_ref_id}`);
+                                  if (rec.banking_ref) conditions.push(`banking_ref.eq.${rec.banking_ref}`);
+                                  if (rec.project_name) {
+                                    // use ilike for partial name matches
+                                    const safeName = rec.project_name.replace(/%/g, '').replace(/,/g, '');
+                                    if (safeName) conditions.push(`project_name.ilike.%${safeName}%`);
+                                  }
+
+                                  if (conditions.length > 0) {
+                                    const orStr = conditions.join(',');
+                                    const { data: found, error: findErr } = await supabase
+                                      .from('chitoor_projects')
+                                      .select('id')
+                                      .or(orStr)
+                                      .limit(1);
+                                    if (findErr) throw findErr;
+                                    if (found && Array.isArray(found) && found.length > 0) {
+                                      navigate(`/projects/chitoor/${found[0].id}`);
+                                      return;
+                                    }
                                   }
                                 } catch (e) {
                                   console.warn('Project lookup from approval failed', e);
