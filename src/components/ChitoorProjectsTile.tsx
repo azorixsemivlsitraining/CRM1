@@ -587,15 +587,14 @@ const ChitoorProjectsTile = ({
                               };
 
                               return (
-                                <Tr key={record.id} _hover={{ bg: 'gray.50' }} onClick={() => openProjectFromApproval(record)} style={{ cursor: 'pointer' }}>
+                                <Tr key={record.id} _hover={{ bg: 'gray.50' }} onClick={() => { setSelectedRecord(record); onDetailsOpen(); }} style={{ cursor: 'pointer' }}>
                                   <Td>
                                     <VStack align="start" spacing={1}>
-                                      <Text fontWeight="medium" color="gray.800">
-                                        {record.project_name || '—'}
-                                      </Text>
-                                      <Text fontSize="xs" color="gray.500">
-                                        Service #{record.service_number || '—'}
-                                      </Text>
+                                      <HStack>
+                                        <Text fontWeight="medium" color="gray.800">{record.project_name || '—'}</Text>
+                                        <Button size="xs" variant="ghost" onClick={(e:any) => { e.stopPropagation(); openProjectFromApproval(record); }}>Open project</Button>
+                                      </HStack>
+                                      <Text fontSize="xs" color="gray.500">Service #{record.service_number || '—'}</Text>
                                     </VStack>
                                   </Td>
                                   <Td>{dateFormatter(record.date)}</Td>
@@ -861,17 +860,16 @@ const ChitoorProjectsTile = ({
                               };
 
                               return (
-                                <Tr key={record.id} _hover={{ bg: 'gray.50' }} onClick={() => openProjectFromApproval(record)} style={{ cursor: 'pointer' }}>
-                              <Td>
-                                <VStack align="start" spacing={1}>
-                                  <Text fontWeight="medium" color="gray.800">
-                                    {record.project_name || '—'}
-                                  </Text>
-                                  <Text fontSize="xs" color="gray.500">
-                                    Service #{record.service_number || '—'}
-                                  </Text>
-                                </VStack>
-                              </Td>
+                                <Tr key={record.id} _hover={{ bg: 'gray.50' }} onClick={() => { setSelectedRecord(record); onDetailsOpen(); }} style={{ cursor: 'pointer' }}>
+                                  <Td>
+                                    <VStack align="start" spacing={1}>
+                                      <HStack>
+                                        <Text fontWeight="medium" color="gray.800">{record.project_name || '—'}</Text>
+                                        <Button size="xs" variant="ghost" onClick={(e:any) => { e.stopPropagation(); openProjectFromApproval(record); }}>Open project</Button>
+                                      </HStack>
+                                      <Text fontSize="xs" color="gray.500">Service #{record.service_number || '—'}</Text>
+                                    </VStack>
+                                  </Td>
                               <Td>{dateFormatter(record.date)}</Td>
                               <Td>{record.capacity_kw ?? '—'}</Td>
                               <Td textTransform="capitalize">{record.location || '—'}</Td>
