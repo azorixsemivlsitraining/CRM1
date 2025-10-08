@@ -119,11 +119,14 @@ const ChitoorProjectDetails = () => {
       setLoading(true);
 
       // Fetch project details
-      const { data: projectData, error: projectError } = await supabase
+      // Fetch project details robustly (handle 0/1/multiple rows)
+      const res = await supabase
         .from('chitoor_projects')
         .select('*')
-        .eq('id', id)
-        .single();
+        .eq('id', id);
+
+      const projectError = res.error;
+      const projectDataRaw = res.data;
 
       if (projectError) {
         console.error('Error fetching project:', projectError);
@@ -135,6 +138,22 @@ const ChitoorProjectDetails = () => {
           isClosable: true,
         });
         return;
+      }
+
+      if (!projectDataRaw || (Array.isArray(projectDataRaw) && projectDataRaw.length === 0)) {
+        toast({ title: 'Project not found', description: 'Project not found', status: 'error', duration: 4000 });
+        setProject(null);
+        return;
+      }
+
+      let projectData: any = null;
+      if (Array.isArray(projectDataRaw)) {
+        if (projectDataRaw.length > 1) {
+          console.warn('Multiple projects returned for id, using first', projectDataRaw);
+        }
+        projectData = projectDataRaw[0];
+      } else {
+        projectData = projectDataRaw as any;
       }
 
       if (projectData) {
