@@ -368,65 +368,7 @@ const ChitoorProjectsTile = ({
           </Box>
         </Flex>
 
-        <SimpleGrid columns={2} spacing={3} mb={4}>
-          <Box border="1px solid" borderColor="gray.200" borderRadius="lg" p={3}>
-            <Text fontSize="xs" color="gray.500">
-              Total
-            </Text>
-            <Heading size="md" color="gray.800">
-              {summary.total}
-            </Heading>
-          </Box>
-          <Box border="1px solid" borderColor="gray.200" borderRadius="lg" p={3}>
-            <Text fontSize="xs" color="gray.500">
-              Pending
-            </Text>
-            <Heading size="md" color="yellow.600">
-              {summary.pending}
-            </Heading>
-          </Box>
-          <Box border="1px solid" borderColor="gray.200" borderRadius="lg" p={3}>
-            <Text fontSize="xs" color="gray.500">
-              Approved
-            </Text>
-            <Heading size="md" color="green.600">
-              {summary.approved}
-            </Heading>
-          </Box>
-          <Box border="1px solid" borderColor="gray.200" borderRadius="lg" p={3}>
-            <Text fontSize="xs" color="gray.500">
-              Rejected
-            </Text>
-            <Heading size="md" color="red.500">
-              {summary.rejected}
-            </Heading>
-          </Box>
-        </SimpleGrid>
-
-        <VStack spacing={1} align="start" mb={4}>
-          <Text fontSize="xs" color="gray.500">
-            Latest project
-          </Text>
-          {latestRecord ? (
-            <Box>
-              <Text fontWeight="medium" fontSize="sm" color="gray.800">
-                {latestRecord.project_name || 'Project'}
-              </Text>
-              <HStack spacing={2} fontSize="xs" color="gray.500">
-                <Text>{dateFormatter(latestRecord.date)}</Text>
-                <Badge colorScheme={statusBadgeColors[latestStatus]}
-                >
-                  {statusLabels[latestStatus]}
-                </Badge>
-              </HStack>
-            </Box>
-          ) : (
-            <Text fontSize="sm" color="gray.500">
-              No Chitoor projects available yet.
-            </Text>
-          )}
-        </VStack>
-
+        {/* simplified tile: only title and Open overlay */}
         <Box mt={3}>
           <LinkOverlay as="button" onClick={handleOpenDetails} color={accentColor}>
             Open
