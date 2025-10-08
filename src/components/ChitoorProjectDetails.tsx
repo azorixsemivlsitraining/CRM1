@@ -131,6 +131,21 @@ const ChitoorProjectDetails = () => {
 
       if (projectError) {
         console.error('Error fetching project:', projectError);
+        // If navigation included an approvalRecord, show it as fallback instead of failing hard
+        const approvalRec = (location && (location as any).state && (location as any).state.approvalRecord) || null;
+        if (approvalRec) {
+          setApprovalFallback(approvalRec);
+          toast({
+            title: 'Project not found',
+            description: 'Could not fetch project; showing approval record instead.',
+            status: 'info',
+            duration: 5000,
+            isClosable: true,
+          });
+          setLoading(false);
+          return;
+        }
+
         toast({
           title: 'Error',
           description: `Failed to fetch project details. ${formatSupabaseError(projectError)}`,
