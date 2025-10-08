@@ -575,6 +575,14 @@ const ChitoorProjectsTile = ({
                                   console.warn('Project lookup from approval failed', e);
                                 }
 
+                                try {
+                                  const navId = explicitId || explicitUuid || `approval-${rec.id}`;
+                                  navigate(`/projects/chitoor/${navId}`, { state: { approvalRecord: rec } });
+                                  return;
+                                } catch (e) {
+                                  console.warn('Fallback navigate failed', e);
+                                }
+
                                 toast({ title: 'Project not found', description: 'Could not find corresponding project for this approval.', status: 'error' });
                               };
 
@@ -839,6 +847,14 @@ const ChitoorProjectsTile = ({
                                   }
                                 } catch (e) {
                                   console.warn('Project lookup from approval failed', e);
+                                }
+
+                                try {
+                                  const navId = explicitId || explicitUuid || `approval-${rec.id}`;
+                                  navigate(`/projects/chitoor/${navId}`, { state: { approvalRecord: rec } });
+                                  return;
+                                } catch (e) {
+                                  console.warn('Fallback navigate failed', e);
                                 }
 
                                 toast({ title: 'Project not found', description: 'Could not find corresponding project for this approval.', status: 'error' });
