@@ -658,6 +658,32 @@ const ChitoorProjectsTile = ({
           </ModalFooter>
         </ModalContent>
       </Modal>
+
+      {/* Details modal */}
+      <Modal isOpen={isDetailsOpen} onClose={() => { setSelectedRecord(null); onDetailsClose(); }} size="lg">
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Project details</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            {selectedRecord ? (
+              <Stack spacing={3}>
+                {Object.entries(selectedRecord).map(([k, v]) => (
+                  <Box key={k}>
+                    <Text fontSize="xs" color="gray.500" textTransform="capitalize">{k.replace(/_/g, ' ')}</Text>
+                    <Text fontWeight="medium">{v === null || v === undefined ? '—' : String(v)}</Text>
+                  </Box>
+                ))}
+              </Stack>
+            ) : (
+              <Text>No details available.</Text>
+            )}
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="ghost" mr={3} onClick={() => { setSelectedRecord(null); onDetailsClose(); }}>Close</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </>
   );
 };
