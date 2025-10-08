@@ -469,132 +469,184 @@ const ChitoorProjectsTile = ({
           </ModalHeader>
           <ModalCloseButton />
           <ModalBody>
-            <Stack spacing={6}>
-              <SimpleGrid columns={{ base: 1, md: 4 }} spacing={4}>
-                {(['all', 'pending', 'approved', 'rejected'] as FilterKey[]).map((key) => (
-                  <Box
-                    key={key}
-                    border="1px solid"
-                    borderColor={filter === key ? 'green.200' : 'gray.200'}
-                    borderRadius="lg"
-                    p={4}
-                    bg={filter === key ? 'green.50' : 'white'}
-                    cursor="pointer"
-                    onClick={() => setFilter(key)}
-                    transition="all 0.2s"
-                    _hover={{ borderColor: 'green.300' }}
-                  >
-                    <Text fontSize="xs" color="gray.500">
-                      {statusLabels[key]}
-                    </Text>
-                    <Heading size="md" color="gray.800">
-                      {summaryByFilter[key]}
-                    </Heading>
-                  </Box>
-                ))}
-              </SimpleGrid>
+            <Tabs>
+              <TabList>
+                <Tab>All Projects</Tab>
+                <Tab>Approvals</Tab>
+              </TabList>
 
-              <Box>
-                <Flex justify="space-between" align="center" mb={3}>
-                  <Heading size="sm" color="gray.700">
-                    {statusLabels[filter]} projects
-                  </Heading>
-                  {loading && (
-                    <HStack spacing={2} color="gray.500" fontSize="sm">
-                      <Spinner size="sm" />
-                      <Text>Loading approvals…</Text>
-                    </HStack>
-                  )}
-                </Flex>
-
-                <TableContainer border="1px solid" borderColor="gray.100" borderRadius="lg">
-                  <Table variant="simple" size="sm">
-                    <Thead bg="gray.50">
-                      <Tr>
-                        <Th color="gray.600">Project</Th>
-                        <Th color="gray.600">Date</Th>
-                        <Th color="gray.600">Capacity (kW)</Th>
-                        <Th color="gray.600">Location</Th>
-                        <Th color="gray.600">Power Bill #</Th>
-                        <Th color="gray.600">Cost</Th>
-                        <Th color="gray.600">Site Visit</Th>
-                        <Th color="gray.600">Payment</Th>
-                        <Th color="gray.600">Approval</Th>
-                        {canApprove && <Th color="gray.600">Actions</Th>}
-                      </Tr>
-                    </Thead>
-                    <Tbody>
-                      {displayedRecords.length === 0 && !loading ? (
-                        <Tr>
-                          <Td colSpan={canApprove ? 10 : 9}>
-                            <Text textAlign="center" color="gray.500" py={6}>
-                              No records in this view.
-                            </Text>
-                          </Td>
-                        </Tr>
-                      ) : (
-                        displayedRecords.map((record) => {
-                          const status = (record.approval_status || 'pending').toLowerCase() as ApprovalStatus;
-                          return (
-                            <Tr key={record.id} _hover={{ bg: 'gray.50' }}>
-                              <Td>
-                                <VStack align="start" spacing={1}>
-                                  <Text fontWeight="medium" color="gray.800">
-                                    {record.project_name || '—'}
-                                  </Text>
-                                  <Text fontSize="xs" color="gray.500">
-                                    Service #{record.service_number || '—'}
-                                  </Text>
-                                </VStack>
+              <TabPanels>
+                <TabPanel>
+                  {projectsLoading ? (
+                    <Spinner />
+                  ) : (
+                    <TableContainer border="1px solid" borderColor="gray.100" borderRadius="lg">
+                      <Table variant="simple" size="sm">
+                        <Thead bg="gray.50">
+                          <Tr>
+                            <Th color="gray.600">Project</Th>
+                            <Th color="gray.600">Date</Th>
+                            <Th color="gray.600">Capacity (kW)</Th>
+                            <Th color="gray.600">Location</Th>
+                            <Th color="gray.600">Cost</Th>
+                            <Th color="gray.600">Status</Th>
+                            <Th></Th>
+                          </Tr>
+                        </Thead>
+                        <Tbody>
+                          {projects.length === 0 ? (
+                            <Tr>
+                              <Td colSpan={7}>
+                                <Text textAlign="center" color="gray.500" py={6}>No projects available.</Text>
                               </Td>
-                              <Td>{dateFormatter(record.date)}</Td>
-                              <Td>{record.capacity_kw ?? '—'}</Td>
-                              <Td textTransform="capitalize">{record.location || '—'}</Td>
-                              <Td>{record.power_bill_number || '—'}</Td>
-                              <Td>{record.project_cost != null ? currencyFormatter.format(record.project_cost) : '—'}</Td>
-                              <Td>{record.site_visit_status || '—'}</Td>
-                              <Td>{record.payment_amount != null ? currencyFormatter.format(record.payment_amount) : '—'}</Td>
-                              <Td>
-                                <Badge colorScheme={statusBadgeColors[status]} textTransform="capitalize">
-                                  {status}
-                                </Badge>
-                              </Td>
-                              {canApprove && (
-                                <Td>
-                                  <Menu>
-                                    <MenuButton
-                                      as={Button}
-                                      rightIcon={<ChevronDownIcon />}
-                                      size="sm"
-                                      colorScheme="green"
-                                      variant="outline"
-                                      isLoading={updatingId === record.id}
-                                    >
-                                      Update
-                                    </MenuButton>
-                                    <MenuList>
-                                      {( ['approved', 'pending', 'rejected'] as ApprovalStatus[] ).map((option) => (
-                                        <MenuItem
-                                          key={option}
-                                          onClick={() => handleStatusChange(record.id, option)}
-                                          isDisabled={option === status}
-                                        >
-                                          Mark as {statusLabels[option]}
-                                        </MenuItem>
-                                      ))}
-                                    </MenuList>
-                                  </Menu>
-                                </Td>
-                              )}
                             </Tr>
-                          );
-                        })
+                          ) : (
+                            projects.map((p) => (
+                              <Tr key={p.id} _hover={{ bg: 'gray.50' }} onClick={() => { setSelectedRecord(p); onDetailsOpen(); }} style={{ cursor: 'pointer' }}>
+                                <Td>{p.customer_name || p.project_name || '—'}</Td>
+                                <Td>{dateFormatter(p.date_of_order || p.date || p.created_at)}</Td>
+                                <Td>{p.capacity ?? p.capacity_kw ?? '—'}</Td>
+                                <Td>{p.address_mandal_village || p.location || '—'}</Td>
+                                <Td>{p.project_cost ? currencyFormatter.format(p.project_cost) : '—'}</Td>
+                                <Td>{p.project_status || p.service_status || '—'}</Td>
+                                <Td><Button size="sm" onClick={(e) => { e.stopPropagation(); setSelectedRecord(p); onDetailsOpen(); }}>View</Button></Td>
+                              </Tr>
+                            ))
+                          )}
+                        </Tbody>
+                      </Table>
+                    </TableContainer>
+                  )}
+                </TabPanel>
+
+                <TabPanel>
+                  <SimpleGrid columns={{ base: 1, md: 4 }} spacing={4} mb={4}>
+                    {(['all', 'pending', 'approved', 'rejected'] as FilterKey[]).map((key) => (
+                      <Box
+                        key={key}
+                        border="1px solid"
+                        borderColor={filter === key ? 'green.200' : 'gray.200'}
+                        borderRadius="lg"
+                        p={4}
+                        bg={filter === key ? 'green.50' : 'white'}
+                        cursor="pointer"
+                        onClick={() => setFilter(key)}
+                        transition="all 0.2s"
+                        _hover={{ borderColor: 'green.300' }}
+                      >
+                        <Text fontSize="xs" color="gray.500">
+                          {statusLabels[key]}
+                        </Text>
+                        <Heading size="md" color="gray.800">
+                          {summaryByFilter[key]}
+                        </Heading>
+                      </Box>
+                    ))}
+                  </SimpleGrid>
+
+                  <Box>
+                    <Flex justify="space-between" align="center" mb={3}>
+                      <Heading size="sm" color="gray.700">
+                        {statusLabels[filter]} projects
+                      </Heading>
+                      {loading && (
+                        <HStack spacing={2} color="gray.500" fontSize="sm">
+                          <Spinner size="sm" />
+                          <Text>Loading approvals…</Text>
+                        </HStack>
                       )}
-                    </Tbody>
-                  </Table>
-                </TableContainer>
-              </Box>
-            </Stack>
+                    </Flex>
+
+                    <TableContainer border="1px solid" borderColor="gray.100" borderRadius="lg">
+                      <Table variant="simple" size="sm">
+                        <Thead bg="gray.50">
+                          <Tr>
+                            <Th color="gray.600">Project</Th>
+                            <Th color="gray.600">Date</Th>
+                            <Th color="gray.600">Capacity (kW)</Th>
+                            <Th color="gray.600">Location</Th>
+                            <Th color="gray.600">Power Bill #</Th>
+                            <Th color="gray.600">Cost</Th>
+                            <Th color="gray.600">Site Visit</Th>
+                            <Th color="gray.600">Payment</Th>
+                            <Th color="gray.600">Approval</Th>
+                            {canApprove && <Th color="gray.600">Actions</Th>}
+                          </Tr>
+                        </Thead>
+                        <Tbody>
+                          {displayedRecords.length === 0 && !loading ? (
+                            <Tr>
+                              <Td colSpan={canApprove ? 10 : 9}>
+                                <Text textAlign="center" color="gray.500" py={6}>
+                                  No records in this view.
+                                </Text>
+                              </Td>
+                            </Tr>
+                          ) : (
+                            displayedRecords.map((record) => {
+                              const status = (record.approval_status || 'pending').toLowerCase() as ApprovalStatus;
+                              return (
+                                <Tr key={record.id} _hover={{ bg: 'gray.50' }}>
+                                  <Td>
+                                    <VStack align="start" spacing={1}>
+                                      <Text fontWeight="medium" color="gray.800">
+                                        {record.project_name || '—'}
+                                      </Text>
+                                      <Text fontSize="xs" color="gray.500">
+                                        Service #{record.service_number || '—'}
+                                      </Text>
+                                    </VStack>
+                                  </Td>
+                                  <Td>{dateFormatter(record.date)}</Td>
+                                  <Td>{record.capacity_kw ?? '—'}</Td>
+                                  <Td textTransform="capitalize">{record.location || '—'}</Td>
+                                  <Td>{record.power_bill_number || '—'}</Td>
+                                  <Td>{record.project_cost != null ? currencyFormatter.format(record.project_cost) : '—'}</Td>
+                                  <Td>{record.site_visit_status || '—'}</Td>
+                                  <Td>{record.payment_amount != null ? currencyFormatter.format(record.payment_amount) : '—'}</Td>
+                                  <Td>
+                                    <Badge colorScheme={statusBadgeColors[status]} textTransform="capitalize">
+                                      {status}
+                                    </Badge>
+                                  </Td>
+                                  {canApprove && (
+                                    <Td>
+                                      <Menu>
+                                        <MenuButton
+                                          as={Button}
+                                          rightIcon={<ChevronDownIcon />}
+                                          size="sm"
+                                          colorScheme="green"
+                                          variant="outline"
+                                          isLoading={updatingId === record.id}
+                                        >
+                                          Update
+                                        </MenuButton>
+                                        <MenuList>
+                                          {( ['approved', 'pending', 'rejected'] as ApprovalStatus[] ).map((option) => (
+                                            <MenuItem
+                                              key={option}
+                                              onClick={() => handleStatusChange(record.id, option)}
+                                              isDisabled={option === status}
+                                            >
+                                              Mark as {statusLabels[option]}
+                                            </MenuItem>
+                                          ))}
+                                        </MenuList>
+                                      </Menu>
+                                    </Td>
+                                  )}
+                                </Tr>
+                              );
+                            })
+                          )}
+                        </Tbody>
+                      </Table>
+                    </TableContainer>
+                  </Box>
+                </TabPanel>
+              </TabPanels>
+            </Tabs>
           </ModalBody>
           <ModalFooter>
             <Button variant="ghost" mr={3} onClick={onClose}>
