@@ -145,8 +145,15 @@ const ChitoorProjectsTile = ({
 
       setApprovals(data ?? []);
     } catch (error: any) {
-      console.error('Failed to load Chitoor approvals', error);
-      const message = formatSupabaseError(error) || error?.message || 'Unable to load Chitoor approvals.';
+      try {
+        console.error('Failed to load Chitoor approvals', JSON.stringify(error, Object.getOwnPropertyNames(error)));
+      } catch (e) {
+        console.error('Failed to load Chitoor approvals', error);
+      }
+
+      const rawMessage = formatSupabaseError(error);
+      const message = typeof rawMessage === 'string' ? rawMessage : String(rawMessage) || 'Unable to load Chitoor approvals.';
+
       toast({
         title: 'Chitoor approvals unavailable',
         description: message,
