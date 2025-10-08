@@ -119,6 +119,34 @@ const ChitoorProjectDetails = () => {
     try {
       setLoading(true);
 
+      // If the route id encodes an approval fallback (prefix 'approval-<uuid>'), fetch the approval record instead
+      if (typeof id === 'string' && id.startsWith('approval-')) {
+        const potentialApprovalId = id.replace(/^approval-/, '');
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (uuidRegex.test(potentialApprovalId)) {
+          try {
+            const { data: approvalRows, error: approvalErr } = await supabase
+              .from('chitoor_project_approvals')
+              .select('*')
+              .eq('id', potentialApprovalId)
+              .limit(1);
+            if (!approvalErr && approvalRows && Array.isArray(approvalRows) && approvalRows.length > 0) {
+              setApprovalFallback(approvalRows[0]);
+              toast({ title: 'Approval record', description: 'Showing approval record for this id.', status: 'info', duration: 5000 });
+              setLoading(false);
+              return;
+            }
+          } catch (e) {
+            console.warn('Error fetching approval fallback by id', e);
+          }
+        } else {
+          // malformed uuid after prefix — avoid querying projects with invalid UUID
+          toast({ title: 'Invalid approval id', description: 'Approval identifier is malformed.', status: 'error', duration: 5000 });
+          setLoading(false);
+          return;
+        }
+      }
+
       // Fetch project details
       // Fetch project details robustly (handle 0/1/multiple rows)
       const res = await supabase
