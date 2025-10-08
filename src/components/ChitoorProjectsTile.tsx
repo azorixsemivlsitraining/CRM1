@@ -76,6 +76,12 @@ interface ApprovalRecord {
   service_status: string | null;
   approval_status: string | null;
   approval_updated_at: string | null;
+
+  // Possible link fields that may exist on approval records
+  project_id?: string | null;
+  chitoor_project_id?: string | null;
+  chitoor_id?: string | null;
+  project_uuid?: string | null;
 }
 
 const statusLabels: Record<FilterKey, string> = {
