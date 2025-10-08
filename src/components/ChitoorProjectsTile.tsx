@@ -128,6 +128,14 @@ const ChitoorProjectsTile = ({
   const [filter, setFilter] = useState<FilterKey>('all');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
+  // projects
+  const [projects, setProjects] = useState<any[]>([]);
+  const [projectsLoading, setProjectsLoading] = useState(false);
+
+  // details modal
+  const { isOpen: isDetailsOpen, onOpen: onDetailsOpen, onClose: onDetailsClose } = useDisclosure();
+  const [selectedRecord, setSelectedRecord] = useState<any | null>(null);
+
   const fetchApprovals = useCallback(async () => {
     if (!isSupabaseConfigured) {
       setApprovals([]);
