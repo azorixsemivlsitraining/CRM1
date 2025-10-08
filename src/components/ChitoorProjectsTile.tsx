@@ -376,7 +376,7 @@ const ChitoorProjectsTile = ({
         </Box>
       </LinkBox>
 
-      <Modal isOpen={isOpen} onClose={onClose} size="6xl" scrollBehavior="inside">
+      <Modal isOpen={isOpen} onClose={onClose} size="full">
         <ModalOverlay />
         <ModalContent>
           <ModalHeader>
