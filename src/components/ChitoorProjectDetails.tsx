@@ -79,6 +79,7 @@ const ChitoorProjectDetails = () => {
   const { isOpen: isCustomerEditOpen, onOpen: onCustomerEditOpen, onClose: onCustomerEditClose } = useDisclosure();
   
   const [project, setProject] = useState<ChitoorProject | null>(null);
+  const [approvalFallback, setApprovalFallback] = useState<any | null>(null);
   const [paymentHistory, setPaymentHistory] = useState<PaymentHistory[]>([]);
   const [paymentsTable, setPaymentsTable] = useState<'payment_history' | 'chitoor_payment_history'>('payment_history');
   const [loading, setLoading] = useState(true);
