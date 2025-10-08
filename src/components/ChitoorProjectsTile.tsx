@@ -131,10 +131,13 @@ const ChitoorProjectsTile = ({
 
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from<ApprovalRecord>('chitoor_project_approvals')
+      const res = await supabase
+        .from('chitoor_project_approvals')
         .select('*')
         .order('created_at', { ascending: false });
+
+      const data = res.data as ApprovalRecord[] | null;
+      const error = res.error;
 
       if (error) {
         throw error;
