@@ -447,30 +447,55 @@ const ChitoorProjectDetails = () => {
 
   if (!project) {
     if (approvalFallback) {
+      // Render approval details in the same two-card layout as a regular project, without edit actions
+      const a = approvalFallback as any;
+      const safeDate = (d: any) => { try { return d ? new Date(d).toLocaleDateString() : '—'; } catch { return String(d); } };
       return (
-        <Box p={8}>
-          <Text fontSize="lg" fontWeight="bold" mb={3}>Project not found</Text>
-          <Text mb={4} color="gray.600">Could not locate the full project record. Showing approval data received from the approvals table.</Text>
+        <Box p={6}>
+          <VStack spacing={6} align="stretch">
+            <Flex justify="space-between" align="center">
+              <Box>
+                <Text fontSize="2xl" fontWeight="bold" color="gray.800">Chitoor Project Details</Text>
+                <Text color="gray.600">Approval ID: {a.id || '—'}</Text>
+              </Box>
+              <Button variant="ghost" onClick={() => navigate('/projects/chitoor')}>Back</Button>
+            </Flex>
 
-          <Box border="1px solid" borderColor="gray.100" borderRadius="md" p={4} mb={4}>
-            <Text fontSize="md" fontWeight="semibold">Approval Record</Text>
-            <VStack align="stretch" spacing={2} mt={2}>
-              {Object.entries(approvalFallback).map(([k, v]) => (
-                <Box key={k}>
-                  <Text fontSize="xs" color="gray.500" textTransform="capitalize">{k.replace(/_/g, ' ')}</Text>
-                  <Text fontWeight="medium">{v === null || v === undefined ? '—' : String(v)}</Text>
-                </Box>
-              ))}
-            </VStack>
-          </Box>
+            <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6}>
+              <Card>
+                <CardHeader>
+                  <Text fontSize="lg" fontWeight="semibold" color="gray.700">Overview</Text>
+                </CardHeader>
+                <CardBody>
+                  <VStack align="stretch" spacing={3}>
+                    <Text><strong>Project Name:</strong> {a.project_name || '—'}</Text>
+                    <Text><strong>Date:</strong> {safeDate(a.date)}</Text>
+                    <Text><strong>Capacity (kW):</strong> {a.capacity_kw ?? a.capacity ?? '—'}</Text>
+                    <Text><strong>Villages / Location:</strong> {a.location || '—'}</Text>
+                    <Text><strong>Power Bill Number:</strong> {a.power_bill_number || '—'}</Text>
+                    <Text><strong>Project Cost:</strong> {a.project_cost != null ? `₹${Number(a.project_cost).toLocaleString()}` : '—'}</Text>
+                  </VStack>
+                </CardBody>
+              </Card>
 
-          <HStack spacing={3}>
-            <Button onClick={() => navigate('/projects/chitoor')}>Back to Chitoor Projects</Button>
-            <Button colorScheme="green" onClick={() => {
-              // Try opening the corresponding projects page in a new tab for manual inspection
-              window.open('/projects/chitoor', '_blank');
-            }}>Open Projects List</Button>
-          </HStack>
+              <Card>
+                <CardHeader>
+                  <Text fontSize="lg" fontWeight="semibold" color="gray.700">Status & Billing</Text>
+                </CardHeader>
+                <CardBody>
+                  <VStack align="stretch" spacing={3}>
+                    <Text><strong>Site Visit Status:</strong> {a.site_visit_status || '—'}</Text>
+                    <Text><strong>Payment Request (₹):</strong> {a.payment_amount != null ? `₹${Number(a.payment_amount).toLocaleString()}` : '—'}</Text>
+                    <Text><strong>Banking Ref ID:</strong> {a.banking_ref_id || a.banking_ref || '—'}</Text>
+                    <Text><strong>Service Number:</strong> {a.service_number || '—'}</Text>
+                    <Text><strong>Service Status:</strong> {a.service_status || '—'}</Text>
+                    <Text><strong>Approval (CRM):</strong> {a.approval_status || a.approval || '—'}</Text>
+                    <Text fontSize="xs" color="gray.500">Updated: {safeDate(a.approval_updated_at || a.updated_at || a.created_at)}</Text>
+                  </VStack>
+                </CardBody>
+              </Card>
+            </SimpleGrid>
+          </VStack>
         </Box>
       );
     }
@@ -1004,7 +1029,7 @@ const ChitoorProjectDetails = () => {
               </FormControl>
 
               <FormControl isRequired>
-                <FormLabel>Project Cost (₹)</FormLabel>
+                <FormLabel>Project Cost (��)</FormLabel>
                 <Input
                   type="number"
                   value={projectFormData.project_cost}
