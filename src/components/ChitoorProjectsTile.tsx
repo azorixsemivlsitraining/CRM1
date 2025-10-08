@@ -39,7 +39,10 @@ import {
   TabPanels,
   Tab,
   TabPanel,
-} from '@chakra-ui/react';
+  Card,
+  CardHeader,
+  CardBody,
+  } from '@chakra-ui/react';
 import { ChevronDownIcon, RepeatIcon } from '@chakra-ui/icons';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
