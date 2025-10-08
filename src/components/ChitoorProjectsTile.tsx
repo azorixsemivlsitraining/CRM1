@@ -941,14 +941,48 @@ const ChitoorProjectsTile = ({
           <ModalCloseButton />
           <ModalBody>
             {selectedRecord ? (
-              <Stack spacing={3}>
-                {Object.entries(selectedRecord).map(([k, v]) => (
-                  <Box key={k}>
-                    <Text fontSize="xs" color="gray.500" textTransform="capitalize">{k.replace(/_/g, ' ')}</Text>
-                    <Text fontWeight="medium">{v === null || v === undefined ? '—' : String(v)}</Text>
+              (() => {
+                const a: any = selectedRecord;
+                const safeDate = (d: any) => { try { return d ? new Date(d).toLocaleDateString() : '—'; } catch { return String(d); } };
+                return (
+                  <Box>
+                    <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={4}>
+                      <Card>
+                        <CardHeader>
+                          <Text fontSize="lg" fontWeight="semibold">Overview</Text>
+                        </CardHeader>
+                        <CardBody>
+                          <VStack align="stretch" spacing={2}>
+                            <Text><strong>Project Name:</strong> {a.project_name || a.project || '—'}</Text>
+                            <Text><strong>Date:</strong> {safeDate(a.date)}</Text>
+                            <Text><strong>Capacity (kW):</strong> {a.capacity_kw ?? a.capacity ?? '—'}</Text>
+                            <Text><strong>Villages / Location:</strong> {a.location || a.village || '—'}</Text>
+                            <Text><strong>Power Bill Number:</strong> {a.power_bill_number || a.power_bill || '—'}</Text>
+                            <Text><strong>Project Cost:</strong> {a.project_cost != null ? `₹${Number(a.project_cost).toLocaleString()}` : '—'}</Text>
+                          </VStack>
+                        </CardBody>
+                      </Card>
+
+                      <Card>
+                        <CardHeader>
+                          <Text fontSize="lg" fontWeight="semibold">Status & Billing</Text>
+                        </CardHeader>
+                        <CardBody>
+                          <VStack align="stretch" spacing={2}>
+                            <Text><strong>Site Visit Status:</strong> {a.site_visit_status || a.site_visit || '—'}</Text>
+                            <Text><strong>Payment Request (₹):</strong> {a.payment_amount != null ? `₹${Number(a.payment_amount).toLocaleString()}` : '—'}</Text>
+                            <Text><strong>Banking Ref ID:</strong> {a.banking_ref_id || a.banking_ref || '—'}</Text>
+                            <Text><strong>Service Number:</strong> {a.service_number || '—'}</Text>
+                            <Text><strong>Service Status:</strong> {a.service_status || '—'}</Text>
+                            <Text><strong>Approval (CRM):</strong> {a.approval_status || a.approval || '—'}</Text>
+                            <Text fontSize="xs" color="gray.500">Updated: {safeDate(a.approval_updated_at || a.updated_at || a.created_at)}</Text>
+                          </VStack>
+                        </CardBody>
+                      </Card>
+                    </SimpleGrid>
                   </Box>
-                ))}
-              </Stack>
+                );
+              })()
             ) : (
               <Text>No details available.</Text>
             )}
