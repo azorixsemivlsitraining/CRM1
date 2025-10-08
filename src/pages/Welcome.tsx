@@ -36,6 +36,7 @@ interface Tile {
 const tiles: Tile[] = [
   { label: 'Overall Dashboard', description: 'KPIs and performance overview', icon: '📊', to: '/dashboard' },
   { label: 'Projects', description: 'Track and manage all projects', icon: '📈', to: '/projects' },
+  { label: 'Chitoor Projects', description: 'Dedicated dashboard for Chitoor initiatives', icon: '🏗️', to: '/projects/chitoor' },
   { label: 'Reports', description: 'Insights and analytics', icon: '📑', to: '/reports' },
   { label: 'Service Tickets', description: 'Track and resolve issues', icon: '🎫', to: '/service-tickets' },
   { label: 'Finance', description: 'Billing, payments and receipts', icon: '💰', to: '/finance' },
