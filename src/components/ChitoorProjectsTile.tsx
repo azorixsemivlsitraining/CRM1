@@ -485,10 +485,41 @@ const ChitoorProjectsTile = ({
                               const status = (record.approval_status || 'pending').toLowerCase() as ApprovalStatus;
                               const openProjectFromApproval = async (rec: any) => {
                                 // prefer explicit fk fields if present
-                                const projectId = rec.project_id || rec.chitoor_project_id || rec.chitoor_id || rec.project_uuid;
-                                if (projectId) {
-                                  navigate(`/projects/chitoor/${projectId}`);
-                                  return;
+                                const explicitId = rec.project_id || rec.chitoor_project_id || rec.chitoor_id || null;
+                                const explicitUuid = rec.project_uuid || null;
+
+                                // If explicit id provided, check it exists first before navigating
+                                if (explicitId) {
+                                  try {
+                                    const { data: exists, error: checkErr } = await supabase
+                                      .from('chitoor_projects')
+                                      .select('id')
+                                      .eq('id', explicitId)
+                                      .limit(1);
+                                    if (!checkErr && exists && Array.isArray(exists) && exists.length > 0) {
+                                      navigate(`/projects/chitoor/${explicitId}`);
+                                      return;
+                                    }
+                                  } catch (e) {
+                                    console.warn('Project existence check failed', e);
+                                  }
+                                }
+
+                                // If explicit uuid provided, try matching by project_uuid column
+                                if (explicitUuid) {
+                                  try {
+                                    const { data: foundByUuid, error: errByUuid } = await supabase
+                                      .from('chitoor_projects')
+                                      .select('id')
+                                      .eq('project_uuid', explicitUuid)
+                                      .limit(1);
+                                    if (!errByUuid && foundByUuid && Array.isArray(foundByUuid) && foundByUuid.length > 0) {
+                                      navigate(`/projects/chitoor/${foundByUuid[0].id}`);
+                                      return;
+                                    }
+                                  } catch (e) {
+                                    console.warn('Lookup by project_uuid failed', e);
+                                  }
                                 }
 
                                 // Try to match against already-fetched projects first (fast, offline)
@@ -498,6 +529,7 @@ const ChitoorProjectsTile = ({
                                       if (!p) return false;
                                       if (rec.service_number && (p.service_number === rec.service_number || String(p.service_number) === String(rec.service_number))) return true;
                                       if (rec.power_bill_number && (p.power_bill_number === rec.power_bill_number || String(p.power_bill_number) === String(rec.power_bill_number))) return true;
+                                      if (explicitUuid && (p.project_uuid === explicitUuid || String(p.project_uuid) === String(explicitUuid))) return true;
                                       const pname = (rec.project_name || '').toString().trim().toLowerCase();
                                       const candidateNames = [p.customer_name, p.project_name, p.customer || p.name].filter(Boolean).map((s: any) => String(s).toLowerCase());
                                       if (pname && candidateNames.some((n: string) => n.includes(pname))) return true;
@@ -519,6 +551,7 @@ const ChitoorProjectsTile = ({
                                   if (rec.power_bill_number) conditions.push(`power_bill_number.eq.${rec.power_bill_number}`);
                                   if (rec.banking_ref_id) conditions.push(`banking_ref_id.eq.${rec.banking_ref_id}`);
                                   if (rec.banking_ref) conditions.push(`banking_ref.eq.${rec.banking_ref}`);
+                                  if (explicitUuid) conditions.push(`project_uuid.eq.${explicitUuid}`);
                                   if (rec.project_name) {
                                     // use ilike for partial name matches
                                     const safeName = rec.project_name.replace(/%/g, '').replace(/,/g, '');
@@ -718,10 +751,41 @@ const ChitoorProjectsTile = ({
                               const status = (record.approval_status || 'pending').toLowerCase() as ApprovalStatus;
                               const openProjectFromApproval = async (rec: any) => {
                                 // prefer explicit fk fields if present
-                                const projectId = rec.project_id || rec.chitoor_project_id || rec.chitoor_id || rec.project_uuid;
-                                if (projectId) {
-                                  navigate(`/projects/chitoor/${projectId}`);
-                                  return;
+                                const explicitId = rec.project_id || rec.chitoor_project_id || rec.chitoor_id || null;
+                                const explicitUuid = rec.project_uuid || null;
+
+                                // If explicit id provided, check it exists first before navigating
+                                if (explicitId) {
+                                  try {
+                                    const { data: exists, error: checkErr } = await supabase
+                                      .from('chitoor_projects')
+                                      .select('id')
+                                      .eq('id', explicitId)
+                                      .limit(1);
+                                    if (!checkErr && exists && Array.isArray(exists) && exists.length > 0) {
+                                      navigate(`/projects/chitoor/${explicitId}`);
+                                      return;
+                                    }
+                                  } catch (e) {
+                                    console.warn('Project existence check failed', e);
+                                  }
+                                }
+
+                                // If explicit uuid provided, try matching by project_uuid column
+                                if (explicitUuid) {
+                                  try {
+                                    const { data: foundByUuid, error: errByUuid } = await supabase
+                                      .from('chitoor_projects')
+                                      .select('id')
+                                      .eq('project_uuid', explicitUuid)
+                                      .limit(1);
+                                    if (!errByUuid && foundByUuid && Array.isArray(foundByUuid) && foundByUuid.length > 0) {
+                                      navigate(`/projects/chitoor/${foundByUuid[0].id}`);
+                                      return;
+                                    }
+                                  } catch (e) {
+                                    console.warn('Lookup by project_uuid failed', e);
+                                  }
                                 }
 
                                 // Try to match against already-fetched projects first (fast, offline)
@@ -731,6 +795,7 @@ const ChitoorProjectsTile = ({
                                       if (!p) return false;
                                       if (rec.service_number && (p.service_number === rec.service_number || String(p.service_number) === String(rec.service_number))) return true;
                                       if (rec.power_bill_number && (p.power_bill_number === rec.power_bill_number || String(p.power_bill_number) === String(rec.power_bill_number))) return true;
+                                      if (explicitUuid && (p.project_uuid === explicitUuid || String(p.project_uuid) === String(explicitUuid))) return true;
                                       const pname = (rec.project_name || '').toString().trim().toLowerCase();
                                       const candidateNames = [p.customer_name, p.project_name, p.customer || p.name].filter(Boolean).map((s: any) => String(s).toLowerCase());
                                       if (pname && candidateNames.some((n: string) => n.includes(pname))) return true;
@@ -752,6 +817,7 @@ const ChitoorProjectsTile = ({
                                   if (rec.power_bill_number) conditions.push(`power_bill_number.eq.${rec.power_bill_number}`);
                                   if (rec.banking_ref_id) conditions.push(`banking_ref_id.eq.${rec.banking_ref_id}`);
                                   if (rec.banking_ref) conditions.push(`banking_ref.eq.${rec.banking_ref}`);
+                                  if (explicitUuid) conditions.push(`project_uuid.eq.${explicitUuid}`);
                                   if (rec.project_name) {
                                     // use ilike for partial name matches
                                     const safeName = rec.project_name.replace(/%/g, '').replace(/,/g, '');
