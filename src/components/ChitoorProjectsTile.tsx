@@ -279,6 +279,8 @@ const ChitoorProjectsTile = ({
 
   const [projects, setProjects] = useState<any[]>([]);
   const [projectsLoading, setProjectsLoading] = useState(false);
+  const [projectsChannel, setProjectsChannel] = useState<any | null>(null);
+  const [approvalsChannel, setApprovalsChannel] = useState<any | null>(null);
 
   const {
     isOpen: isDetailsOpen,
@@ -351,10 +353,16 @@ const ChitoorProjectsTile = ({
       if (!isSupabaseConfigured) return;
       try {
         setProjectsLoading(true);
+        // Get accurate total count first, then fetch full range to avoid implicit limits
+        const { count } = await supabase
+          .from('chitoor_projects')
+          .select('id', { count: 'exact', head: true });
+        const end = Math.max(0, (count || 0) - 1);
         const { data, error } = await supabase
           .from('chitoor_projects')
           .select('*')
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .range(0, end);
         if (error) {
           console.error('Error fetching projects', error);
           return;
@@ -368,6 +376,31 @@ const ChitoorProjectsTile = ({
     };
 
     fetchProjects();
+
+    // Realtime updates for live project management
+    if (isSupabaseConfigured) {
+      const prjCh = (supabase as any)
+        .channel('realtime-chitoor-projects')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'chitoor_projects' }, () => {
+          fetchProjects();
+        })
+        .subscribe();
+      setProjectsChannel(prjCh);
+
+      const aprTable = 'chittoor_project_approvals';
+      const altAprTable = 'chitoor_project_approvals';
+      const aprCh = (supabase as any)
+        .channel('realtime-chitoor-approvals')
+        .on('postgres_changes', { event: '*', schema: 'public', table: aprTable }, () => fetchApprovals())
+        .on('postgres_changes', { event: '*', schema: 'public', table: altAprTable }, () => fetchApprovals())
+        .subscribe();
+      setApprovalsChannel(aprCh);
+    }
+
+    return () => {
+      try { (projectsChannel as any)?.unsubscribe?.(); } catch {}
+      try { (approvalsChannel as any)?.unsubscribe?.(); } catch {}
+    };
   }, [fetchApprovals]);
 
   const summary = useMemo(() => {
@@ -465,7 +498,10 @@ const ChitoorProjectsTile = ({
     const total = projects.length;
     const completed = projects.filter((p: any) => String(p.project_status || p.status || '').toLowerCase().includes('completed')).length;
     const active = total - completed;
-    return { total, active, completed };
+    const num = (v: any) => (typeof v === 'number' ? v : parseFloat(v || '0') || 0);
+    const totalRevenue = projects.reduce((sum, p: any) => sum + num(p.project_cost), 0);
+    const totalCapacity = projects.reduce((sum, p: any) => sum + num(p.capacity ?? p.capacity_kw), 0);
+    return { total, active, completed, totalRevenue, totalCapacity };
   }, [projects]);
 
   const formatMonthLabel = (key: string) => {
@@ -863,14 +899,17 @@ const ChitoorProjectsTile = ({
         <ModalContent>
           <ModalHeader>
             <Flex justify="space-between" align="center" gap={4}>
-              <Box>
-                <Heading size="md" color="gray.800">
-                  Chitoor project approvals
-                </Heading>
-                <Text fontSize="sm" color="gray.500">
-                  Data shared via Supabase with CRM-controlled approvals
-                </Text>
-              </Box>
+              <HStack spacing={3} align="center">
+                <Button variant="ghost" onClick={onClose}>Back</Button>
+                <Box>
+                  <Heading size="md" color="gray.800">
+                    Chitoor project approvals
+                  </Heading>
+                  <Text fontSize="sm" color="gray.500">
+                    Data shared via Supabase with CRM-controlled approvals
+                  </Text>
+                </Box>
+              </HStack>
               <HStack spacing={3}>
                 <Button
                   variant="outline"
@@ -945,59 +984,89 @@ const ChitoorProjectsTile = ({
                   {projectsLoading ? (
                     <Spinner />
                   ) : (
-                    <TableContainer border="1px solid" borderColor="gray.100" borderRadius="lg">
-                      <Table variant="simple" size="sm">
-                        <Thead bg="gray.50">
-                          <Tr>
-                            <Th color="gray.600">Project</Th>
-                            <Th color="gray.600">Date</Th>
-                            <Th color="gray.600">Capacity (kW)</Th>
-                            <Th color="gray.600">Location</Th>
-                            <Th color="gray.600">Cost</Th>
-                            <Th color="gray.600">Status</Th>
-                            <Th></Th>
-                          </Tr>
-                        </Thead>
-                        <Tbody>
-                          {projects.length === 0 ? (
+                    <>
+                      <SimpleGrid columns={{ base: 1, md: 2, lg: 5 }} spacing={4} mb={4}>
+                        <Box border="1px solid" borderColor="gray.200" borderRadius="lg" p={4} bg="white">
+                          <Text fontSize="xs" color="gray.500">Total Projects</Text>
+                          <Heading size="md" color="gray.800">{projectStats.total}</Heading>
+                          <Text fontSize="xs" color="gray.500">All Chitoor projects</Text>
+                        </Box>
+                        <Box border="1px solid" borderColor="gray.200" borderRadius="lg" p={4} bg="white">
+                          <Text fontSize="xs" color="gray.500">Active Projects</Text>
+                          <Heading size="md" color="gray.800">{projectStats.active}</Heading>
+                          <Text fontSize="xs" color="gray.500">In progress</Text>
+                        </Box>
+                        <Box border="1px solid" borderColor="gray.200" borderRadius="lg" p={4} bg="white">
+                          <Text fontSize="xs" color="gray.500">Completed Projects</Text>
+                          <Heading size="md" color="gray.800">{projectStats.completed}</Heading>
+                          <Text fontSize="xs" color="gray.500">Successfully delivered</Text>
+                        </Box>
+                        <Box border="1px solid" borderColor="gray.200" borderRadius="lg" p={4} bg="white">
+                          <Text fontSize="xs" color="gray.500">Total Revenue</Text>
+                          <Heading size="md" color="gray.800">{currencyFormatter.format(projectStats.totalRevenue)}</Heading>
+                          <Text fontSize="xs" color="gray.500">Project value</Text>
+                        </Box>
+                        <Box border="1px solid" borderColor="gray.200" borderRadius="lg" p={4} bg="white">
+                          <Text fontSize="xs" color="gray.500">Total Capacity</Text>
+                          <Heading size="md" color="gray.800">{projectStats.totalCapacity.toLocaleString()} kW</Heading>
+                          <Text fontSize="xs" color="gray.500">Energy capacity</Text>
+                        </Box>
+                      </SimpleGrid>
+
+                      <TableContainer border="1px solid" borderColor="gray.100" borderRadius="lg">
+                        <Table variant="simple" size="sm">
+                          <Thead bg="gray.50">
                             <Tr>
-                              <Td colSpan={7}>
-                                <Text textAlign="center" color="gray.500" py={6}>No projects available.</Text>
-                              </Td>
+                              <Th color="gray.600">Project</Th>
+                              <Th color="gray.600">Date</Th>
+                              <Th color="gray.600">Capacity (kW)</Th>
+                              <Th color="gray.600">Location</Th>
+                              <Th color="gray.600">Cost</Th>
+                              <Th color="gray.600">Status</Th>
+                              <Th></Th>
                             </Tr>
-                          ) : (
-                            projects.map((p) => (
-                              <Tr
-                                key={p.id}
-                                _hover={{ bg: 'gray.50' }}
-                                onClick={() => {
-                                  navigate(`/projects/chitoor/${p.id}`);
-                                }}
-                                cursor="pointer"
-                              >
-                                <Td>{p.customer_name || p.project_name || '—'}</Td>
-                                <Td>{dateFormatter(p.date_of_order || p.date || p.created_at)}</Td>
-                                <Td>{p.capacity ?? p.capacity_kw ?? '—'}</Td>
-                                <Td>{p.address_mandal_village || p.location || '—'}</Td>
-                                <Td>{p.project_cost ? currencyFormatter.format(p.project_cost) : '—'}</Td>
-                                <Td>{p.project_status || p.service_status || '—'}</Td>
-                                <Td>
-                                  <Button
-                                    size="sm"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      navigate(`/projects/chitoor/${p.id}`);
-                                    }}
-                                  >
-                                    View
-                                  </Button>
+                          </Thead>
+                          <Tbody>
+                            {projects.length === 0 ? (
+                              <Tr>
+                                <Td colSpan={7}>
+                                  <Text textAlign="center" color="gray.500" py={6}>No projects available.</Text>
                                 </Td>
                               </Tr>
-                            ))
-                          )}
-                        </Tbody>
-                      </Table>
-                    </TableContainer>
+                            ) : (
+                              projects.map((p) => (
+                                <Tr
+                                  key={p.id}
+                                  _hover={{ bg: 'gray.50' }}
+                                  onClick={() => {
+                                    navigate(`/projects/chitoor/${p.id}`);
+                                  }}
+                                  cursor="pointer"
+                                >
+                                  <Td>{p.customer_name || p.project_name || '—'}</Td>
+                                  <Td>{dateFormatter(p.date_of_order || p.date || p.created_at)}</Td>
+                                  <Td>{p.capacity ?? p.capacity_kw ?? '—'}</Td>
+                                  <Td>{p.address_mandal_village || p.location || '—'}</Td>
+                                  <Td>{p.project_cost ? currencyFormatter.format(p.project_cost) : '—'}</Td>
+                                  <Td>{p.project_status || p.service_status || '—'}</Td>
+                                  <Td>
+                                    <Button
+                                      size="sm"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigate(`/projects/chitoor/${p.id}`);
+                                      }}
+                                    >
+                                      View
+                                    </Button>
+                                  </Td>
+                                </Tr>
+                              ))
+                            )}
+                          </Tbody>
+                        </Table>
+                      </TableContainer>
+                    </>
                   )}
                 </TabPanel>
 
