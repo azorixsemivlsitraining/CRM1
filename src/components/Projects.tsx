@@ -578,15 +578,18 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
       <VStack spacing={6} align="stretch">
         {/* Header */}
         <Flex justify="space-between" align="center" wrap="wrap" gap={4}>
-          <Box>
-            <Heading size="lg" color="gray.800" mb={2}>
-              {stateFilter ? `${stateFilter} Projects` : 'Projects Management'}
-            </Heading>
-            <Text color="gray.600">
-              {projects.length} of {stateFilter ? allProjects.length : (combinedTotals.totalProjects || allProjects.length)} projects
-              {stateFilter && ` in ${stateFilter}`}
-            </Text>
-          </Box>
+          <HStack spacing={3} align="center">
+            <Button variant="outline" size="sm" onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/welcome'))}>← Back</Button>
+            <Box>
+              <Heading size="lg" color="gray.800" mb={2}>
+                {stateFilter ? `${stateFilter} Projects` : 'Projects Management'}
+              </Heading>
+              <Text color="gray.600">
+                {projects.length} of {stateFilter ? allProjects.length : (combinedTotals.totalProjects || allProjects.length)} projects
+                {stateFilter && ` in ${stateFilter}`}
+              </Text>
+            </Box>
+          </HStack>
           <Button
             leftIcon={<AddIcon />}
             colorScheme="green"
@@ -599,6 +602,13 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
             Create New Project
           </Button>
         </Flex>
+
+        {/* Analytics cards */}
+        <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
+          <StatTile title="All projects" value={totalProjectsCount} icon="📁" help="Total Projects" />
+          <StatTile title="In progress" value={activeCount} icon="📈" help="Active Projects" />
+          <StatTile title="Successfully delivered" value={completedCount} icon="✅" help="Completed Projects" />
+        </SimpleGrid>
 
         {/* Search and Filter Bar */}
         <Card bg={cardBg} border="1px solid" borderColor={borderColor}>
