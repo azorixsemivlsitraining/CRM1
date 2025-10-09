@@ -40,7 +40,7 @@ import {
 } from '@chakra-ui/react';
 import { supabase } from '../lib/supabase';
 import { CHITOOR_PROJECT_STAGES } from '../lib/constants';
-import { Link as RouterLink } from 'react-router-dom';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ChevronDownIcon, TimeIcon } from '@chakra-ui/icons';
 
@@ -241,6 +241,8 @@ const DashboardChitoor = () => {
     }
   };
 
+  const navigate = useNavigate();
+
   return (
     <Box>
       <VStack spacing={8} align="stretch">
@@ -252,6 +254,7 @@ const DashboardChitoor = () => {
             <Text color="gray.600">District-level analytics and progress</Text>
           </Box>
           <HStack spacing={4} wrap="wrap">
+            <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>Back</Button>
             <Button as={RouterLink as any} to="/reports/chitoor" colorScheme="green" variant="solid" size="sm">View Chitoor Reports</Button>
             <Menu>
               <MenuButton as={Button} rightIcon={<ChevronDownIcon />} variant="outline" size="sm">

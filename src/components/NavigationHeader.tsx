@@ -10,7 +10,7 @@ import {
   MenuList,
   MenuItem,
 } from '@chakra-ui/react';
-import { Link as RouterLink, useLocation } from 'react-router-dom';
+import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 interface NavButtonProps {
@@ -52,6 +52,7 @@ const NavButton: React.FC<NavButtonProps> = ({ icon, label, to, isActive }) => {
 
 const NavigationHeader = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { isAdmin } = useAuth();
   const headerBg = 'white';
   const borderColor = 'gray.200';

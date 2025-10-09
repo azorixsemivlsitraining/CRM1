@@ -351,10 +351,16 @@ const ChitoorProjectsTile = ({
       if (!isSupabaseConfigured) return;
       try {
         setProjectsLoading(true);
+        // Get accurate total count first, then fetch full range to avoid implicit limits
+        const { count } = await supabase
+          .from('chitoor_projects')
+          .select('id', { count: 'exact', head: true });
+        const end = Math.max(0, (count || 0) - 1);
         const { data, error } = await supabase
           .from('chitoor_projects')
           .select('*')
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .range(0, end);
         if (error) {
           console.error('Error fetching projects', error);
           return;
@@ -368,6 +374,29 @@ const ChitoorProjectsTile = ({
     };
 
     fetchProjects();
+
+    // Realtime updates for live project management
+    if (isSupabaseConfigured) {
+      const prjCh = (supabase as any)
+        .channel('realtime-chitoor-projects')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'chitoor_projects' }, () => {
+          fetchProjects();
+        })
+        .subscribe();
+
+      const aprTable = 'chittoor_project_approvals';
+      const altAprTable = 'chitoor_project_approvals';
+      const aprCh = (supabase as any)
+        .channel('realtime-chitoor-approvals')
+        .on('postgres_changes', { event: '*', schema: 'public', table: aprTable }, () => fetchApprovals())
+        .on('postgres_changes', { event: '*', schema: 'public', table: altAprTable }, () => fetchApprovals())
+        .subscribe();
+    }
+
+    return () => {
+      try { (prjCh as any)?.unsubscribe?.(); } catch {}
+      try { (aprCh as any)?.unsubscribe?.(); } catch {}
+    };
   }, [fetchApprovals]);
 
   const summary = useMemo(() => {
@@ -425,6 +454,103 @@ const ChitoorProjectsTile = ({
   }, [approvals]);
 
   const approvalsColumnCount = 9 + dynamicFields.length + (canApprove ? 1 : 0);
+
+  const approvalsMonthly = useMemo(() => {
+    const counts: Record<string, number> = {};
+    approvals.forEach((r) => {
+      const raw = (r.date as any) || (r as any)?.created_at || null;
+      if (!raw) return;
+      const d = new Date(raw);
+      if (isNaN(d.getTime())) return;
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    return counts;
+  }, [approvals]);
+
+  const projectsMonthly = useMemo(() => {
+    const counts: Record<string, number> = {};
+    projects.forEach((p: any) => {
+      const raw = p.date_of_order || p.date || p.created_at || null;
+      if (!raw) return;
+      const d = new Date(raw);
+      if (isNaN(d.getTime())) return;
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    return counts;
+  }, [projects]);
+
+  const monthKeys = useMemo(() => {
+    const keys = new Set<string>([...Object.keys(approvalsMonthly), ...Object.keys(projectsMonthly)]);
+    return Array.from(keys).sort((a, b) => {
+      const [ay, am] = a.split('-').map(Number);
+      const [by, bm] = b.split('-').map(Number);
+      return ay === by ? am - bm : ay - by;
+    });
+  }, [approvalsMonthly, projectsMonthly]);
+
+  const projectStats = useMemo(() => {
+    const total = projects.length;
+    const isCompleted = (status: any) => {
+      const s = String(status || '').toLowerCase();
+      return s === 'completed' || s.includes('installation completed') || s.includes('commissioned') || s.includes('delivered');
+    };
+    const isInactive = (status: any) => {
+      const s = String(status || '').toLowerCase();
+      return s.includes('cancel') || s.includes('declined') || s.includes('rejected') || s.includes('closed');
+    };
+    const completed = projects.filter((p: any) => isCompleted(p.project_status || p.status)).length;
+    const inactive = projects.filter((p: any) => isInactive(p.project_status || p.status)).length;
+    const active = Math.max(0, total - completed - inactive);
+    const num = (v: any) => (typeof v === 'number' ? v : parseFloat(v || '0') || 0);
+    const totalRevenue = projects.reduce((sum, p: any) => sum + num(p.project_cost), 0);
+    const totalCapacity = projects.reduce((sum, p: any) => sum + num(p.capacity ?? p.capacity_kw), 0);
+    return { total, active, completed, totalRevenue, totalCapacity };
+  }, [projects]);
+
+  const formatMonthLabel = (key: string) => {
+    const [y, m] = key.split('-').map(Number);
+    const d = new Date(y, (m || 1) - 1, 1);
+    return d.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
+  };
+
+  const BarComparisonChart: React.FC<{ months: string[]; a: number[]; b: number[]; labels: [string, string]; colors?: [string, string]; }> = ({ months, a, b, labels, colors = ['green.600', 'green.300'] }) => {
+    const maxVal = Math.max(1, ...a, ...b);
+    return (
+      <Box border="1px solid" borderColor="gray.100" borderRadius="lg" p={4} bg="white">
+        <Text fontWeight="semibold" color="gray.700" mb={2}>Monthly comparison</Text>
+        <Text fontSize="sm" color="gray.500" mb={4}>Track how CRM approvals compare with on-ground Chitoor project progress.</Text>
+        <HStack align="end" spacing={6} minH="220px">
+          {months.map((mKey, idx) => {
+            const av = a[idx] || 0;
+            const bv = b[idx] || 0;
+            const ah = (av / maxVal) * 180;
+            const bh = (bv / maxVal) * 180;
+            return (
+              <VStack key={mKey} spacing={2} align="center">
+                <HStack align="end" spacing={2}>
+                  <Box w="12px" bg={colors[0]} borderRadius="sm" height={`${ah}px`} />
+                  <Box w="12px" bg={colors[1]} borderRadius="sm" height={`${bh}px`} />
+                </HStack>
+                <Text fontSize="xs" color="gray.600">{formatMonthLabel(mKey)}</Text>
+              </VStack>
+            );
+          })}
+        </HStack>
+        <HStack spacing={4} mt={3} color="gray.600">
+          <HStack spacing={2}>
+            <Box w="10px" h="10px" bg={colors[0]} borderRadius="sm" />
+            <Text fontSize="xs">{labels[0]}</Text>
+          </HStack>
+          <HStack spacing={2}>
+            <Box w="10px" h="10px" bg={colors[1]} borderRadius="sm" />
+            <Text fontSize="xs">{labels[1]}</Text>
+          </HStack>
+        </HStack>
+      </Box>
+    );
+  };
 
   const sendApprovalStatus = useCallback(
     async (recordId: string, status: ApprovalStatus) => {
@@ -778,14 +904,17 @@ const ChitoorProjectsTile = ({
         <ModalContent>
           <ModalHeader>
             <Flex justify="space-between" align="center" gap={4}>
-              <Box>
-                <Heading size="md" color="gray.800">
-                  Chitoor project approvals
-                </Heading>
-                <Text fontSize="sm" color="gray.500">
-                  Data shared via Supabase with CRM-controlled approvals
-                </Text>
-              </Box>
+              <HStack spacing={3} align="center">
+                <Button variant="ghost" onClick={onClose}>Back</Button>
+                <Box>
+                  <Heading size="md" color="gray.800">
+                    Chitoor project approvals
+                  </Heading>
+                  <Text fontSize="sm" color="gray.500">
+                    Data shared via Supabase with CRM-controlled approvals
+                  </Text>
+                </Box>
+              </HStack>
               <HStack spacing={3}>
                 <Button
                   variant="outline"
@@ -810,6 +939,7 @@ const ChitoorProjectsTile = ({
               <TabList>
                 <Tab>Approvals</Tab>
                 <Tab>All Projects</Tab>
+                <Tab>Analytics</Tab>
               </TabList>
 
               <TabPanels>
@@ -859,60 +989,134 @@ const ChitoorProjectsTile = ({
                   {projectsLoading ? (
                     <Spinner />
                   ) : (
-                    <TableContainer border="1px solid" borderColor="gray.100" borderRadius="lg">
-                      <Table variant="simple" size="sm">
-                        <Thead bg="gray.50">
-                          <Tr>
-                            <Th color="gray.600">Project</Th>
-                            <Th color="gray.600">Date</Th>
-                            <Th color="gray.600">Capacity (kW)</Th>
-                            <Th color="gray.600">Location</Th>
-                            <Th color="gray.600">Cost</Th>
-                            <Th color="gray.600">Status</Th>
-                            <Th></Th>
-                          </Tr>
-                        </Thead>
-                        <Tbody>
-                          {projects.length === 0 ? (
+                    <>
+                      <SimpleGrid columns={{ base: 1, md: 2, lg: 5 }} spacing={4} mb={4}>
+                        <Box border="1px solid" borderColor="gray.200" borderRadius="lg" p={4} bg="white">
+                          <Text fontSize="xs" color="gray.500">Total Projects</Text>
+                          <Heading size="md" color="gray.800">{projectStats.total}</Heading>
+                          <Text fontSize="xs" color="gray.500">All Chitoor projects</Text>
+                        </Box>
+                        <Box border="1px solid" borderColor="gray.200" borderRadius="lg" p={4} bg="white">
+                          <Text fontSize="xs" color="gray.500">Active Projects</Text>
+                          <Heading size="md" color="gray.800">{projectStats.active}</Heading>
+                          <Text fontSize="xs" color="gray.500">In progress</Text>
+                        </Box>
+                        <Box border="1px solid" borderColor="gray.200" borderRadius="lg" p={4} bg="white">
+                          <Text fontSize="xs" color="gray.500">Completed Projects</Text>
+                          <Heading size="md" color="gray.800">{projectStats.completed}</Heading>
+                          <Text fontSize="xs" color="gray.500">Successfully delivered</Text>
+                        </Box>
+                        <Box border="1px solid" borderColor="gray.200" borderRadius="lg" p={4} bg="white">
+                          <Text fontSize="xs" color="gray.500">Total Revenue</Text>
+                          <Heading size="md" color="gray.800">{currencyFormatter.format(projectStats.totalRevenue)}</Heading>
+                          <Text fontSize="xs" color="gray.500">Project value</Text>
+                        </Box>
+                        <Box border="1px solid" borderColor="gray.200" borderRadius="lg" p={4} bg="white">
+                          <Text fontSize="xs" color="gray.500">Total Capacity</Text>
+                          <Heading size="md" color="gray.800">{projectStats.totalCapacity.toLocaleString()} kW</Heading>
+                          <Text fontSize="xs" color="gray.500">Energy capacity</Text>
+                        </Box>
+                      </SimpleGrid>
+
+                      <TableContainer border="1px solid" borderColor="gray.100" borderRadius="lg">
+                        <Table variant="simple" size="sm">
+                          <Thead bg="gray.50">
                             <Tr>
-                              <Td colSpan={7}>
-                                <Text textAlign="center" color="gray.500" py={6}>No projects available.</Text>
-                              </Td>
+                              <Th color="gray.600">Project</Th>
+                              <Th color="gray.600">Date</Th>
+                              <Th color="gray.600">Capacity (kW)</Th>
+                              <Th color="gray.600">Location</Th>
+                              <Th color="gray.600">Cost</Th>
+                              <Th color="gray.600">Status</Th>
+                              <Th></Th>
                             </Tr>
-                          ) : (
-                            projects.map((p) => (
-                              <Tr
-                                key={p.id}
-                                _hover={{ bg: 'gray.50' }}
-                                onClick={() => {
-                                  navigate(`/projects/chitoor/${p.id}`);
-                                }}
-                                cursor="pointer"
-                              >
-                                <Td>{p.customer_name || p.project_name || '—'}</Td>
-                                <Td>{dateFormatter(p.date_of_order || p.date || p.created_at)}</Td>
-                                <Td>{p.capacity ?? p.capacity_kw ?? '—'}</Td>
-                                <Td>{p.address_mandal_village || p.location || '—'}</Td>
-                                <Td>{p.project_cost ? currencyFormatter.format(p.project_cost) : '—'}</Td>
-                                <Td>{p.project_status || p.service_status || '—'}</Td>
-                                <Td>
-                                  <Button
-                                    size="sm"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      navigate(`/projects/chitoor/${p.id}`);
-                                    }}
-                                  >
-                                    View
-                                  </Button>
+                          </Thead>
+                          <Tbody>
+                            {projects.length === 0 ? (
+                              <Tr>
+                                <Td colSpan={7}>
+                                  <Text textAlign="center" color="gray.500" py={6}>No projects available.</Text>
                                 </Td>
                               </Tr>
-                            ))
-                          )}
-                        </Tbody>
-                      </Table>
-                    </TableContainer>
+                            ) : (
+                              projects.map((p) => (
+                                <Tr
+                                  key={p.id}
+                                  _hover={{ bg: 'gray.50' }}
+                                  onClick={() => {
+                                    navigate(`/projects/chitoor/${p.id}`);
+                                  }}
+                                  cursor="pointer"
+                                >
+                                  <Td>{p.customer_name || p.project_name || '—'}</Td>
+                                  <Td>{dateFormatter(p.date_of_order || p.date || p.created_at)}</Td>
+                                  <Td>{p.capacity ?? p.capacity_kw ?? '—'}</Td>
+                                  <Td>{p.address_mandal_village || p.location || '—'}</Td>
+                                  <Td>{p.project_cost ? currencyFormatter.format(p.project_cost) : '—'}</Td>
+                                  <Td>{p.project_status || p.service_status || '—'}</Td>
+                                  <Td>
+                                    <Button
+                                      size="sm"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigate(`/projects/chitoor/${p.id}`);
+                                      }}
+                                    >
+                                      View
+                                    </Button>
+                                  </Td>
+                                </Tr>
+                              ))
+                            )}
+                          </Tbody>
+                        </Table>
+                      </TableContainer>
+                    </>
                   )}
+                </TabPanel>
+
+                <TabPanel>
+                  <SimpleGrid columns={{ base: 1, md: 3, lg: 6 }} spacing={4} mb={4}>
+                    <Box border="1px solid" borderColor="gray.200" borderRadius="lg" p={4} bg="white">
+                      <Text fontSize="xs" color="gray.500">All projects</Text>
+                      <Heading size="md" color="gray.800">{projectStats.total}</Heading>
+                      <Text fontSize="xs" color="gray.500">Total Projects</Text>
+                    </Box>
+                    <Box border="1px solid" borderColor="gray.200" borderRadius="lg" p={4} bg="white">
+                      <Text fontSize="xs" color="gray.500">In progress</Text>
+                      <Heading size="md" color="gray.800">{projectStats.active}</Heading>
+                      <Text fontSize="xs" color="gray.500">Active Projects</Text>
+                    </Box>
+                    <Box border="1px solid" borderColor="gray.200" borderRadius="lg" p={4} bg="white">
+                      <Text fontSize="xs" color="gray.500">Successfully delivered</Text>
+                      <Heading size="md" color="gray.800">{projectStats.completed}</Heading>
+                      <Text fontSize="xs" color="gray.500">Completed Projects</Text>
+                    </Box>
+                    <Box border="1px solid" borderColor="gray.200" borderRadius="lg" p={4} bg="white">
+                      <Text fontSize="xs" color="gray.500">All</Text>
+                      <Heading size="md" color="gray.800">{summary.total}</Heading>
+                      <Text fontSize="xs" color="gray.500">Total Approvals</Text>
+                    </Box>
+                    <Box border="1px solid" borderColor="gray.200" borderRadius="lg" p={4} bg="white">
+                      <Text fontSize="xs" color="gray.500">Waiting</Text>
+                      <Heading size="md" color="gray.800">{summary.pending}</Heading>
+                      <Text fontSize="xs" color="gray.500">Pending</Text>
+                    </Box>
+                    <Box border="1px solid" borderColor="gray.200" borderRadius="lg" p={4} bg="white">
+                      <Text fontSize="xs" color="gray.500">Greenlit</Text>
+                      <Heading size="md" color="gray.800">{summary.approved}</Heading>
+                      <Text fontSize="xs" color="gray.500">Approved</Text>
+                    </Box>
+                  </SimpleGrid>
+
+                  <Text fontSize="xs" color="gray.500" mb={2}>Last updated: {new Date().toLocaleString()}</Text>
+
+                  <BarComparisonChart
+                    months={monthKeys}
+                    a={monthKeys.map((k) => approvalsMonthly[k] || 0)}
+                    b={monthKeys.map((k) => projectsMonthly[k] || 0)}
+                    labels={["Approvals", "Chitoor Projects"]}
+                  />
                 </TabPanel>
               </TabPanels>
             </Tabs>

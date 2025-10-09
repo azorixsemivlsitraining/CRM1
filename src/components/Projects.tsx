@@ -46,6 +46,9 @@ import {
   MenuList,
   MenuItem,
   Portal,
+  Stat,
+  StatLabel,
+  StatNumber,
 } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
@@ -155,7 +158,7 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
   });
   const [loading, setLoading] = useState(false);
   const [allProjects, setAllProjects] = useState<Project[]>([]);
-  const [combinedTotals, setCombinedTotals] = useState({ totalProjects: 0, totalRevenue: 0, totalKWH: 0 });
+  const [combinedTotals, setCombinedTotals] = useState({ totalProjects: 0, totalRevenue: 0, totalKWH: 0, active: 0, completed: 0 });
   const [activeFilters, setActiveFilters] = useState<FilterOptions[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const toast = useToast();
@@ -201,7 +204,7 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
           duration: 5000,
           isClosable: true,
         });
-        setCombinedTotals({ totalProjects: 0, totalRevenue: 0, totalKWH: 0 });
+        setCombinedTotals({ totalProjects: 0, totalRevenue: 0, totalKWH: 0, active: 0, completed: 0 });
         return;
       }
 
@@ -213,19 +216,33 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
         count: primaryProjects.length,
         revenue: primaryProjects.reduce((sum, project) => sum + parseNumber(project.proposal_amount), 0),
         kwh: primaryProjects.reduce((sum, project) => sum + parseNumber(project.kwh), 0),
+        active: primaryProjects.filter(p => (p.status || '').toLowerCase() === 'active').length,
+        completed: primaryProjects.filter(p => (p.status || '').toLowerCase() === 'completed').length,
       };
 
       const canIncludeChitoor = !stateFilter && (isAdmin || !Array.isArray(assignedRegions) || assignedRegions.length === 0 || assignedRegions.includes('Chitoor'));
 
-      let chitoorTotals = { count: 0, revenue: 0, kwh: 0 };
+      let chitoorTotals = { count: 0, revenue: 0, kwh: 0, active: 0, completed: 0 };
       if (canIncludeChitoor) {
         const { data: chitoorData, error: chErr } = await supabase.from('chitoor_projects').select('project_cost, capacity, project_status');
         if (!chErr || (chErr as any)?.code === 'PGRST116') {
           const rows = Array.isArray(chitoorData) ? chitoorData : [];
+          const isCompleted = (s: any) => {
+            const v = String(s || '').toLowerCase();
+            return v === 'completed' || v.includes('installation completed') || v.includes('commissioned') || v.includes('delivered');
+          };
+          const isInactive = (s: any) => {
+            const v = String(s || '').toLowerCase();
+            return v.includes('cancel') || v.includes('declined') || v.includes('rejected') || v.includes('closed');
+          };
+          const completed = rows.filter(r => isCompleted((r as any).project_status)).length;
+          const inactive = rows.filter(r => isInactive((r as any).project_status)).length;
           chitoorTotals = {
             count: rows.length,
-            revenue: rows.reduce((sum, row) => sum + parseNumber(row.project_cost), 0),
-            kwh: rows.reduce((sum, row) => sum + parseNumber(row.capacity), 0),
+            revenue: rows.reduce((sum, row) => sum + parseNumber((row as any).project_cost), 0),
+            kwh: rows.reduce((sum, row) => sum + parseNumber((row as any).capacity), 0),
+            active: Math.max(0, rows.length - completed - inactive),
+            completed,
           };
         } else {
           console.warn('Chitoor projects fetch error:', chErr);
@@ -236,6 +253,8 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
         totalProjects: primaryTotals.count + (canIncludeChitoor ? chitoorTotals.count : 0),
         totalRevenue: primaryTotals.revenue + (canIncludeChitoor ? chitoorTotals.revenue : 0),
         totalKWH: primaryTotals.kwh + (canIncludeChitoor ? chitoorTotals.kwh : 0),
+        active: primaryTotals.active + (canIncludeChitoor ? chitoorTotals.active : 0),
+        completed: primaryTotals.completed + (canIncludeChitoor ? chitoorTotals.completed : 0),
       });
     } catch (error) {
       console.error('Error fetching projects:', error);
@@ -254,6 +273,18 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
 
   useEffect(() => {
     fetchProjects();
+    const chPr = (supabase as any)
+      .channel('realtime-projects-all')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, () => fetchProjects())
+      .subscribe();
+    const chCh = (supabase as any)
+      .channel('realtime-chitoor-projects-all')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'chitoor_projects' }, () => fetchProjects())
+      .subscribe();
+    return () => {
+      try { (chPr as any)?.unsubscribe?.(); } catch {}
+      try { (chCh as any)?.unsubscribe?.(); } catch {}
+    };
   }, [fetchProjects]);
 
   // Apply filters and search whenever activeFilters or searchTerm changes
@@ -546,20 +577,47 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
     return type === 'DCR' ? 'green' : 'blue';
   };
 
+  const totalProjectsCount = allProjects.length;
+  const activeCount = stateFilter ? allProjects.filter(p => (p.status || '').toLowerCase() === 'active').length : (combinedTotals.active || 0);
+  const completedCount = stateFilter ? allProjects.filter(p => (p.status || '').toLowerCase() === 'completed').length : (combinedTotals.completed || 0);
+
+  const StatTile: React.FC<{ title: string; value: number; icon: string; help?: string }> = ({ title, value, icon, help }) => {
+    const tileBg = cardBg;
+    return (
+      <Card bg={tileBg} border="1px solid" borderColor={borderColor}>
+        <CardBody>
+          <Flex justify="space-between" align="flex-start">
+            <Box>
+              <Stat>
+                <StatLabel color="gray.600" fontSize="sm" fontWeight="medium">{title}</StatLabel>
+                <StatNumber fontSize="2xl" color="green.600">{value.toLocaleString()}</StatNumber>
+                {help && <Text fontSize="xs" color="gray.500">{help}</Text>}
+              </Stat>
+            </Box>
+            <Text fontSize="xl">{icon}</Text>
+          </Flex>
+        </CardBody>
+      </Card>
+    );
+  };
+
   return (
     <Box>
       <VStack spacing={6} align="stretch">
         {/* Header */}
         <Flex justify="space-between" align="center" wrap="wrap" gap={4}>
-          <Box>
-            <Heading size="lg" color="gray.800" mb={2}>
-              {stateFilter ? `${stateFilter} Projects` : 'Projects Management'}
-            </Heading>
-            <Text color="gray.600">
-              {projects.length} of {stateFilter ? allProjects.length : (combinedTotals.totalProjects || allProjects.length)} projects
-              {stateFilter && ` in ${stateFilter}`}
-            </Text>
-          </Box>
+          <HStack spacing={3} align="center">
+            <Button variant="outline" size="sm" onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/welcome'))}>← Back</Button>
+            <Box>
+              <Heading size="lg" color="gray.800" mb={2}>
+                {stateFilter ? `${stateFilter} Projects` : 'Projects Management'}
+              </Heading>
+              <Text color="gray.600">
+                {projects.length} of {stateFilter ? allProjects.length : (combinedTotals.totalProjects || allProjects.length)} projects
+                {stateFilter && ` in ${stateFilter}`}
+              </Text>
+            </Box>
+          </HStack>
           <Button
             leftIcon={<AddIcon />}
             colorScheme="green"
@@ -572,6 +630,13 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
             Create New Project
           </Button>
         </Flex>
+
+        {/* Analytics cards */}
+        <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
+          <StatTile title="All projects" value={stateFilter ? totalProjectsCount : (combinedTotals.totalProjects || totalProjectsCount)} icon="📁" help="Total Projects" />
+          <StatTile title="In progress" value={activeCount} icon="📈" help="Active Projects" />
+          <StatTile title="Successfully delivered" value={completedCount} icon="✅" help="Completed Projects" />
+        </SimpleGrid>
 
         {/* Search and Filter Bar */}
         <Card bg={cardBg} border="1px solid" borderColor={borderColor}>
