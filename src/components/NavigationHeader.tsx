@@ -52,6 +52,7 @@ const NavButton: React.FC<NavButtonProps> = ({ icon, label, to, isActive }) => {
 
 const NavigationHeader = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { isAdmin } = useAuth();
   const headerBg = 'white';
   const borderColor = 'gray.200';
