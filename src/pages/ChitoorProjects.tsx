@@ -301,14 +301,17 @@ const ChitoorProjects = () => {
     <Box>
       <VStack spacing={8} align="stretch">
         {/* Header */}
-        <Box>
-          <Heading size="lg" color="gray.800" mb={2}>
-            Chitoor Projects Dashboard
-          </Heading>
-          <Text color="gray.600">
-            Overview and management of Chitoor district projects (AP region with dedicated tracking)
-          </Text>
-        </Box>
+        <Flex justify="space-between" align="center" wrap="wrap" gap={4}>
+          <Box>
+            <Heading size="lg" color="gray.800" mb={2}>
+              Chitoor Projects Dashboard
+            </Heading>
+            <Text color="gray.600">
+              Overview and management of Chitoor district projects (AP region with dedicated tracking)
+            </Text>
+          </Box>
+          <Button variant="ghost" onClick={() => navigate(-1)}>Back</Button>
+        </Flex>
 
         {/* Stats Cards */}
         <SimpleGrid columns={{ base: 1, md: 2, lg: 5 }} spacing={6}>
