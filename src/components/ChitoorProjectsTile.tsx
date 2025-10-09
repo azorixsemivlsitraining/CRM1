@@ -492,8 +492,17 @@ const ChitoorProjectsTile = ({
 
   const projectStats = useMemo(() => {
     const total = projects.length;
-    const completed = projects.filter((p: any) => String(p.project_status || p.status || '').toLowerCase().includes('completed')).length;
-    const active = total - completed;
+    const isCompleted = (status: any) => {
+      const s = String(status || '').toLowerCase();
+      return s === 'completed' || s.includes('installation completed') || s.includes('commissioned') || s.includes('delivered');
+    };
+    const isInactive = (status: any) => {
+      const s = String(status || '').toLowerCase();
+      return s.includes('cancel') || s.includes('declined') || s.includes('rejected') || s.includes('closed');
+    };
+    const completed = projects.filter((p: any) => isCompleted(p.project_status || p.status)).length;
+    const inactive = projects.filter((p: any) => isInactive(p.project_status || p.status)).length;
+    const active = Math.max(0, total - completed - inactive);
     const num = (v: any) => (typeof v === 'number' ? v : parseFloat(v || '0') || 0);
     const totalRevenue = projects.reduce((sum, p: any) => sum + num(p.project_cost), 0);
     const totalCapacity = projects.reduce((sum, p: any) => sum + num(p.capacity ?? p.capacity_kw), 0);
