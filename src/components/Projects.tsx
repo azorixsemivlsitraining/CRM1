@@ -549,6 +549,30 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
     return type === 'DCR' ? 'green' : 'blue';
   };
 
+  const totalProjectsCount = allProjects.length;
+  const activeCount = allProjects.filter(p => (p.status || '').toLowerCase() === 'active').length;
+  const completedCount = allProjects.filter(p => (p.status || '').toLowerCase() === 'completed').length;
+
+  const StatTile: React.FC<{ title: string; value: number; icon: string; help?: string }> = ({ title, value, icon, help }) => {
+    const tileBg = cardBg;
+    return (
+      <Card bg={tileBg} border="1px solid" borderColor={borderColor}>
+        <CardBody>
+          <Flex justify="space-between" align="flex-start">
+            <Box>
+              <Stat>
+                <StatLabel color="gray.600" fontSize="sm" fontWeight="medium">{title}</StatLabel>
+                <StatNumber fontSize="2xl" color="green.600">{value.toLocaleString()}</StatNumber>
+                {help && <Text fontSize="xs" color="gray.500">{help}</Text>}
+              </Stat>
+            </Box>
+            <Text fontSize="xl">{icon}</Text>
+          </Flex>
+        </CardBody>
+      </Card>
+    );
+  };
+
   return (
     <Box>
       <VStack spacing={6} align="stretch">
