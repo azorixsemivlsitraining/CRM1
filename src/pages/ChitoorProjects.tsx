@@ -194,6 +194,13 @@ const ChitoorProjects = () => {
 
   useEffect(() => {
     fetchChitoorProjects();
+    const ch = (supabase as any)
+      .channel('realtime-chitoor-projects-page')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'chitoor_projects' }, () => fetchChitoorProjects())
+      .subscribe();
+    return () => {
+      try { (ch as any)?.unsubscribe?.(); } catch {}
+    };
   }, [fetchChitoorProjects]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
