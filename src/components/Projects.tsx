@@ -605,7 +605,7 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
 
         {/* Analytics cards */}
         <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
-          <StatTile title="All projects" value={totalProjectsCount} icon="📁" help="Total Projects" />
+          <StatTile title="All projects" value={stateFilter ? totalProjectsCount : (combinedTotals.totalProjects || totalProjectsCount)} icon="📁" help="Total Projects" />
           <StatTile title="In progress" value={activeCount} icon="📈" help="Active Projects" />
           <StatTile title="Successfully delivered" value={completedCount} icon="✅" help="Completed Projects" />
         </SimpleGrid>
