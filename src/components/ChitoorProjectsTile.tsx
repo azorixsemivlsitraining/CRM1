@@ -426,6 +426,91 @@ const ChitoorProjectsTile = ({
 
   const approvalsColumnCount = 9 + dynamicFields.length + (canApprove ? 1 : 0);
 
+  const approvalsMonthly = useMemo(() => {
+    const counts: Record<string, number> = {};
+    approvals.forEach((r) => {
+      const raw = (r.date as any) || (r as any)?.created_at || null;
+      if (!raw) return;
+      const d = new Date(raw);
+      if (isNaN(d.getTime())) return;
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    return counts;
+  }, [approvals]);
+
+  const projectsMonthly = useMemo(() => {
+    const counts: Record<string, number> = {};
+    projects.forEach((p: any) => {
+      const raw = p.date_of_order || p.date || p.created_at || null;
+      if (!raw) return;
+      const d = new Date(raw);
+      if (isNaN(d.getTime())) return;
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    return counts;
+  }, [projects]);
+
+  const monthKeys = useMemo(() => {
+    const keys = new Set<string>([...Object.keys(approvalsMonthly), ...Object.keys(projectsMonthly)]);
+    return Array.from(keys).sort((a, b) => {
+      const [ay, am] = a.split('-').map(Number);
+      const [by, bm] = b.split('-').map(Number);
+      return ay === by ? am - bm : ay - by;
+    });
+  }, [approvalsMonthly, projectsMonthly]);
+
+  const projectStats = useMemo(() => {
+    const total = projects.length;
+    const completed = projects.filter((p: any) => String(p.project_status || p.status || '').toLowerCase().includes('completed')).length;
+    const active = total - completed;
+    return { total, active, completed };
+  }, [projects]);
+
+  const formatMonthLabel = (key: string) => {
+    const [y, m] = key.split('-').map(Number);
+    const d = new Date(y, (m || 1) - 1, 1);
+    return d.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
+  };
+
+  const BarComparisonChart: React.FC<{ months: string[]; a: number[]; b: number[]; labels: [string, string]; colors?: [string, string]; }> = ({ months, a, b, labels, colors = ['green.600', 'green.300'] }) => {
+    const maxVal = Math.max(1, ...a, ...b);
+    return (
+      <Box border="1px solid" borderColor="gray.100" borderRadius="lg" p={4} bg="white">
+        <Text fontWeight="semibold" color="gray.700" mb={2}>Monthly comparison</Text>
+        <Text fontSize="sm" color="gray.500" mb={4}>Track how CRM approvals compare with on-ground Chitoor project progress.</Text>
+        <HStack align="end" spacing={6} minH="220px">
+          {months.map((mKey, idx) => {
+            const av = a[idx] || 0;
+            const bv = b[idx] || 0;
+            const ah = (av / maxVal) * 180;
+            const bh = (bv / maxVal) * 180;
+            return (
+              <VStack key={mKey} spacing={2} align="center">
+                <HStack align="end" spacing={2}>
+                  <Box w="12px" bg={colors[0]} borderRadius="sm" height={`${ah}px`} />
+                  <Box w="12px" bg={colors[1]} borderRadius="sm" height={`${bh}px`} />
+                </HStack>
+                <Text fontSize="xs" color="gray.600">{formatMonthLabel(mKey)}</Text>
+              </VStack>
+            );
+          })}
+        </HStack>
+        <HStack spacing={4} mt={3} color="gray.600">
+          <HStack spacing={2}>
+            <Box w="10px" h="10px" bg={colors[0]} borderRadius="sm" />
+            <Text fontSize="xs">{labels[0]}</Text>
+          </HStack>
+          <HStack spacing={2}>
+            <Box w="10px" h="10px" bg={colors[1]} borderRadius="sm" />
+            <Text fontSize="xs">{labels[1]}</Text>
+          </HStack>
+        </HStack>
+      </Box>
+    );
+  };
+
   const sendApprovalStatus = useCallback(
     async (recordId: string, status: ApprovalStatus) => {
       if (approvalEndpoint) {
@@ -810,6 +895,7 @@ const ChitoorProjectsTile = ({
               <TabList>
                 <Tab>Approvals</Tab>
                 <Tab>All Projects</Tab>
+                <Tab>Analytics</Tab>
               </TabList>
 
               <TabPanels>
@@ -913,6 +999,48 @@ const ChitoorProjectsTile = ({
                       </Table>
                     </TableContainer>
                   )}
+                </TabPanel>
+
+                <TabPanel>
+                  <SimpleGrid columns={{ base: 1, md: 3, lg: 6 }} spacing={4} mb={4}>
+                    <Box border="1px solid" borderColor="gray.200" borderRadius="lg" p={4} bg="white">
+                      <Text fontSize="xs" color="gray.500">All projects</Text>
+                      <Heading size="md" color="gray.800">{projectStats.total}</Heading>
+                      <Text fontSize="xs" color="gray.500">Total Projects</Text>
+                    </Box>
+                    <Box border="1px solid" borderColor="gray.200" borderRadius="lg" p={4} bg="white">
+                      <Text fontSize="xs" color="gray.500">In progress</Text>
+                      <Heading size="md" color="gray.800">{projectStats.active}</Heading>
+                      <Text fontSize="xs" color="gray.500">Active Projects</Text>
+                    </Box>
+                    <Box border="1px solid" borderColor="gray.200" borderRadius="lg" p={4} bg="white">
+                      <Text fontSize="xs" color="gray.500">Successfully delivered</Text>
+                      <Heading size="md" color="gray.800">{projectStats.completed}</Heading>
+                      <Text fontSize="xs" color="gray.500">Completed Projects</Text>
+                    </Box>
+                    <Box border="1px solid" borderColor="gray.200" borderRadius="lg" p={4} bg="white">
+                      <Text fontSize="xs" color="gray.500">All</Text>
+                      <Heading size="md" color="gray.800">{summary.total}</Heading>
+                      <Text fontSize="xs" color="gray.500">Total Approvals</Text>
+                    </Box>
+                    <Box border="1px solid" borderColor="gray.200" borderRadius="lg" p={4} bg="white">
+                      <Text fontSize="xs" color="gray.500">Waiting</Text>
+                      <Heading size="md" color="gray.800">{summary.pending}</Heading>
+                      <Text fontSize="xs" color="gray.500">Pending</Text>
+                    </Box>
+                    <Box border="1px solid" borderColor="gray.200" borderRadius="lg" p={4} bg="white">
+                      <Text fontSize="xs" color="gray.500">Greenlit</Text>
+                      <Heading size="md" color="gray.800">{summary.approved}</Heading>
+                      <Text fontSize="xs" color="gray.500">Approved</Text>
+                    </Box>
+                  </SimpleGrid>
+
+                  <BarComparisonChart
+                    months={monthKeys}
+                    a={monthKeys.map((k) => approvalsMonthly[k] || 0)}
+                    b={monthKeys.map((k) => projectsMonthly[k] || 0)}
+                    labels={["Approvals", "Chitoor Projects"]}
+                  />
                 </TabPanel>
               </TabPanels>
             </Tabs>
