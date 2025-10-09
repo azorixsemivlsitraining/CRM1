@@ -1109,6 +1109,8 @@ const ChitoorProjectsTile = ({
                     </Box>
                   </SimpleGrid>
 
+                  <Text fontSize="xs" color="gray.500" mb={2}>Last updated: {new Date().toLocaleString()}</Text>
+
                   <BarComparisonChart
                     months={monthKeys}
                     a={monthKeys.map((k) => approvalsMonthly[k] || 0)}
