@@ -46,6 +46,9 @@ import {
   MenuList,
   MenuItem,
   Portal,
+  Stat,
+  StatLabel,
+  StatNumber,
 } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
