@@ -279,8 +279,6 @@ const ChitoorProjectsTile = ({
 
   const [projects, setProjects] = useState<any[]>([]);
   const [projectsLoading, setProjectsLoading] = useState(false);
-  const [projectsChannel, setProjectsChannel] = useState<any | null>(null);
-  const [approvalsChannel, setApprovalsChannel] = useState<any | null>(null);
 
   const {
     isOpen: isDetailsOpen,
@@ -385,7 +383,6 @@ const ChitoorProjectsTile = ({
           fetchProjects();
         })
         .subscribe();
-      setProjectsChannel(prjCh);
 
       const aprTable = 'chittoor_project_approvals';
       const altAprTable = 'chitoor_project_approvals';
@@ -394,12 +391,11 @@ const ChitoorProjectsTile = ({
         .on('postgres_changes', { event: '*', schema: 'public', table: aprTable }, () => fetchApprovals())
         .on('postgres_changes', { event: '*', schema: 'public', table: altAprTable }, () => fetchApprovals())
         .subscribe();
-      setApprovalsChannel(aprCh);
     }
 
     return () => {
-      try { (projectsChannel as any)?.unsubscribe?.(); } catch {}
-      try { (approvalsChannel as any)?.unsubscribe?.(); } catch {}
+      try { (prjCh as any)?.unsubscribe?.(); } catch {}
+      try { (aprCh as any)?.unsubscribe?.(); } catch {}
     };
   }, [fetchApprovals]);
 
