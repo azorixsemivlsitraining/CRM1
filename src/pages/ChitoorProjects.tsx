@@ -242,18 +242,19 @@ const ChitoorProjects = () => {
   const uniqueMandals = useMemo(() => Array.from(new Set(locations.map((l) => l.mandal.trim()))).sort(), [locations]);
   const uniqueVillages = useMemo(() => Array.from(new Set(locations.map((l) => l.village.trim()))).sort(), [locations]);
 
+  // Filtered lists with 2-letter minimum filter. If filter is less than 2 letters, show full lists.
   const filteredMandals = useMemo(() => {
-    const q = mandalInput.trim().toLowerCase();
-    if (q.length < 2) return [] as string[];
-    return uniqueMandals.filter((m) => m.toLowerCase().includes(q));
-  }, [mandalInput, uniqueMandals]);
+    const q = mandalFilter.trim().toLowerCase();
+    if (q.length >= 2) return uniqueMandals.filter((m) => m.toLowerCase().includes(q));
+    return uniqueMandals;
+  }, [mandalFilter, uniqueMandals]);
 
   const filteredVillages = useMemo(() => {
-    const q = villageInput.trim().toLowerCase();
-    if (q.length < 2) return [] as string[];
+    const q = villageFilter.trim().toLowerCase();
     const base = selectedMandal ? Array.from(villagesByMandal.get(selectedMandal) || []) : uniqueVillages;
-    return base.filter((v) => v.toLowerCase().includes(q));
-  }, [villageInput, selectedMandal, villagesByMandal, uniqueVillages]);
+    if (q.length >= 2) return base.filter((v) => v.toLowerCase().includes(q));
+    return base;
+  }, [villageFilter, selectedMandal, villagesByMandal, uniqueVillages]);
 
   // Load CSV on modal open with multiple path fallbacks and HTML detection
   useEffect(() => {
