@@ -1171,12 +1171,13 @@ const ChitoorProjectsTile = ({
                             <Tr>
                               <Th color="gray.600">Image</Th>
                               <Th color="gray.600">Project</Th>
-                              <Th color="gray.600">Date</Th>
-                              <Th color="gray.600">Capacity (kW)</Th>
-                              <Th color="gray.600">Location</Th>
-                              <Th color="gray.600">Cost</Th>
-                              <Th color="gray.600">Status</Th>
-                              <Th></Th>
+                          <Th color="gray.600">Date</Th>
+                          <Th color="gray.600">Capacity (kW)</Th>
+                          <Th color="gray.600">Location</Th>
+                          <Th color="gray.600">Cost</Th>
+                          <Th color="gray.600">Last Edited</Th>
+                          <Th color="gray.600">Status</Th>
+                          <Th></Th>
                             </Tr>
                           </Thead>
                           <Tbody>
