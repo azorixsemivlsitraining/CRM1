@@ -1209,6 +1209,7 @@ const ChitoorProjectsTile = ({
                                   <Td>{p.capacity ?? p.capacity_kw ?? '—'}</Td>
                                   <Td>{p.address_mandal_village || p.location || '—'}</Td>
                                   <Td>{p.project_cost ? currencyFormatter.format(p.project_cost) : '—'}</Td>
+                                  <Td>{p.edited_at ? `${new Date(p.edited_at).toLocaleString()}${p.edited_by ? ` by ${p.edited_by}` : ''}` : '—'}</Td>
                                   <Td>{p.project_status || p.service_status || '—'}</Td>
                                   <Td>
                                     <Button
