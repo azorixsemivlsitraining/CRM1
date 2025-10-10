@@ -110,32 +110,6 @@ const StatsCard: React.FC<StatsCardProps> = ({ title, value, icon, color, helpTe
   );
 };
 
-// Lightweight autocomplete list for text inputs
-const AutocompleteList: React.FC<{
-  items: string[];
-  onSelect: (val: string) => void;
-  isOpen: boolean;
-}> = ({ items, onSelect, isOpen }) => {
-  if (!isOpen || items.length === 0) return null;
-  return (
-    <Box position="absolute" zIndex={1400} bg="white" border="1px solid" borderColor="gray.200" borderRadius="md" mt={1} w="full" maxH="200px" overflowY="auto" boxShadow="xl">
-      <VStack align="stretch" spacing={0}>
-        {items.map((opt) => (
-          <Box
-            key={opt}
-            px={3}
-            py={2}
-            _hover={{ bg: 'gray.50' }}
-            cursor="pointer"
-            onClick={() => onSelect(opt)}
-          >
-            <Text fontSize="sm" color="gray.700">{opt}</Text>
-          </Box>
-        ))}
-      </VStack>
-    </Box>
-  );
-};
 
 const ChitoorProjects = () => {
   const [projects, setProjects] = useState<ChitoorProject[]>([]);
@@ -213,8 +187,6 @@ const ChitoorProjects = () => {
 
   // Locations state
   const [locations, setLocations] = useState<{ village: string; mandal: string }[]>([]);
-  const [mandalInput, setMandalInput] = useState('');
-  const [villageInput, setVillageInput] = useState('');
   const [selectedMandal, setSelectedMandal] = useState('');
   const [selectedVillage, setSelectedVillage] = useState('');
   // Filter text inputs (for 2-letter filtering behavior)
@@ -396,8 +368,6 @@ const ChitoorProjects = () => {
       });
       setSelectedMandal('');
       setSelectedVillage('');
-      setMandalInput('');
-      setVillageInput('');
       fetchChitoorProjects();
     } catch (error) {
       console.error('Error creating Chitoor project:', error);
@@ -784,12 +754,10 @@ const ChitoorProjects = () => {
                     value={selectedMandal}
                     onChange={(e) => {
                       const val = e.target.value;
-                      setSelectedMandal(val);
-                      setMandalInput(val);
+                                      setSelectedMandal(val);
                       // reset village if it doesn't belong
                       if (selectedVillage && (villagesByMandal.get(val)?.has(selectedVillage) !== true)) {
                         setSelectedVillage('');
-                        setVillageInput('');
                       }
                     }}
                   >
@@ -813,11 +781,9 @@ const ChitoorProjects = () => {
                     onChange={(e) => {
                       const val = e.target.value;
                       setSelectedVillage(val);
-                      setVillageInput(val);
                       const mandal = mandalByVillage.get(val) || '';
                       if (mandal) {
                         setSelectedMandal(mandal);
-                        setMandalInput(mandal);
                       }
                     }}
                   >
