@@ -41,8 +41,11 @@ import {
   Card,
   CardHeader,
   CardBody,
-} from '@chakra-ui/react';
-import { ChevronDownIcon, RepeatIcon } from '@chakra-ui/icons';
+  Image,
+  Tooltip,
+    } from '@chakra-ui/react';
+import { ChevronDownIcon, RepeatIcon, DeleteIcon } from '@chakra-ui/icons';
+import { useAuth } from '../context/AuthContext';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import { formatSupabaseError } from '../utils/error';
@@ -272,6 +275,7 @@ const ChitoorProjectsTile = ({
   const { isOpen, onOpen, onClose } = useDisclosure();
   const toast = useToast();
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [approvals, setApprovals] = useState<ApprovalRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState<FilterKey>('all');
@@ -279,6 +283,81 @@ const ChitoorProjectsTile = ({
 
   const [projects, setProjects] = useState<any[]>([]);
   const [projectsLoading, setProjectsLoading] = useState(false);
+  const [projectThumbnails, setProjectThumbnails] = useState<Record<string,string>>({});
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxImages, setLightboxImages] = useState<string[]>([]);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [lightboxFieldKey, setLightboxFieldKey] = useState<string | null>(null);
+  const [lightboxRecord, setLightboxRecord] = useState<ApprovalRecord | null>(null);
+
+  const openLightbox = (images: string[], index: number, record: ApprovalRecord | null, fieldKey: string | null) => {
+    setLightboxImages(images || []);
+    setLightboxIndex(index || 0);
+    setLightboxRecord(record || null);
+    setLightboxFieldKey(fieldKey);
+    setLightboxOpen(true);
+  };
+
+  const closeLightbox = () => {
+    setLightboxOpen(false);
+    setLightboxImages([]);
+    setLightboxIndex(0);
+    setLightboxFieldKey(null);
+    setLightboxRecord(null);
+  };
+
+  const extractStoragePath = (v: string) => {
+    if (!v) return '';
+    const marker = '/storage/v1/object/public/project-images/';
+    if (v.includes(marker)) return v.split(marker)[1];
+    if (v.includes('project-images/')) return v.split('project-images/').pop() || '';
+    return v;
+  };
+
+  const deleteImageFromField = async (fieldKey: string, imageUrl: string, record: ApprovalRecord | null) => {
+    if (!record) return;
+    const ok = window.confirm('Delete this image? This will remove it from storage and the record.');
+    if (!ok) return;
+    try {
+      const path = extractStoragePath(imageUrl);
+      if (path) {
+        const { error: storageErr } = await supabase.storage.from('project-images').remove([path]);
+        if (storageErr) console.warn('Storage delete returned error', storageErr);
+      }
+
+      // Update DB field by removing this URL from the stored value
+      const candidateTables = ['chittoor_project_approvals', 'chitoor_project_approvals'];
+      for (const t of candidateTables) {
+        try {
+          // Fetch current value
+          const { data: rows, error: selErr } = await supabase.from(t).select(fieldKey).eq('id', record.id).limit(1);
+          if (selErr || !rows) continue;
+          let val: any = rows && Array.isArray(rows) && rows.length > 0 ? rows[0][fieldKey] : null;
+          if (!val) continue;
+          let parts: string[] = [];
+          if (Array.isArray(val)) parts = val.map(String);
+          else parts = String(val).split(',').map(s => s.trim()).filter(Boolean);
+          const remaining = parts.filter(p => p !== imageUrl);
+          const newVal = remaining.length > 0 ? remaining.join(',') : null;
+          const { error: updErr } = await supabase.from(t).update({ [fieldKey]: newVal }).eq('id', record.id);
+          if (updErr) console.warn('Failed to update record field', updErr);
+        } catch (e) {
+          console.warn('Failed to update table', t, e);
+        }
+      }
+
+      await fetchApprovals();
+      // update lightbox images
+      const remainingImgs = lightboxImages.filter((u) => u !== imageUrl);
+      setLightboxImages(remainingImgs);
+      if (remainingImgs.length === 0) closeLightbox();
+      else setLightboxIndex(Math.max(0, Math.min(lightboxIndex, remainingImgs.length - 1)));
+      toast({ title: 'Image deleted', status: 'success', duration: 3000 });
+    } catch (err) {
+      console.error('Failed to delete image', err);
+      toast({ title: 'Delete failed', description: formatSupabaseError(err) || 'Failed to delete image', status: 'error' });
+    }
+  };
 
   const {
     isOpen: isDetailsOpen,
@@ -366,6 +445,32 @@ const ChitoorProjectsTile = ({
           return;
         }
         setProjects(data ?? []);
+        try {
+          const ids = (data ?? []).map((p: any) => p.id).filter(Boolean);
+          if (ids.length > 0) {
+            const { data: imgs } = await supabase
+              .from('project_images')
+              .select('*')
+              .in('project_id', ids)
+              .order('uploaded_at', { ascending: false });
+            const map: Record<string,string> = {};
+            if (imgs && Array.isArray(imgs)) {
+              imgs.forEach((it: any) => {
+                if (!map[it.project_id]) {
+                  const urlData = supabase.storage.from('project-images').getPublicUrl(it.path);
+                  const publicUrl = urlData?.data?.publicUrl || (urlData as any)?.publicUrl || '';
+                  map[it.project_id] = publicUrl;
+                }
+              });
+            }
+            setProjectThumbnails(map);
+          } else {
+            setProjectThumbnails({});
+          }
+        } catch (thumbErr) {
+          console.warn('Failed to fetch thumbnails', thumbErr);
+          setProjectThumbnails({});
+        }
       } catch (err) {
         console.error('Fetch projects error', err);
       } finally {
@@ -376,8 +481,10 @@ const ChitoorProjectsTile = ({
     fetchProjects();
 
     // Realtime updates for live project management
+    let prjCh: any = null;
+    let aprCh: any = null;
     if (isSupabaseConfigured) {
-      const prjCh = (supabase as any)
+      prjCh = (supabase as any)
         .channel('realtime-chitoor-projects')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'chitoor_projects' }, () => {
           fetchProjects();
@@ -386,7 +493,7 @@ const ChitoorProjectsTile = ({
 
       const aprTable = 'chittoor_project_approvals';
       const altAprTable = 'chitoor_project_approvals';
-      const aprCh = (supabase as any)
+      aprCh = (supabase as any)
         .channel('realtime-chitoor-approvals')
         .on('postgres_changes', { event: '*', schema: 'public', table: aprTable }, () => fetchApprovals())
         .on('postgres_changes', { event: '*', schema: 'public', table: altAprTable }, () => fetchApprovals())
@@ -515,26 +622,52 @@ const ChitoorProjectsTile = ({
     return d.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
   };
 
+  const isLikelyImageString = (s: string) => {
+    if (!s) return false;
+    const lower = s.toLowerCase();
+    // direct public path for our bucket
+    if (lower.includes('/storage/v1/object/public/project-images/') || lower.includes('project-images/')) return true;
+    // direct http(s) to an image file
+    if (/^https?:\/\/.+\.(png|jpg|jpeg|webp|svg|ico)(\?.*)?$/i.test(s)) return true;
+    return false;
+  };
+
+  // Explicit list of approval table fields that must always render as text (even if they contain URLs)
+  const APPROVAL_TEXT_ONLY_KEYS = new Set([
+    'banking_ref_id',
+    'biller_name',
+    'customer_mobile_number',
+    'service_number',
+    'mandal',
+    'site_visitor_name',
+    'subsidy_scope',
+    'village',
+    'power_bill_number',
+    'payment_amount',
+  ]);
+
   const BarComparisonChart: React.FC<{ months: string[]; a: number[]; b: number[]; labels: [string, string]; colors?: [string, string]; }> = ({ months, a, b, labels, colors = ['green.600', 'green.300'] }) => {
     const maxVal = Math.max(1, ...a, ...b);
     return (
       <Box border="1px solid" borderColor="gray.100" borderRadius="lg" p={4} bg="white">
         <Text fontWeight="semibold" color="gray.700" mb={2}>Monthly comparison</Text>
         <Text fontSize="sm" color="gray.500" mb={4}>Track how CRM approvals compare with on-ground Chitoor project progress.</Text>
-        <HStack align="end" spacing={6} minH="220px">
+        <HStack align="end" spacing={8} minH="320px">
           {months.map((mKey, idx) => {
             const av = a[idx] || 0;
             const bv = b[idx] || 0;
-            const ah = (av / maxVal) * 180;
-            const bh = (bv / maxVal) * 180;
+            const ah = (av / maxVal) * 260;
+            const bh = (bv / maxVal) * 260;
             return (
-              <VStack key={mKey} spacing={2} align="center">
-                <HStack align="end" spacing={2}>
-                  <Box w="12px" bg={colors[0]} borderRadius="sm" height={`${ah}px`} />
-                  <Box w="12px" bg={colors[1]} borderRadius="sm" height={`${bh}px`} />
-                </HStack>
-                <Text fontSize="xs" color="gray.600">{formatMonthLabel(mKey)}</Text>
-              </VStack>
+              <Tooltip key={mKey} label={`${labels[0]}: ${av} · ${labels[1]}: ${bv}`} hasArrow>
+                <VStack spacing={2} align="center">
+                  <HStack align="end" spacing={2}>
+                    <Box w="14px" bg={colors[0]} borderRadius="sm" height={`${ah}px`} />
+                    <Box w="14px" bg={colors[1]} borderRadius="sm" height={`${bh}px`} />
+                  </HStack>
+                  <Text fontSize="xs" color="gray.600">{formatMonthLabel(mKey)}</Text>
+                </VStack>
+              </Tooltip>
             );
           })}
         </HStack>
@@ -813,11 +946,63 @@ const ChitoorProjectsTile = ({
                   <Td>{record.project_cost != null ? currencyFormatter.format(record.project_cost) : '—'}</Td>
                   <Td>{record.site_visit_status || '—'}</Td>
                   <Td>{record.payment_amount != null ? currencyFormatter.format(record.payment_amount) : '—'}</Td>
-                  {dynamicFields.map((field) => (
-                    <Td key={field.key}>
-                      <Text fontSize="sm" color="gray.700">{formatDynamicValue(field.key, record[field.key])}</Text>
-                    </Td>
-                  ))}
+                  {dynamicFields.map((field) => {
+                    const raw = record[field.key];
+                    // gather possible urls from the field (string with commas, array, or single)
+                    let candidates: string[] = [];
+                    if (Array.isArray(raw)) {
+                      candidates = raw.map(String).map(s => s.trim()).filter(Boolean);
+                    } else if (typeof raw === 'string') {
+                      candidates = raw.split(',').map(s => s.trim()).filter(Boolean);
+                    } else if (raw) {
+                      candidates = [String(raw)];
+                    }
+
+                    const resolvePublicUrl = (v: string) => {
+                      if (!v) return '';
+                      if (v.startsWith('http')) return v;
+                      try {
+                        const marker = '/storage/v1/object/public/project-images/';
+                        if (v.includes(marker)) return v;
+                        if (v.includes('project-images/')) {
+                          const parts = v.split('project-images/');
+                          const path = parts[parts.length - 1];
+                          const urlData = supabase.storage.from('project-images').getPublicUrl(path);
+                          return urlData?.data?.publicUrl || '';
+                        }
+                        const urlData = supabase.storage.from('project-images').getPublicUrl(v);
+                        return urlData?.data?.publicUrl || '';
+                      } catch (e) {
+                        return '';
+                      }
+                    };
+
+                    const allResolved = candidates.map(resolvePublicUrl).filter(Boolean);
+                    // only treat as images if at least one candidate is a likely image (by url or extension)
+                    // Do not render as image for explicitly text-only keys
+                    if (APPROVAL_TEXT_ONLY_KEYS.has(field.key.toLowerCase())) {
+                      return (
+                        <Td key={field.key}>
+                          <Text fontSize="sm" color="gray.700">{formatDynamicValue(field.key, raw)}</Text>
+                        </Td>
+                      );
+                    }
+
+                    const imageUrls = allResolved.filter(u => isLikelyImageString(u));
+                    const thumbnail = imageUrls[0] || null;
+
+                    return (
+                      <Td key={field.key}>
+                        {thumbnail ? (
+                          <Box>
+                            <Image src={thumbnail} alt={field.label} boxSize="60px" objectFit="cover" borderRadius="sm" cursor="pointer" onClick={(e:any) => { e.stopPropagation(); openLightbox(imageUrls, 0, record, field.key); }} />
+                          </Box>
+                        ) : (
+                          <Text fontSize="sm" color="gray.700">{formatDynamicValue(field.key, raw)}</Text>
+                        )}
+                      </Td>
+                    );
+                  })}
                   <Td>
                     <Badge colorScheme={statusBadgeColors[status]} textTransform="capitalize">
                       {status}
@@ -1022,24 +1207,26 @@ const ChitoorProjectsTile = ({
                         <Table variant="simple" size="sm">
                           <Thead bg="gray.50">
                             <Tr>
+                              <Th color="gray.600">No.</Th>
                               <Th color="gray.600">Project</Th>
-                              <Th color="gray.600">Date</Th>
-                              <Th color="gray.600">Capacity (kW)</Th>
-                              <Th color="gray.600">Location</Th>
-                              <Th color="gray.600">Cost</Th>
-                              <Th color="gray.600">Status</Th>
-                              <Th></Th>
+                          <Th color="gray.600">Date</Th>
+                          <Th color="gray.600">Capacity (kW)</Th>
+                          <Th color="gray.600">Location</Th>
+                          <Th color="gray.600">Cost</Th>
+                          <Th color="gray.600">Last Edited</Th>
+                          <Th color="gray.600">Status</Th>
+                          <Th></Th>
                             </Tr>
                           </Thead>
                           <Tbody>
                             {projects.length === 0 ? (
                               <Tr>
-                                <Td colSpan={7}>
+                                <Td colSpan={9}>
                                   <Text textAlign="center" color="gray.500" py={6}>No projects available.</Text>
                                 </Td>
                               </Tr>
                             ) : (
-                              projects.map((p) => (
+                              projects.map((p, idx) => (
                                 <Tr
                                   key={p.id}
                                   _hover={{ bg: 'gray.50' }}
@@ -1048,11 +1235,13 @@ const ChitoorProjectsTile = ({
                                   }}
                                   cursor="pointer"
                                 >
+                                  <Td>{idx + 1}</Td>
                                   <Td>{p.customer_name || p.project_name || '—'}</Td>
                                   <Td>{dateFormatter(p.date_of_order || p.date || p.created_at)}</Td>
                                   <Td>{p.capacity ?? p.capacity_kw ?? '—'}</Td>
-                                  <Td>{p.address_mandal_village || p.location || '—'}</Td>
+                                  <Td>{p.address_mandal_village || p.location || '���'}</Td>
                                   <Td>{p.project_cost ? currencyFormatter.format(p.project_cost) : '—'}</Td>
+                                  <Td>{p.edited_at ? `${new Date(p.edited_at).toLocaleString()}${p.edited_by ? ` by ${p.edited_by}` : ''}` : '—'}</Td>
                                   <Td>{p.project_status || p.service_status || '—'}</Td>
                                   <Td>
                                     <Button
@@ -1132,6 +1321,39 @@ const ChitoorProjectsTile = ({
         </ModalContent>
       </Modal>
 
+      {/* Lightbox modal for field images */}
+      <Modal isOpen={lightboxOpen} onClose={closeLightbox} size="xl" isCentered>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Images</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            {lightboxImages && lightboxImages.length > 0 ? (
+              <Box textAlign="center">
+                <Image src={lightboxImages[lightboxIndex]} alt={`Image ${lightboxIndex+1}`} maxH="60vh" maxW="100%" objectFit="contain" />
+                <HStack justify="center" mt={3} spacing={4}>
+                  <Button onClick={() => setLightboxIndex(i => Math.max(0, i-1))} isDisabled={lightboxIndex<=0}>Prev</Button>
+                  <Text>{lightboxIndex+1} / {lightboxImages.length}</Text>
+                  <Button onClick={() => setLightboxIndex(i => Math.min(lightboxImages.length-1, i+1))} isDisabled={lightboxIndex>=lightboxImages.length-1}>Next</Button>
+                  {isAuthenticated && (
+                    <Button colorScheme="red" onClick={() => deleteImageFromField(lightboxFieldKey || '', lightboxImages[lightboxIndex], lightboxRecord)}>
+                      Delete
+                    </Button>
+                  )}
+                </HStack>
+                <VStack mt={3} align="stretch">
+                  {lightboxImages.map((u, idx) => (
+                    <Image key={u+idx} src={u} alt={`img-${idx}`} boxSize="80px" objectFit="cover" borderRadius="md" onClick={() => setLightboxIndex(idx)} cursor="pointer" />
+                  ))}
+                </VStack>
+              </Box>
+            ) : (
+              <Text>No images</Text>
+            )}
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+
       <Modal
         isOpen={isDetailsOpen}
         onClose={() => {
@@ -1194,11 +1416,50 @@ const ChitoorProjectsTile = ({
                           </CardHeader>
                           <CardBody>
                             <VStack align="stretch" spacing={2}>
-                              {additionalDetails.map((detail) => (
-                                <Text key={detail.key}>
-                                  <strong>{detail.label}:</strong> {formatDynamicValue(detail.key, detail.value)}
-                                </Text>
-                              ))}
+                              {additionalDetails.map((detail) => {
+                                const k = detail.key.toLowerCase();
+                                const isImageField = k.includes('image') || k.includes('photo') || k.includes('img');
+                                if (isImageField) {
+                                  // split urls
+                                  const vals = Array.isArray(detail.value) ? detail.value : (typeof detail.value === 'string' ? detail.value.split(',').map(s=>s.trim()) : [String(detail.value)]);
+                                  // Force text if key is in text-only list
+                                if (APPROVAL_TEXT_ONLY_KEYS.has(detail.key.toLowerCase())) {
+                                  return (
+                                    <Text key={detail.key}><strong>{detail.label}:</strong> {formatDynamicValue(detail.key, detail.value)}</Text>
+                                  );
+                                }
+
+                                const urls = vals.map((v: any) => {
+                                    if (!v) return '';
+                                    const s = String(v);
+                                    if (isLikelyImageString(s)) {
+                                      if (s.startsWith('http')) return s;
+                                      const marker = '/storage/v1/object/public/project-images/';
+                                      if (s.includes(marker)) return s;
+                                      if (s.includes('project-images/')) return supabase.storage.from('project-images').getPublicUrl(s.split('project-images/').pop() || '').data?.publicUrl || '';
+                                      return supabase.storage.from('project-images').getPublicUrl(s).data?.publicUrl || '';
+                                    }
+                                    return '';
+                                  }).filter(Boolean);
+
+                                  return (
+                                    <Box key={detail.key}>
+                                      <Text fontWeight="semibold">{detail.label}:</Text>
+                                      <HStack spacing={2} wrap="wrap">
+                                        {urls.map((u: string, idx: number) => (
+                                          <Image key={u+idx} src={u} alt={`${detail.label}-${idx}`} boxSize="120px" objectFit="cover" borderRadius="md" />
+                                        ))}
+                                      </HStack>
+                                    </Box>
+                                  );
+                                }
+
+                                return (
+                                  <Text key={detail.key}>
+                                    <strong>{detail.label}:</strong> {formatDynamicValue(detail.key, detail.value)}
+                                  </Text>
+                                );
+                              })}
                             </VStack>
                           </CardBody>
                         </Card>
