@@ -653,114 +653,83 @@ const ChitoorProjectDetails = () => {
           )}
         </Flex>
 
-        {/* Project Info Cards */}
-        <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6}>
-          {/* Customer Details */}
-          <Card>
-            <CardHeader>
-              <Flex justify="space-between" align="center">
-                <Text fontSize="lg" fontWeight="semibold" color="gray.700">
-                  Customer Details
-                </Text>
-                <Tooltip label="Edit customer" hasArrow>
-                  <IconButton aria-label="Edit customer" icon={<EditIcon />} variant="ghost" size="sm" onClick={onCustomerEditOpen} />
-                </Tooltip>
-              </Flex>
-            </CardHeader>
-            <CardBody>
-              <VStack align="stretch" spacing={3}>
-                <Text><strong>Name:</strong> {project.customer_name}</Text>
-                <Text><strong>Phone:</strong> {project.mobile_number}</Text>
-                <Text><strong>Address:</strong> {project.address_mandal_village}</Text>
-                {project.service_number && (
-                  <Text><strong>Service Number:</strong> {project.service_number}</Text>
-                )}
-                <Text><strong>Order Date:</strong> {project.date_of_order ? new Date(project.date_of_order).toLocaleDateString() : 'N/A'}</Text>
-              </VStack>
-            </CardBody>
-          </Card>
+        {/* Project Info Cards: 3-column layout (images span 2 columns) */}
+        <SimpleGrid columns={{ base: 1, lg: 4 }} spacing={6}>
+          <Box gridColumn={{ lg: 'span 1' }}>
+            <Card>
+              <CardHeader>
+                <Flex justify="space-between" align="center">
+                  <Text fontSize="lg" fontWeight="semibold" color="gray.700">Customer Details</Text>
+                  <Tooltip label="Edit customer" hasArrow>
+                    <IconButton aria-label="Edit customer" icon={<EditIcon />} variant="ghost" size="sm" onClick={onCustomerEditOpen} />
+                  </Tooltip>
+                </Flex>
+              </CardHeader>
+              <CardBody>
+                <VStack align="stretch" spacing={3}>
+                  <Text><strong>Name:</strong> {project.customer_name}</Text>
+                  <Text><strong>Phone:</strong> {project.mobile_number}</Text>
+                  <Text><strong>Address:</strong> {project.address_mandal_village}</Text>
+                  {project.service_number && (<Text><strong>Service Number:</strong> {project.service_number}</Text>)}
+                  <Text><strong>Order Date:</strong> {project.date_of_order ? new Date(project.date_of_order).toLocaleDateString() : 'N/A'}</Text>
+                </VStack>
+              </CardBody>
+            </Card>
+          </Box>
 
-          {/* Project Details */}
-          <Card>
-            <CardHeader>
-              <Flex justify="space-between" align="center">
-                <Text fontSize="lg" fontWeight="semibold" color="gray.700">
-                  Project Details
-                </Text>
-                <Tooltip label="Edit project" hasArrow>
-                  <IconButton aria-label="Edit project" icon={<EditIcon />} variant="ghost" size="sm" onClick={onEditOpen} />
-                </Tooltip>
-              </Flex>
-            </CardHeader>
-            <CardBody>
-              <VStack align="stretch" spacing={3}>
-                <Text><strong>Project Name:</strong> Chitoor-{project.id.slice(-6)}</Text>
-                <HStack>
-                  <Text><strong>Status:</strong></Text>
-                  <Badge 
-                    colorScheme={getStatusColor(project.project_status || 'pending')}
-                    px={2} py={1} borderRadius="full"
-                  >
-                    {project.project_status || 'Pending'}
-                  </Badge>
-                </HStack>
-                <Text><strong>Capacity:</strong> {project.capacity} kW</Text>
-                <Text><strong>Project Cost:</strong> ₹{project.project_cost.toLocaleString()}</Text>
-                <Text><strong>Amount Received:</strong> ₹{(project.amount_received || 0).toLocaleString()}</Text>
-                <Text><strong>Balance Amount:</strong> ₹{balanceAmount.toLocaleString()}</Text>
-                {project.subsidy_scope && (
-                  <Text><strong>Subsidy Scope:</strong> {project.subsidy_scope}</Text>
+          <Box gridColumn={{ lg: 'span 1' }}>
+            <Card>
+              <CardHeader>
+                <Flex justify="space-between" align="center">
+                  <Text fontSize="lg" fontWeight="semibold" color="gray.700">Project Details</Text>
+                  <Tooltip label="Edit project" hasArrow>
+                    <IconButton aria-label="Edit project" icon={<EditIcon />} variant="ghost" size="sm" onClick={onEditOpen} />
+                  </Tooltip>
+                </Flex>
+              </CardHeader>
+              <CardBody>
+                <VStack align="stretch" spacing={3}>
+                  <Text><strong>Project Name:</strong> Chitoor-{project.id.slice(-6)}</Text>
+                  <HStack>
+                    <Text><strong>Status:</strong></Text>
+                    <Badge colorScheme={getStatusColor(project.project_status || 'pending')} px={2} py={1} borderRadius="full">{project.project_status || 'Pending'}</Badge>
+                  </HStack>
+                  <Text><strong>Capacity:</strong> {project.capacity} kW</Text>
+                  <Text><strong>Project Cost:</strong> ₹{project.project_cost.toLocaleString()}</Text>
+                  <Text><strong>Amount Received:</strong> ₹{(project.amount_received || 0).toLocaleString()}</Text>
+                  <Text><strong>Balance Amount:</strong> ₹{balanceAmount.toLocaleString()}</Text>
+                  {project.subsidy_scope && (<Text><strong>Subsidy Scope:</strong> {project.subsidy_scope}</Text>)}
+                  {project.material_sent_date && (<Text><strong>Material Sent Date:</strong> {new Date(project.material_sent_date).toLocaleDateString()}</Text>)}
+                </VStack>
+              </CardBody>
+            </Card>
+          </Box>
+
+          <Box gridColumn={{ lg: 'span 2' }}>
+            <Card>
+              <CardHeader>
+                <Text fontSize="lg" fontWeight="semibold" color="gray.700">Project Images</Text>
+              </CardHeader>
+              <CardBody>
+                {projectImages && projectImages.length > 0 ? (
+                  <HStack spacing={4} wrap="wrap">
+                    {projectImages.map((img) => (
+                      <Box key={img.id} position="relative">
+                        <Image src={img.public_url || ''} alt={img.name || img.path || 'project image'} boxSize="160px" objectFit="cover" borderRadius="md" onClick={() => window.open(img.public_url || '#', '_blank')} cursor={img.public_url ? 'pointer' : 'default'} />
+                        {isAuthenticated && (
+                          <IconButton aria-label="Delete image" icon={<DeleteIcon />} size="sm" colorScheme="red" position="absolute" top="6px" right="6px" onClick={() => handleDeleteImage(img)} />
+                        )}
+                        <Text fontSize="xs" color="gray.500" mt={1} textAlign="center">{img.uploaded_by ? `${img.uploaded_by}` : ''} {img.uploaded_at ? new Date(img.uploaded_at).toLocaleString() : ''}</Text>
+                      </Box>
+                    ))}
+                  </HStack>
+                ) : (
+                  <Text color="gray.500">No images uploaded for this project.</Text>
                 )}
-                {project.material_sent_date && (
-                  <Text><strong>Material Sent Date:</strong> {new Date(project.material_sent_date).toLocaleDateString()}</Text>
-                )}
-              </VStack>
-            </CardBody>
-          </Card>
+              </CardBody>
+            </Card>
+          </Box>
         </SimpleGrid>
-
-        {/* Project Images */}
-        <Card>
-          <CardHeader>
-            <Text fontSize="lg" fontWeight="semibold" color="gray.700">Project Images</Text>
-          </CardHeader>
-          <CardBody>
-            {projectImages && projectImages.length > 0 ? (
-              <HStack spacing={4} wrap="wrap">
-                {projectImages.map((img) => (
-                  <Box key={img.id} position="relative">
-                    <Image
-                      src={img.public_url || ''}
-                      alt={img.name || img.path || 'project image'}
-                      boxSize="160px"
-                      objectFit="cover"
-                      borderRadius="md"
-                      onClick={() => window.open(img.public_url || '#', '_blank')}
-                      cursor={img.public_url ? 'pointer' : 'default'}
-                    />
-                    {isAuthenticated && (
-                      <IconButton
-                        aria-label="Delete image"
-                        icon={<DeleteIcon />}
-                        size="sm"
-                        colorScheme="red"
-                        position="absolute"
-                        top="6px"
-                        right="6px"
-                        onClick={() => handleDeleteImage(img)}
-                      />
-                    )}
-                    <Text fontSize="xs" color="gray.500" mt={1} textAlign="center">
-                      {img.uploaded_by ? `${img.uploaded_by}` : ''} {img.uploaded_at ? new Date(img.uploaded_at).toLocaleString() : ''}
-                    </Text>
-                  </Box>
-                ))}
-              </HStack>
-            ) : (
-              <Text color="gray.500">No images uploaded for this project.</Text>
-            )}
-          </CardBody>
-        </Card>
 
         {/* Project Progress */}
         <Card>
