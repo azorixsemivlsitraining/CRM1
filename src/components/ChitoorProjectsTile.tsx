@@ -1200,13 +1200,7 @@ const ChitoorProjectsTile = ({
                                   }}
                                   cursor="pointer"
                                 >
-                                  <Td>
-                                    {projectThumbnails[p.id] ? (
-                                      <Image src={projectThumbnails[p.id]} alt={p.project_name || 'project'} boxSize="60px" objectFit="cover" borderRadius="sm" />
-                                    ) : (
-                                      <Box w="60px" h="40px" display="flex" alignItems="center" justifyContent="center">🏗️</Box>
-                                    )}
-                                  </Td>
+                                  <Td>{projects.indexOf(p) + 1}</Td>
                                   <Td>{p.customer_name || p.project_name || '—'}</Td>
                                   <Td>{dateFormatter(p.date_of_order || p.date || p.created_at)}</Td>
                                   <Td>{p.capacity ?? p.capacity_kw ?? '—'}</Td>
