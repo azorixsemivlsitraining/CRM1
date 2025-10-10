@@ -276,6 +276,17 @@ const ChitoorProjects = () => {
   }, [isOpen, locations.length]);
 
   useEffect(() => {
+    fetchChitoorProjects();
+    const ch = (supabase as any)
+      .channel('realtime-chitoor-projects-page')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'chitoor_projects' }, () => fetchChitoorProjects())
+      .subscribe();
+    return () => {
+      try { (ch as any)?.unsubscribe?.(); } catch {}
+    };
+  }, [fetchChitoorProjects]);
+
+  useEffect(() => {
     const parts: string[] = [];
     if (selectedMandal) parts.push(selectedMandal);
     if (selectedVillage) parts.push(selectedVillage);
