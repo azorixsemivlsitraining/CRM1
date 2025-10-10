@@ -217,6 +217,9 @@ const ChitoorProjects = () => {
   const [villageInput, setVillageInput] = useState('');
   const [selectedMandal, setSelectedMandal] = useState('');
   const [selectedVillage, setSelectedVillage] = useState('');
+  // Filter text inputs (for 2-letter filtering behavior)
+  const [mandalFilter, setMandalFilter] = useState('');
+  const [villageFilter, setVillageFilter] = useState('');
 
   const villagesByMandal = useMemo(() => {
     const map = new Map<string, Set<string>>();
