@@ -749,57 +749,46 @@ const ChitoorProjects = () => {
 
                 <FormControl>
                   <FormLabel fontSize="sm" fontWeight="medium">Mandal</FormLabel>
-                  <Box position="relative">
-                    <Input
-                      value={mandalInput}
-                      onChange={(e) => {
-                        setMandalInput(e.target.value);
-                        setSelectedMandal('');
-                        if (selectedVillage) setSelectedVillage('');
-                      }}
-                      placeholder="Type at least 2 letters"
-                    />
-                    <AutocompleteList
-                      items={filteredMandals}
-                      isOpen={mandalInput.trim().length >= 2}
-                      onSelect={(val) => {
-                        setSelectedMandal(val);
-                        setMandalInput(val);
-                        // If current village doesn't belong to this mandal, reset it
-                        if (selectedVillage && (villagesByMandal.get(val)?.has(selectedVillage) !== true)) {
-                          setSelectedVillage('');
-                          setVillageInput('');
-                        }
-                      }}
-                    />
-                  </Box>
+                  <Select
+                    placeholder="Select mandal"
+                    value={selectedMandal}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setSelectedMandal(val);
+                      setMandalInput(val);
+                      // reset village if it doesn't belong
+                      if (selectedVillage && (villagesByMandal.get(val)?.has(selectedVillage) !== true)) {
+                        setSelectedVillage('');
+                        setVillageInput('');
+                      }
+                    }}
+                  >
+                    {uniqueMandals.map((m) => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </Select>
                 </FormControl>
 
                 <FormControl>
                   <FormLabel fontSize="sm" fontWeight="medium">Village</FormLabel>
-                  <Box position="relative">
-                    <Input
-                      value={villageInput}
-                      onChange={(e) => {
-                        setVillageInput(e.target.value);
-                        setSelectedVillage('');
-                      }}
-                      placeholder="Type at least 2 letters"
-                    />
-                    <AutocompleteList
-                      items={filteredVillages}
-                      isOpen={villageInput.trim().length >= 2}
-                      onSelect={(val) => {
-                        setSelectedVillage(val);
-                        setVillageInput(val);
-                        const mandal = mandalByVillage.get(val) || '';
-                        if (mandal) {
-                          setSelectedMandal(mandal);
-                          setMandalInput(mandal);
-                        }
-                      }}
-                    />
-                  </Box>
+                  <Select
+                    placeholder="Select village"
+                    value={selectedVillage}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setSelectedVillage(val);
+                      setVillageInput(val);
+                      const mandal = mandalByVillage.get(val) || '';
+                      if (mandal) {
+                        setSelectedMandal(mandal);
+                        setMandalInput(mandal);
+                      }
+                    }}
+                  >
+                    {(selectedMandal ? Array.from(villagesByMandal.get(selectedMandal) || []) : uniqueVillages).map((v) => (
+                      <option key={v} value={v}>{v}</option>
+                    ))}
+                  </Select>
                 </FormControl>
 
                 <FormControl isRequired>
