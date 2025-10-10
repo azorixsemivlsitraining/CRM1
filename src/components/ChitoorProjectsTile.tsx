@@ -42,7 +42,8 @@ import {
   CardHeader,
   CardBody,
   Image,
-} from '@chakra-ui/react';
+  Tooltip,
+    } from '@chakra-ui/react';
 import { ChevronDownIcon, RepeatIcon, DeleteIcon } from '@chakra-ui/icons';
 import { useAuth } from '../context/AuthContext';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
