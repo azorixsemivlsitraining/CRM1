@@ -1422,7 +1422,14 @@ const ChitoorProjectsTile = ({
                                 if (isImageField) {
                                   // split urls
                                   const vals = Array.isArray(detail.value) ? detail.value : (typeof detail.value === 'string' ? detail.value.split(',').map(s=>s.trim()) : [String(detail.value)]);
-                                  const urls = vals.map((v: any) => {
+                                  // Force text if key is in text-only list
+                                if (APPROVAL_TEXT_ONLY_KEYS.has(detail.key.toLowerCase())) {
+                                  return (
+                                    <Text key={detail.key}><strong>{detail.label}:</strong> {formatDynamicValue(detail.key, detail.value)}</Text>
+                                  );
+                                }
+
+                                const urls = vals.map((v: any) => {
                                     if (!v) return '';
                                     const s = String(v);
                                     if (isLikelyImageString(s)) {
