@@ -60,6 +60,8 @@ interface ChitoorProject {
   material_sent_date?: string;
   balamuragan_payment?: number;
   created_at?: string;
+  edited_by?: string | null;
+  edited_at?: string | null;
 }
 
 interface PaymentHistory {
