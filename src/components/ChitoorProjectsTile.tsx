@@ -1401,12 +1401,15 @@ const ChitoorProjectsTile = ({
                                   const vals = Array.isArray(detail.value) ? detail.value : (typeof detail.value === 'string' ? detail.value.split(',').map(s=>s.trim()) : [String(detail.value)]);
                                   const urls = vals.map((v: any) => {
                                     if (!v) return '';
-                                    if (String(v).startsWith('http')) return String(v);
-                                    // try to resolve via storage
-                                    const marker = '/storage/v1/object/public/project-images/';
-                                    if (String(v).includes(marker)) return String(v);
-                                    if (String(v).includes('project-images/')) return supabase.storage.from('project-images').getPublicUrl(String(v).split('project-images/').pop() || '').data?.publicUrl || '';
-                                    return supabase.storage.from('project-images').getPublicUrl(String(v)).data?.publicUrl || '';
+                                    const s = String(v);
+                                    if (isLikelyImageString(s)) {
+                                      if (s.startsWith('http')) return s;
+                                      const marker = '/storage/v1/object/public/project-images/';
+                                      if (s.includes(marker)) return s;
+                                      if (s.includes('project-images/')) return supabase.storage.from('project-images').getPublicUrl(s.split('project-images/').pop() || '').data?.publicUrl || '';
+                                      return supabase.storage.from('project-images').getPublicUrl(s).data?.publicUrl || '';
+                                    }
+                                    return '';
                                   }).filter(Boolean);
 
                                   return (
