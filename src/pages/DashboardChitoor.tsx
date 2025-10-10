@@ -144,6 +144,7 @@ const DashboardChitoor = () => {
   const [selectedYear, setSelectedYear] = useState<number>(currentYear);
   const isRestrictedUser = user?.email === 'contact@axisogreen.in';
   const cardBg = useColorModeValue('white', 'gray.800');
+  const navigate = useNavigate();
 
   const fetchStats = async () => {
     try {
