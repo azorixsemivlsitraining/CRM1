@@ -233,6 +233,23 @@ const ChitoorProjectDetails = () => {
           material_sent_date: projectData.material_sent_date ? new Date(projectData.material_sent_date).toISOString().split('T')[0] : '',
           project_status: projectData.project_status || 'Pending',
         });
+
+        // Fetch associated images for this project
+        try {
+          const { data: imgs, error: imgErr } = await supabase
+            .from('project_images')
+            .select('*')
+            .eq('project_id', projectData.id)
+            .order('uploaded_at', { ascending: false });
+          if (!imgErr && imgs) {
+            setProjectImages(Array.isArray(imgs) ? imgs : [imgs]);
+          } else {
+            setProjectImages([]);
+          }
+        } catch (imgFetchErr) {
+          console.warn('Failed to fetch project images', imgFetchErr);
+          setProjectImages([]);
+        }
       }
 
       // Fetch phase-wise payment history. Try shared table first, then chitoor-specific as fallback
@@ -1061,7 +1078,7 @@ const ChitoorProjectDetails = () => {
               </FormControl>
 
               <FormControl isRequired>
-                <FormLabel>Project Cost (��)</FormLabel>
+                <FormLabel>Project Cost (����)</FormLabel>
                 <Input
                   type="number"
                   value={projectFormData.project_cost}
