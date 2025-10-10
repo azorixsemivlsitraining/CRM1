@@ -41,7 +41,7 @@ import { supabase } from '../lib/supabase';
 import { formatSupabaseError } from '../utils/error';
 import { CHITOOR_PROJECT_STAGES } from '../lib/constants';
 import { useAuth } from '../context/AuthContext';
-import { ArrowBackIcon, EditIcon, CalendarIcon } from '@chakra-ui/icons';
+import { ArrowBackIcon, EditIcon, CalendarIcon, DeleteIcon } from '@chakra-ui/icons';
 import { generatePaymentReceiptPDF } from './PaymentReceipt';
 
 interface ChitoorProject {
