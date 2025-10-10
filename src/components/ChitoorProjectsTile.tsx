@@ -921,81 +921,43 @@ const ChitoorProjectsTile = ({
                   <Td>{record.payment_amount != null ? currencyFormatter.format(record.payment_amount) : '—'}</Td>
                   {dynamicFields.map((field) => {
                     const raw = record[field.key];
-                    const first = Array.isArray(raw) ? raw[0] : raw;
-                    const asString = typeof first === 'string' ? first : '';
+                    // gather possible urls from the field (string with commas, array, or single)
+                    let candidates: string[] = [];
+                    if (Array.isArray(raw)) {
+                      candidates = raw.map(String).map(s => s.trim()).filter(Boolean);
+                    } else if (typeof raw === 'string') {
+                      candidates = raw.split(',').map(s => s.trim()).filter(Boolean);
+                    } else if (raw) {
+                      candidates = [String(raw)];
+                    }
 
-                    const getPublicUrl = (val: string) => {
-                      if (!val) return '';
-                      if (val.startsWith('http')) return val;
+                    const resolvePublicUrl = (v: string) => {
+                      if (!v) return '';
+                      if (v.startsWith('http')) return v;
                       try {
-                        // try to extract path if a full public url was stored
                         const marker = '/storage/v1/object/public/project-images/';
-                        if (val.includes(marker)) {
-                          return val;
-                        }
-                        // if the value contains 'project-images/' extract after that
-                        if (val.includes('project-images/')) {
-                          const parts = val.split('project-images/');
+                        if (v.includes(marker)) return v;
+                        if (v.includes('project-images/')) {
+                          const parts = v.split('project-images/');
                           const path = parts[parts.length - 1];
                           const urlData = supabase.storage.from('project-images').getPublicUrl(path);
                           return urlData?.data?.publicUrl || '';
                         }
-                        // assume it's a path relative to bucket
-                        const urlData = supabase.storage.from('project-images').getPublicUrl(val);
+                        const urlData = supabase.storage.from('project-images').getPublicUrl(v);
                         return urlData?.data?.publicUrl || '';
                       } catch (e) {
                         return '';
                       }
                     };
 
-                    const imgUrl = getPublicUrl(asString);
+                    const imageUrls = candidates.map(resolvePublicUrl).filter(Boolean);
+                    const thumbnail = imageUrls[0] || null;
 
                     return (
                       <Td key={field.key}>
-                        {imgUrl ? (
-                          <Box position="relative" display="inline-block">
-                            <Image src={imgUrl} alt={field.label} boxSize="60px" objectFit="cover" borderRadius="sm" />
-                            {/** show delete for authenticated users */}
-                            {typeof isAuthenticated !== 'undefined' && isAuthenticated && (
-                              <IconButton
-                                aria-label="Delete image"
-                                icon={<DeleteIcon />}
-                                size="xs"
-                                colorScheme="red"
-                                position="absolute"
-                                top="2px"
-                                right="2px"
-                                onClick={async (e: any) => {
-                                  e.stopPropagation();
-                                  const ok = window.confirm('Delete this image from storage and record?');
-                                  if (!ok) return;
-                                  // try to compute storage path
-                                  const extractPath = (v: string) => {
-                                    if (!v) return '';
-                                    const marker = '/storage/v1/object/public/project-images/';
-                                    if (v.includes(marker)) return v.split(marker)[1];
-                                    if (v.includes('project-images/')) return v.split('project-images/').pop() || '';
-                                    return v;
-                                  };
-                                  const path = extractPath(asString);
-                                  try {
-                                    if (path) {
-                                      await supabase.storage.from('project-images').remove([path]);
-                                    }
-                                  } catch (err) {
-                                    console.warn('Storage delete failed', err);
-                                  }
-                                  // Attempt to null the field in both candidate tables
-                                  const tables = ['chittoor_project_approvals', 'chitoor_project_approvals'];
-                                  for (const t of tables) {
-                                    try {
-                                      await supabase.from(t).update({ [field.key]: null }).eq('id', record.id);
-                                    } catch (e) {}
-                                  }
-                                  try { await fetchApprovals(); } catch (e) {}
-                                }}
-                              />
-                            )}
+                        {thumbnail ? (
+                          <Box>
+                            <Image src={thumbnail} alt={field.label} boxSize="60px" objectFit="cover" borderRadius="sm" cursor="pointer" onClick={(e:any) => { e.stopPropagation(); openLightbox(imageUrls, 0, record, field.key); }} />
                           </Box>
                         ) : (
                           <Text fontSize="sm" color="gray.700">{formatDynamicValue(field.key, raw)}</Text>
