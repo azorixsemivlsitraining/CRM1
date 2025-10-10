@@ -43,7 +43,8 @@ import {
   CardBody,
   Image,
 } from '@chakra-ui/react';
-import { ChevronDownIcon, RepeatIcon } from '@chakra-ui/icons';
+import { ChevronDownIcon, RepeatIcon, DeleteIcon } from '@chakra-ui/icons';
+import { useAuth } from '../context/AuthContext';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import { formatSupabaseError } from '../utils/error';
