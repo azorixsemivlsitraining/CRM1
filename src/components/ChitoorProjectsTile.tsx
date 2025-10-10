@@ -283,6 +283,80 @@ const ChitoorProjectsTile = ({
   const [projects, setProjects] = useState<any[]>([]);
   const [projectsLoading, setProjectsLoading] = useState(false);
   const [projectThumbnails, setProjectThumbnails] = useState<Record<string,string>>({});
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxImages, setLightboxImages] = useState<string[]>([]);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [lightboxFieldKey, setLightboxFieldKey] = useState<string | null>(null);
+  const [lightboxRecord, setLightboxRecord] = useState<ApprovalRecord | null>(null);
+
+  const openLightbox = (images: string[], index: number, record: ApprovalRecord | null, fieldKey: string | null) => {
+    setLightboxImages(images || []);
+    setLightboxIndex(index || 0);
+    setLightboxRecord(record || null);
+    setLightboxFieldKey(fieldKey);
+    setLightboxOpen(true);
+  };
+
+  const closeLightbox = () => {
+    setLightboxOpen(false);
+    setLightboxImages([]);
+    setLightboxIndex(0);
+    setLightboxFieldKey(null);
+    setLightboxRecord(null);
+  };
+
+  const extractStoragePath = (v: string) => {
+    if (!v) return '';
+    const marker = '/storage/v1/object/public/project-images/';
+    if (v.includes(marker)) return v.split(marker)[1];
+    if (v.includes('project-images/')) return v.split('project-images/').pop() || '';
+    return v;
+  };
+
+  const deleteImageFromField = async (fieldKey: string, imageUrl: string, record: ApprovalRecord | null) => {
+    if (!record) return;
+    const ok = window.confirm('Delete this image? This will remove it from storage and the record.');
+    if (!ok) return;
+    try {
+      const path = extractStoragePath(imageUrl);
+      if (path) {
+        const { error: storageErr } = await supabase.storage.from('project-images').remove([path]);
+        if (storageErr) console.warn('Storage delete returned error', storageErr);
+      }
+
+      // Update DB field by removing this URL from the stored value
+      const candidateTables = ['chittoor_project_approvals', 'chitoor_project_approvals'];
+      for (const t of candidateTables) {
+        try {
+          // Fetch current value
+          const { data: rows, error: selErr } = await supabase.from(t).select(fieldKey).eq('id', record.id).limit(1);
+          if (selErr || !rows) continue;
+          let val: any = rows && Array.isArray(rows) && rows.length > 0 ? rows[0][fieldKey] : null;
+          if (!val) continue;
+          let parts: string[] = [];
+          if (Array.isArray(val)) parts = val.map(String);
+          else parts = String(val).split(',').map(s => s.trim()).filter(Boolean);
+          const remaining = parts.filter(p => p !== imageUrl);
+          const newVal = remaining.length > 0 ? remaining.join(',') : null;
+          const { error: updErr } = await supabase.from(t).update({ [fieldKey]: newVal }).eq('id', record.id);
+          if (updErr) console.warn('Failed to update record field', updErr);
+        } catch (e) {
+          console.warn('Failed to update table', t, e);
+        }
+      }
+
+      await fetchApprovals();
+      // update lightbox images
+      const remainingImgs = lightboxImages.filter((u) => u !== imageUrl);
+      setLightboxImages(remainingImgs);
+      if (remainingImgs.length === 0) closeLightbox();
+      else setLightboxIndex(Math.max(0, Math.min(lightboxIndex, remainingImgs.length - 1)));
+      toast({ title: 'Image deleted', status: 'success', duration: 3000 });
+    } catch (err) {
+      console.error('Failed to delete image', err);
+      toast({ title: 'Delete failed', description: formatSupabaseError(err) || 'Failed to delete image', status: 'error' });
+    }
+  };
 
   const {
     isOpen: isDetailsOpen,
