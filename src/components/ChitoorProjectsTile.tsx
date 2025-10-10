@@ -622,6 +622,16 @@ const ChitoorProjectsTile = ({
     return d.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
   };
 
+  const isLikelyImageString = (s: string) => {
+    if (!s) return false;
+    const lower = s.toLowerCase();
+    // direct public path for our bucket
+    if (lower.includes('/storage/v1/object/public/project-images/') || lower.includes('project-images/')) return true;
+    // direct http(s) to an image file
+    if (/^https?:\/\/.+\.(png|jpg|jpeg|webp|svg|ico)(\?.*)?$/i.test(s)) return true;
+    return false;
+  };
+
   const BarComparisonChart: React.FC<{ months: string[]; a: number[]; b: number[]; labels: [string, string]; colors?: [string, string]; }> = ({ months, a, b, labels, colors = ['green.600', 'green.300'] }) => {
     const maxVal = Math.max(1, ...a, ...b);
     return (
