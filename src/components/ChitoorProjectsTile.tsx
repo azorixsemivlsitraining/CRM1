@@ -368,6 +368,32 @@ const ChitoorProjectsTile = ({
           return;
         }
         setProjects(data ?? []);
+        try {
+          const ids = (data ?? []).map((p: any) => p.id).filter(Boolean);
+          if (ids.length > 0) {
+            const { data: imgs } = await supabase
+              .from('project_images')
+              .select('*')
+              .in('project_id', ids)
+              .order('uploaded_at', { ascending: false });
+            const map: Record<string,string> = {};
+            if (imgs && Array.isArray(imgs)) {
+              imgs.forEach((it: any) => {
+                if (!map[it.project_id]) {
+                  const urlData = supabase.storage.from('project-images').getPublicUrl(it.path);
+                  const publicUrl = urlData?.data?.publicUrl || (urlData as any)?.publicUrl || '';
+                  map[it.project_id] = publicUrl;
+                }
+              });
+            }
+            setProjectThumbnails(map);
+          } else {
+            setProjectThumbnails({});
+          }
+        } catch (thumbErr) {
+          console.warn('Failed to fetch thumbnails', thumbErr);
+          setProjectThumbnails({});
+        }
       } catch (err) {
         console.error('Fetch projects error', err);
       } finally {
