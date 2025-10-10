@@ -1191,6 +1191,9 @@ const ChitoorProjectDetails = () => {
                     updates.material_sent_date = null;
                   }
 
+                  updates.edited_by = user?.email || null;
+                  updates.edited_at = new Date().toISOString();
+
                   const { error } = await supabase
                     .from('chitoor_projects')
                     .update(updates)
