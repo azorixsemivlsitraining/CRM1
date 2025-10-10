@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Box,
   Button,
@@ -44,7 +44,6 @@ import { supabase } from '../lib/supabase';
 import { formatSupabaseError } from '../utils/error';
 import { AddIcon, ChevronDownIcon, ViewIcon, EditIcon, DeleteIcon, PhoneIcon } from '@chakra-ui/icons';
 import { useNavigate } from 'react-router-dom';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 interface ChitoorProject {
   id: string;
