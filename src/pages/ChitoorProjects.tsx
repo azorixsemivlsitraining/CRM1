@@ -773,6 +773,12 @@ const ChitoorProjects = () => {
 
                 <FormControl>
                   <FormLabel fontSize="sm" fontWeight="medium">Mandal</FormLabel>
+                  <Input
+                    placeholder="Type 2+ letters to filter"
+                    value={mandalFilter}
+                    onChange={(e) => setMandalFilter(e.target.value)}
+                    mb={2}
+                  />
                   <Select
                     placeholder="Select mandal"
                     value={selectedMandal}
@@ -787,7 +793,7 @@ const ChitoorProjects = () => {
                       }
                     }}
                   >
-                    {uniqueMandals.map((m) => (
+                    {filteredMandals.map((m) => (
                       <option key={m} value={m}>{m}</option>
                     ))}
                   </Select>
@@ -795,6 +801,12 @@ const ChitoorProjects = () => {
 
                 <FormControl>
                   <FormLabel fontSize="sm" fontWeight="medium">Village</FormLabel>
+                  <Input
+                    placeholder="Type 2+ letters to filter"
+                    value={villageFilter}
+                    onChange={(e) => setVillageFilter(e.target.value)}
+                    mb={2}
+                  />
                   <Select
                     placeholder="Select village"
                     value={selectedVillage}
@@ -809,7 +821,7 @@ const ChitoorProjects = () => {
                       }
                     }}
                   >
-                    {(selectedMandal ? Array.from(villagesByMandal.get(selectedMandal) || []) : uniqueVillages).map((v) => (
+                    {filteredVillages.map((v) => (
                       <option key={v} value={v}>{v}</option>
                     ))}
                   </Select>
