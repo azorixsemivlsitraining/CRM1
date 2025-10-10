@@ -241,8 +241,6 @@ const DashboardChitoor = () => {
     }
   };
 
-  const navigate = useNavigate();
-
   return (
     <Box>
       <VStack spacing={8} align="stretch">
