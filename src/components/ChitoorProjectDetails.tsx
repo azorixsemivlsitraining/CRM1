@@ -242,7 +242,16 @@ const ChitoorProjectDetails = () => {
             .eq('project_id', projectData.id)
             .order('uploaded_at', { ascending: false });
           if (!imgErr && imgs) {
-            setProjectImages(Array.isArray(imgs) ? imgs : [imgs]);
+            const enriched = (Array.isArray(imgs) ? imgs : [imgs]).map((it: any) => {
+              try {
+                const urlData = supabase.storage.from('project-images').getPublicUrl(it.path);
+                const publicUrl = urlData?.data?.publicUrl || (urlData as any)?.publicUrl || '';
+                return { ...it, public_url: publicUrl };
+              } catch (e) {
+                return { ...it, public_url: '' };
+              }
+            });
+            setProjectImages(enriched);
           } else {
             setProjectImages([]);
           }
@@ -521,7 +530,7 @@ const ChitoorProjectDetails = () => {
                     <Text><strong>Capacity (kW):</strong> {a.capacity_kw ?? a.capacity ?? '—'}</Text>
                     <Text><strong>Villages / Location:</strong> {a.location || '—'}</Text>
                     <Text><strong>Power Bill Number:</strong> {a.power_bill_number || '—'}</Text>
-                    <Text><strong>Project Cost:</strong> {a.project_cost != null ? `₹${Number(a.project_cost).toLocaleString()}` : '—'}</Text>
+                    <Text><strong>Project Cost:</strong> {a.project_cost != null ? `���${Number(a.project_cost).toLocaleString()}` : '—'}</Text>
                   </VStack>
                 </CardBody>
               </Card>
