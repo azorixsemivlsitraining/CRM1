@@ -35,6 +35,7 @@ import {
   Divider,
   IconButton,
   Tooltip,
+  Image,
 } from '@chakra-ui/react';
 import { supabase } from '../lib/supabase';
 import { formatSupabaseError } from '../utils/error';
