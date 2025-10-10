@@ -41,6 +41,7 @@ import {
   Card,
   CardHeader,
   CardBody,
+  Image,
 } from '@chakra-ui/react';
 import { ChevronDownIcon, RepeatIcon } from '@chakra-ui/icons';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
