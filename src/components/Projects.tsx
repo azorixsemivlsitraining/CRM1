@@ -265,7 +265,7 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
         duration: 5000,
         isClosable: true,
       });
-      setCombinedTotals({ totalProjects: 0, totalRevenue: 0, totalKWH: 0 });
+      setCombinedTotals({ totalProjects: 0, totalRevenue: 0, totalKWH: 0, active: 0, completed: 0 });
     } finally {
       setLoading(false);
     }

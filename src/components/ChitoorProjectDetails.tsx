@@ -35,12 +35,13 @@ import {
   Divider,
   IconButton,
   Tooltip,
+  Image,
 } from '@chakra-ui/react';
 import { supabase } from '../lib/supabase';
 import { formatSupabaseError } from '../utils/error';
 import { CHITOOR_PROJECT_STAGES } from '../lib/constants';
 import { useAuth } from '../context/AuthContext';
-import { ArrowBackIcon, EditIcon, CalendarIcon } from '@chakra-ui/icons';
+import { ArrowBackIcon, EditIcon, CalendarIcon, DeleteIcon } from '@chakra-ui/icons';
 import { generatePaymentReceiptPDF } from './PaymentReceipt';
 
 interface ChitoorProject {
@@ -59,6 +60,8 @@ interface ChitoorProject {
   material_sent_date?: string;
   balamuragan_payment?: number;
   created_at?: string;
+  edited_by?: string | null;
+  edited_at?: string | null;
 }
 
 interface PaymentHistory {
@@ -73,12 +76,13 @@ const ChitoorProjectDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const toast = useToast();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const { isOpen: isPaymentOpen, onOpen: onPaymentOpen, onClose: onPaymentClose } = useDisclosure();
   const { isOpen: isEditOpen, onOpen: onEditOpen, onClose: onEditClose } = useDisclosure();
   const { isOpen: isCustomerEditOpen, onOpen: onCustomerEditOpen, onClose: onCustomerEditClose } = useDisclosure();
-  
+
   const [project, setProject] = useState<ChitoorProject | null>(null);
+  const [projectImages, setProjectImages] = useState<any[]>([]);
   const [approvalFallback, setApprovalFallback] = useState<any | null>(null);
   const [paymentHistory, setPaymentHistory] = useState<PaymentHistory[]>([]);
   const [paymentsTable, setPaymentsTable] = useState<'payment_history' | 'chitoor_payment_history'>('payment_history');
@@ -231,6 +235,32 @@ const ChitoorProjectDetails = () => {
           material_sent_date: projectData.material_sent_date ? new Date(projectData.material_sent_date).toISOString().split('T')[0] : '',
           project_status: projectData.project_status || 'Pending',
         });
+
+        // Fetch associated images for this project
+        try {
+          const { data: imgs, error: imgErr } = await supabase
+            .from('project_images')
+            .select('*')
+            .eq('project_id', projectData.id)
+            .order('uploaded_at', { ascending: false });
+          if (!imgErr && imgs) {
+            const enriched = (Array.isArray(imgs) ? imgs : [imgs]).map((it: any) => {
+              try {
+                const urlData = supabase.storage.from('project-images').getPublicUrl(it.path);
+                const publicUrl = urlData?.data?.publicUrl || (urlData as any)?.publicUrl || '';
+                return { ...it, public_url: publicUrl };
+              } catch (e) {
+                return { ...it, public_url: '' };
+              }
+            });
+            setProjectImages(enriched);
+          } else {
+            setProjectImages([]);
+          }
+        } catch (imgFetchErr) {
+          console.warn('Failed to fetch project images', imgFetchErr);
+          setProjectImages([]);
+        }
       }
 
       // Fetch phase-wise payment history. Try shared table first, then chitoor-specific as fallback
@@ -406,6 +436,7 @@ const ChitoorProjectDetails = () => {
   };
 
   const handleDeletePayment = async (payment: PaymentHistory) => {
+    // existing delete payment logic
     if (!project) return;
     try {
       // Delete payment row
@@ -449,6 +480,49 @@ const ChitoorProjectDetails = () => {
         duration: 3000,
         isClosable: true,
       });
+    }
+  };
+
+  const handleDeleteImage = async (img: any) => {
+    if (!project) return;
+    if (!isAuthenticated) {
+      toast({ title: 'Unauthorized', description: 'You must be authenticated to delete images.', status: 'warning' });
+      return;
+    }
+    if (!img || !img.id) return;
+    const ok = window.confirm('Delete this image? This will remove it from storage and the database.');
+    if (!ok) return;
+    try {
+      // Delete from storage (path is expected)
+      if (img.path) {
+        const { error: storageErr } = await supabase.storage.from('project-images').remove([img.path]);
+        if (storageErr) console.warn('Storage delete returned error', storageErr);
+      }
+      // Delete DB record
+      const { error: delErr } = await supabase.from('project_images').delete().eq('id', img.id);
+      if (delErr) throw delErr;
+
+      // Refresh images
+      const { data: imgs } = await supabase
+        .from('project_images')
+        .select('*')
+        .eq('project_id', project.id)
+        .order('uploaded_at', { ascending: false });
+      const enriched = (Array.isArray(imgs) ? imgs : (imgs ? [imgs] : [])).map((it: any) => {
+        try {
+          const urlData = supabase.storage.from('project-images').getPublicUrl(it.path);
+          const publicUrl = urlData?.data?.publicUrl || (urlData as any)?.publicUrl || '';
+          return { ...it, public_url: publicUrl };
+        } catch (e) {
+          return { ...it, public_url: '' };
+        }
+      });
+      setProjectImages(enriched);
+
+      toast({ title: 'Image deleted', status: 'success', duration: 3000 });
+    } catch (err) {
+      console.error('Failed to delete image', err);
+      toast({ title: 'Delete failed', description: formatSupabaseError(err) || 'Failed to delete image', status: 'error' });
     }
   };
 
@@ -501,7 +575,7 @@ const ChitoorProjectDetails = () => {
                     <Text><strong>Capacity (kW):</strong> {a.capacity_kw ?? a.capacity ?? '—'}</Text>
                     <Text><strong>Villages / Location:</strong> {a.location || '—'}</Text>
                     <Text><strong>Power Bill Number:</strong> {a.power_bill_number || '—'}</Text>
-                    <Text><strong>Project Cost:</strong> {a.project_cost != null ? `₹${Number(a.project_cost).toLocaleString()}` : '—'}</Text>
+                    <Text><strong>Project Cost:</strong> {a.project_cost != null ? `₹${Number(a.project_cost).toLocaleString()}` : '��'}</Text>
                   </VStack>
                 </CardBody>
               </Card>
@@ -559,6 +633,9 @@ const ChitoorProjectDetails = () => {
               <Text color="gray.600">
                 Project ID: {project.id}
               </Text>
+              {project.edited_at && (
+                <Text color="gray.500" fontSize="sm">Last edited {new Date(project.edited_at).toLocaleString()}{project.edited_by ? ` by ${project.edited_by}` : ''}</Text>
+              )}
             </Box>
           </HStack>
           {project && (
@@ -576,70 +653,82 @@ const ChitoorProjectDetails = () => {
           )}
         </Flex>
 
-        {/* Project Info Cards */}
-        <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6}>
-          {/* Customer Details */}
-          <Card>
-            <CardHeader>
-              <Flex justify="space-between" align="center">
-                <Text fontSize="lg" fontWeight="semibold" color="gray.700">
-                  Customer Details
-                </Text>
-                <Tooltip label="Edit customer" hasArrow>
-                  <IconButton aria-label="Edit customer" icon={<EditIcon />} variant="ghost" size="sm" onClick={onCustomerEditOpen} />
-                </Tooltip>
-              </Flex>
-            </CardHeader>
-            <CardBody>
-              <VStack align="stretch" spacing={3}>
-                <Text><strong>Name:</strong> {project.customer_name}</Text>
-                <Text><strong>Phone:</strong> {project.mobile_number}</Text>
-                <Text><strong>Address:</strong> {project.address_mandal_village}</Text>
-                {project.service_number && (
-                  <Text><strong>Service Number:</strong> {project.service_number}</Text>
-                )}
-                <Text><strong>Order Date:</strong> {project.date_of_order ? new Date(project.date_of_order).toLocaleDateString() : 'N/A'}</Text>
-              </VStack>
-            </CardBody>
-          </Card>
+        {/* Project Info Cards: 3-column layout (images span 2 columns) */}
+        <SimpleGrid columns={{ base: 1, lg: 4 }} spacing={6}>
+          <Box gridColumn={{ lg: 'span 1' }}>
+            <Card>
+              <CardHeader>
+                <Flex justify="space-between" align="center">
+                  <Text fontSize="lg" fontWeight="semibold" color="gray.700">Customer Details</Text>
+                  <Tooltip label="Edit customer" hasArrow>
+                    <IconButton aria-label="Edit customer" icon={<EditIcon />} variant="ghost" size="sm" onClick={onCustomerEditOpen} />
+                  </Tooltip>
+                </Flex>
+              </CardHeader>
+              <CardBody>
+                <VStack align="stretch" spacing={3}>
+                  <Text><strong>Name:</strong> {project.customer_name}</Text>
+                  <Text><strong>Phone:</strong> {project.mobile_number}</Text>
+                  <Text><strong>Address:</strong> {project.address_mandal_village}</Text>
+                  {project.service_number && (<Text><strong>Service Number:</strong> {project.service_number}</Text>)}
+                  <Text><strong>Order Date:</strong> {project.date_of_order ? new Date(project.date_of_order).toLocaleDateString() : 'N/A'}</Text>
+                </VStack>
+              </CardBody>
+            </Card>
+          </Box>
 
-          {/* Project Details */}
-          <Card>
-            <CardHeader>
-              <Flex justify="space-between" align="center">
-                <Text fontSize="lg" fontWeight="semibold" color="gray.700">
-                  Project Details
-                </Text>
-                <Tooltip label="Edit project" hasArrow>
-                  <IconButton aria-label="Edit project" icon={<EditIcon />} variant="ghost" size="sm" onClick={onEditOpen} />
-                </Tooltip>
-              </Flex>
-            </CardHeader>
-            <CardBody>
-              <VStack align="stretch" spacing={3}>
-                <Text><strong>Project Name:</strong> Chitoor-{project.id.slice(-6)}</Text>
-                <HStack>
-                  <Text><strong>Status:</strong></Text>
-                  <Badge 
-                    colorScheme={getStatusColor(project.project_status || 'pending')}
-                    px={2} py={1} borderRadius="full"
-                  >
-                    {project.project_status || 'Pending'}
-                  </Badge>
-                </HStack>
-                <Text><strong>Capacity:</strong> {project.capacity} kW</Text>
-                <Text><strong>Project Cost:</strong> ₹{project.project_cost.toLocaleString()}</Text>
-                <Text><strong>Amount Received:</strong> ₹{(project.amount_received || 0).toLocaleString()}</Text>
-                <Text><strong>Balance Amount:</strong> ₹{balanceAmount.toLocaleString()}</Text>
-                {project.subsidy_scope && (
-                  <Text><strong>Subsidy Scope:</strong> {project.subsidy_scope}</Text>
+          <Box gridColumn={{ lg: 'span 1' }}>
+            <Card>
+              <CardHeader>
+                <Flex justify="space-between" align="center">
+                  <Text fontSize="lg" fontWeight="semibold" color="gray.700">Project Details</Text>
+                  <Tooltip label="Edit project" hasArrow>
+                    <IconButton aria-label="Edit project" icon={<EditIcon />} variant="ghost" size="sm" onClick={onEditOpen} />
+                  </Tooltip>
+                </Flex>
+              </CardHeader>
+              <CardBody>
+                <VStack align="stretch" spacing={3}>
+                  <Text><strong>Project Name:</strong> Chitoor-{project.id.slice(-6)}</Text>
+                  <HStack>
+                    <Text><strong>Status:</strong></Text>
+                    <Badge colorScheme={getStatusColor(project.project_status || 'pending')} px={2} py={1} borderRadius="full">{project.project_status || 'Pending'}</Badge>
+                  </HStack>
+                  <Text><strong>Capacity:</strong> {project.capacity} kW</Text>
+                  <Text><strong>Project Cost:</strong> ₹{project.project_cost.toLocaleString()}</Text>
+                  <Text><strong>Amount Received:</strong> ₹{(project.amount_received || 0).toLocaleString()}</Text>
+                  <Text><strong>Balance Amount:</strong> ₹{balanceAmount.toLocaleString()}</Text>
+                  {project.subsidy_scope && (<Text><strong>Subsidy Scope:</strong> {project.subsidy_scope}</Text>)}
+                  {project.material_sent_date && (<Text><strong>Material Sent Date:</strong> {new Date(project.material_sent_date).toLocaleDateString()}</Text>)}
+                </VStack>
+              </CardBody>
+            </Card>
+          </Box>
+
+          <Box gridColumn={{ lg: 'span 2' }}>
+            <Card>
+              <CardHeader>
+                <Text fontSize="lg" fontWeight="semibold" color="gray.700">Project Images</Text>
+              </CardHeader>
+              <CardBody>
+                {projectImages && projectImages.length > 0 ? (
+                  <HStack spacing={4} wrap="wrap">
+                    {projectImages.map((img) => (
+                      <Box key={img.id} position="relative">
+                        <Image src={img.public_url || ''} alt={img.name || img.path || 'project image'} boxSize="160px" objectFit="cover" borderRadius="md" onClick={() => window.open(img.public_url || '#', '_blank')} cursor={img.public_url ? 'pointer' : 'default'} />
+                        {isAuthenticated && (
+                          <IconButton aria-label="Delete image" icon={<DeleteIcon />} size="sm" colorScheme="red" position="absolute" top="6px" right="6px" onClick={() => handleDeleteImage(img)} />
+                        )}
+                        <Text fontSize="xs" color="gray.500" mt={1} textAlign="center">{img.uploaded_by ? `${img.uploaded_by}` : ''} {img.uploaded_at ? new Date(img.uploaded_at).toLocaleString() : ''}</Text>
+                      </Box>
+                    ))}
+                  </HStack>
+                ) : (
+                  <Text color="gray.500">No images uploaded for this project.</Text>
                 )}
-                {project.material_sent_date && (
-                  <Text><strong>Material Sent Date:</strong> {new Date(project.material_sent_date).toLocaleDateString()}</Text>
-                )}
-              </VStack>
-            </CardBody>
-          </Card>
+              </CardBody>
+            </Card>
+          </Box>
         </SimpleGrid>
 
         {/* Project Progress */}
@@ -993,24 +1082,25 @@ const ChitoorProjectDetails = () => {
                 try {
                   if (!project) return;
 
+                  const updatesPayload: any = {
+                    customer_name: customerFormData.customer_name,
+                    mobile_number: customerFormData.mobile_number,
+                    address_mandal_village: customerFormData.address_mandal_village,
+                    service_number: customerFormData.service_number || null,
+                    edited_by: user?.email || null,
+                    edited_at: new Date().toISOString(),
+                  };
+
                   const { error } = await supabase
                     .from('chitoor_projects')
-                    .update({
-                      customer_name: customerFormData.customer_name,
-                      mobile_number: customerFormData.mobile_number,
-                      address_mandal_village: customerFormData.address_mandal_village,
-                      service_number: customerFormData.service_number || null,
-                    })
+                    .update(updatesPayload)
                     .eq('id', project.id);
 
                   if (error) throw error;
 
                   setProject(prev => prev ? {
                     ...prev,
-                    customer_name: customerFormData.customer_name,
-                    mobile_number: customerFormData.mobile_number,
-                    address_mandal_village: customerFormData.address_mandal_village,
-                    service_number: customerFormData.service_number,
+                    ...updatesPayload,
                   } : null);
 
                   toast({
@@ -1117,6 +1207,9 @@ const ChitoorProjectDetails = () => {
                   } else {
                     updates.material_sent_date = null;
                   }
+
+                  updates.edited_by = user?.email || null;
+                  updates.edited_at = new Date().toISOString();
 
                   const { error } = await supabase
                     .from('chitoor_projects')
