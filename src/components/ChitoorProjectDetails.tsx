@@ -425,6 +425,7 @@ const ChitoorProjectDetails = () => {
   };
 
   const handleDeletePayment = async (payment: PaymentHistory) => {
+    // existing delete payment logic
     if (!project) return;
     try {
       // Delete payment row
@@ -1078,7 +1079,7 @@ const ChitoorProjectDetails = () => {
               </FormControl>
 
               <FormControl isRequired>
-                <FormLabel>Project Cost (����)</FormLabel>
+                <FormLabel>Project Cost (��)</FormLabel>
                 <Input
                   type="number"
                   value={projectFormData.project_cost}
