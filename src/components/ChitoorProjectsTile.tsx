@@ -1186,7 +1186,7 @@ const ChitoorProjectsTile = ({
                           <Tbody>
                             {projects.length === 0 ? (
                               <Tr>
-                                <Td colSpan={8}>
+                                <Td colSpan={9}>
                                   <Text textAlign="center" color="gray.500" py={6}>No projects available.</Text>
                                 </Td>
                               </Tr>
