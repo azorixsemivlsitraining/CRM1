@@ -632,6 +632,20 @@ const ChitoorProjectsTile = ({
     return false;
   };
 
+  // Explicit list of approval table fields that must always render as text (even if they contain URLs)
+  const APPROVAL_TEXT_ONLY_KEYS = new Set([
+    'banking_ref_id',
+    'biller_name',
+    'customer_mobile_number',
+    'service_number',
+    'mandal',
+    'site_visitor_name',
+    'subsidy_scope',
+    'village',
+    'power_bill_number',
+    'payment_amount',
+  ]);
+
   const BarComparisonChart: React.FC<{ months: string[]; a: number[]; b: number[]; labels: [string, string]; colors?: [string, string]; }> = ({ months, a, b, labels, colors = ['green.600', 'green.300'] }) => {
     const maxVal = Math.max(1, ...a, ...b);
     return (
