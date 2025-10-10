@@ -1065,24 +1065,25 @@ const ChitoorProjectDetails = () => {
                 try {
                   if (!project) return;
 
+                  const updatesPayload: any = {
+                    customer_name: customerFormData.customer_name,
+                    mobile_number: customerFormData.mobile_number,
+                    address_mandal_village: customerFormData.address_mandal_village,
+                    service_number: customerFormData.service_number || null,
+                    edited_by: user?.email || null,
+                    edited_at: new Date().toISOString(),
+                  };
+
                   const { error } = await supabase
                     .from('chitoor_projects')
-                    .update({
-                      customer_name: customerFormData.customer_name,
-                      mobile_number: customerFormData.mobile_number,
-                      address_mandal_village: customerFormData.address_mandal_village,
-                      service_number: customerFormData.service_number || null,
-                    })
+                    .update(updatesPayload)
                     .eq('id', project.id);
 
                   if (error) throw error;
 
                   setProject(prev => prev ? {
                     ...prev,
-                    customer_name: customerFormData.customer_name,
-                    mobile_number: customerFormData.mobile_number,
-                    address_mandal_village: customerFormData.address_mandal_village,
-                    service_number: customerFormData.service_number,
+                    ...updatesPayload,
                   } : null);
 
                   toast({
