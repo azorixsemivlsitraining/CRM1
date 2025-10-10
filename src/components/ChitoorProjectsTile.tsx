@@ -979,6 +979,15 @@ const ChitoorProjectsTile = ({
 
                     const allResolved = candidates.map(resolvePublicUrl).filter(Boolean);
                     // only treat as images if at least one candidate is a likely image (by url or extension)
+                    // Do not render as image for explicitly text-only keys
+                    if (APPROVAL_TEXT_ONLY_KEYS.has(field.key.toLowerCase())) {
+                      return (
+                        <Td key={field.key}>
+                          <Text fontSize="sm" color="gray.700">{formatDynamicValue(field.key, raw)}</Text>
+                        </Td>
+                      );
+                    }
+
                     const imageUrls = allResolved.filter(u => isLikelyImageString(u));
                     const thumbnail = imageUrls[0] || null;
 
