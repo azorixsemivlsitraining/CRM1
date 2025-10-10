@@ -843,11 +843,90 @@ const ChitoorProjectsTile = ({
                   <Td>{record.project_cost != null ? currencyFormatter.format(record.project_cost) : '—'}</Td>
                   <Td>{record.site_visit_status || '—'}</Td>
                   <Td>{record.payment_amount != null ? currencyFormatter.format(record.payment_amount) : '—'}</Td>
-                  {dynamicFields.map((field) => (
-                    <Td key={field.key}>
-                      <Text fontSize="sm" color="gray.700">{formatDynamicValue(field.key, record[field.key])}</Text>
-                    </Td>
-                  ))}
+                  {dynamicFields.map((field) => {
+                    const raw = record[field.key];
+                    const first = Array.isArray(raw) ? raw[0] : raw;
+                    const asString = typeof first === 'string' ? first : '';
+
+                    const getPublicUrl = (val: string) => {
+                      if (!val) return '';
+                      if (val.startsWith('http')) return val;
+                      try {
+                        // try to extract path if a full public url was stored
+                        const marker = '/storage/v1/object/public/project-images/';
+                        if (val.includes(marker)) {
+                          return val;
+                        }
+                        // if the value contains 'project-images/' extract after that
+                        if (val.includes('project-images/')) {
+                          const parts = val.split('project-images/');
+                          const path = parts[parts.length - 1];
+                          const urlData = supabase.storage.from('project-images').getPublicUrl(path);
+                          return urlData?.data?.publicUrl || '';
+                        }
+                        // assume it's a path relative to bucket
+                        const urlData = supabase.storage.from('project-images').getPublicUrl(val);
+                        return urlData?.data?.publicUrl || '';
+                      } catch (e) {
+                        return '';
+                      }
+                    };
+
+                    const imgUrl = getPublicUrl(asString);
+
+                    return (
+                      <Td key={field.key}>
+                        {imgUrl ? (
+                          <Box position="relative" display="inline-block">
+                            <Image src={imgUrl} alt={field.label} boxSize="60px" objectFit="cover" borderRadius="sm" />
+                            {/** show delete for authenticated users */}
+                            {typeof isAuthenticated !== 'undefined' && isAuthenticated && (
+                              <IconButton
+                                aria-label="Delete image"
+                                icon={<ChevronDownIcon />}
+                                size="xs"
+                                colorScheme="red"
+                                position="absolute"
+                                top="2px"
+                                right="2px"
+                                onClick={async (e: any) => {
+                                  e.stopPropagation();
+                                  const ok = window.confirm('Delete this image from storage and record?');
+                                  if (!ok) return;
+                                  // try to compute storage path
+                                  const extractPath = (v: string) => {
+                                    if (!v) return '';
+                                    const marker = '/storage/v1/object/public/project-images/';
+                                    if (v.includes(marker)) return v.split(marker)[1];
+                                    if (v.includes('project-images/')) return v.split('project-images/').pop() || '';
+                                    return v;
+                                  };
+                                  const path = extractPath(asString);
+                                  try {
+                                    if (path) {
+                                      await supabase.storage.from('project-images').remove([path]);
+                                    }
+                                  } catch (err) {
+                                    console.warn('Storage delete failed', err);
+                                  }
+                                  // Attempt to null the field in both candidate tables
+                                  const tables = ['chittoor_project_approvals', 'chitoor_project_approvals'];
+                                  for (const t of tables) {
+                                    try {
+                                      await supabase.from(t).update({ [field.key]: null }).eq('id', record.id);
+                                    } catch (e) {}
+                                  }
+                                  try { await fetchApprovals(); } catch (e) {}
+                                }}
+                              />
+                            )}
+                          </Box>
+                        ) : (
+                          <Text fontSize="sm" color="gray.700">{formatDynamicValue(field.key, raw)}</Text>
+                        )}
+                      </Td>
+                    );
+                  })}
                   <Td>
                     <Badge colorScheme={statusBadgeColors[status]} textTransform="capitalize">
                       {status}
