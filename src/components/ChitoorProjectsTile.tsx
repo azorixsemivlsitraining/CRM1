@@ -627,20 +627,22 @@ const ChitoorProjectsTile = ({
       <Box border="1px solid" borderColor="gray.100" borderRadius="lg" p={4} bg="white">
         <Text fontWeight="semibold" color="gray.700" mb={2}>Monthly comparison</Text>
         <Text fontSize="sm" color="gray.500" mb={4}>Track how CRM approvals compare with on-ground Chitoor project progress.</Text>
-        <HStack align="end" spacing={6} minH="220px">
+        <HStack align="end" spacing={8} minH="320px">
           {months.map((mKey, idx) => {
             const av = a[idx] || 0;
             const bv = b[idx] || 0;
-            const ah = (av / maxVal) * 180;
-            const bh = (bv / maxVal) * 180;
+            const ah = (av / maxVal) * 260;
+            const bh = (bv / maxVal) * 260;
             return (
-              <VStack key={mKey} spacing={2} align="center">
-                <HStack align="end" spacing={2}>
-                  <Box w="12px" bg={colors[0]} borderRadius="sm" height={`${ah}px`} />
-                  <Box w="12px" bg={colors[1]} borderRadius="sm" height={`${bh}px`} />
-                </HStack>
-                <Text fontSize="xs" color="gray.600">{formatMonthLabel(mKey)}</Text>
-              </VStack>
+              <Tooltip key={mKey} label={`${labels[0]}: ${av} · ${labels[1]}: ${bv}`} hasArrow>
+                <VStack spacing={2} align="center">
+                  <HStack align="end" spacing={2}>
+                    <Box w="14px" bg={colors[0]} borderRadius="sm" height={`${ah}px`} />
+                    <Box w="14px" bg={colors[1]} borderRadius="sm" height={`${bh}px`} />
+                  </HStack>
+                  <Text fontSize="xs" color="gray.600">{formatMonthLabel(mKey)}</Text>
+                </VStack>
+              </Tooltip>
             );
           })}
         </HStack>
