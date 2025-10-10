@@ -252,26 +252,46 @@ const ChitoorProjects = () => {
     return base.filter((v) => v.toLowerCase().includes(q));
   }, [villageInput, selectedMandal, villagesByMandal, uniqueVillages]);
 
-  // Load CSV on modal open
+  // Load CSV on modal open with multiple path fallbacks and HTML detection
   useEffect(() => {
     const load = async () => {
-      try {
-        const path = (process.env.PUBLIC_URL || '') + '/data/chitoor_locations.csv';
-        const res = await fetch(path);
-        const text = await res.text();
-        const lines = text.split(/\r?\n/).filter(Boolean);
-        const out: { village: string; mandal: string }[] = [];
-        for (let i = 1; i < lines.length; i++) {
-          const line = lines[i];
-          const [village, mandal] = line.split(',');
-          if (!village || !mandal) continue;
-          out.push({ village: village.trim(), mandal: mandal.trim() });
+      const candidates = [
+        (process.env.PUBLIC_URL || '') + '/data/chitoor_locations.csv',
+        '/data/chitoor_locations.csv',
+        window.location.origin + '/data/chitoor_locations.csv',
+        './data/chitoor_locations.csv',
+      ];
+      for (const path of candidates) {
+        try {
+          const res = await fetch(path, { cache: 'no-store' });
+          if (!res.ok) continue;
+          const text = await res.text();
+          // If the response looks like HTML, skip this candidate
+          if (/^\s*<\!doctype html>|<meta|<script|<html/i.test(text)) {
+            console.warn('locations CSV fetch returned HTML, skipping path:', path);
+            continue;
+          }
+          const lines = text.split(/\r?\n/).filter(Boolean);
+          const out: { village: string; mandal: string }[] = [];
+          for (let i = 1; i < lines.length; i++) {
+            const line = lines[i];
+            const parts = line.split(',');
+            if (parts.length < 2) continue;
+            const village = parts[0];
+            const mandal = parts.slice(1).join(',');
+            if (!village || !mandal) continue;
+            out.push({ village: village.trim(), mandal: mandal.trim() });
+          }
+          if (out.length > 0) {
+            setLocations(out);
+            return;
+          }
+        } catch (e) {
+          // try next
+          console.warn('Failed to fetch CSV at', path, e);
         }
-        setLocations(out);
-      } catch (e) {
-        // Fallback: keep working without suggestions
-        console.error('Failed to load locations CSV', e);
       }
+      console.error('Failed to load locations CSV from all paths');
     };
     if (isOpen && locations.length === 0) load();
   }, [isOpen, locations.length]);
