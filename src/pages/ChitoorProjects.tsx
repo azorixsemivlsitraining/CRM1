@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Box,
   Button,
@@ -42,8 +42,9 @@ import {
 } from '@chakra-ui/react';
 import { supabase } from '../lib/supabase';
 import { formatSupabaseError } from '../utils/error';
-import { AddIcon, ChevronDownIcon, ViewIcon, EditIcon, DeleteIcon, PhoneIcon, EmailIcon } from '@chakra-ui/icons';
+import { AddIcon, ChevronDownIcon, ViewIcon, EditIcon, DeleteIcon, PhoneIcon } from '@chakra-ui/icons';
 import { useNavigate } from 'react-router-dom';
+import CHITOOR_LOCATIONS from '../data/chitoorLocations';
 
 interface ChitoorProject {
   id: string;
@@ -73,7 +74,7 @@ interface StatsCardProps {
 const StatsCard: React.FC<StatsCardProps> = ({ title, value, icon, color, helpText }) => {
   const cardBg = useColorModeValue('white', 'gray.800');
   const iconBg = useColorModeValue(`${color}.50`, `${color}.900`);
-  
+
   return (
     <Card bg={cardBg} shadow="sm" border="1px solid" borderColor="gray.100">
       <CardBody>
@@ -109,6 +110,7 @@ const StatsCard: React.FC<StatsCardProps> = ({ title, value, icon, color, helpTe
     </Card>
   );
 };
+
 
 const ChitoorProjects = () => {
   const [projects, setProjects] = useState<ChitoorProject[]>([]);
@@ -148,7 +150,7 @@ const ChitoorProjects = () => {
         .from('chitoor_projects')
         .select('*')
         .order('created_at', { ascending: false });
-      
+
       if (error) {
         console.error('Supabase error:', (error as any)?.message || error, error);
         toast({
@@ -160,13 +162,11 @@ const ChitoorProjects = () => {
         });
         return;
       }
-      
+
       if (data) {
         setProjects(data);
-        
-        // Calculate stats - 'Completed' status counts as completed, all others as pending
-        const completedProjects = data.filter((p: any) => p.project_status?.toLowerCase() === 'completed');
-        const pendingProjects = data.filter((p: any) => p.project_status?.toLowerCase() !== 'completed');
+        const completedProjects = data.filter((p: any) => (p.project_status || '').toLowerCase() === 'completed');
+        const pendingProjects = data.filter((p: any) => (p.project_status || '').toLowerCase() !== 'completed');
         const totalRevenue = data.reduce((sum: number, p: any) => sum + (p.project_cost || 0), 0);
         const totalCapacity = data.reduce((sum: number, p: any) => sum + (p.capacity || 0), 0);
 
@@ -180,17 +180,88 @@ const ChitoorProjects = () => {
       }
     } catch (error) {
       console.error('Error fetching Chitoor projects:', error);
-      toast({
-        title: 'Error',
-        description: 'An unexpected error occurred',
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      });
+      toast({ title: 'Error', description: 'An unexpected error occurred', status: 'error', duration: 5000, isClosable: true });
     } finally {
       setLoading(false);
     }
   }, [toast]);
+
+  // Locations state
+  const [locations, setLocations] = useState<{ village: string; mandal: string }[]>([]);
+  const [selectedMandal, setSelectedMandal] = useState('');
+  const [selectedVillage, setSelectedVillage] = useState('');
+  // Filter text inputs (for 2-letter filtering behavior)
+  const [mandalFilter, setMandalFilter] = useState('');
+  const [villageFilter, setVillageFilter] = useState('');
+
+  const villagesByMandal = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+    locations.forEach(({ mandal, village }) => {
+      const key = mandal.trim();
+      if (!map.has(key)) map.set(key, new Set());
+      map.get(key)!.add(village.trim());
+    });
+    return map;
+  }, [locations]);
+
+  const mandalByVillage = useMemo(() => {
+    const map = new Map<string, string>();
+    locations.forEach(({ mandal, village }) => {
+      map.set(village.trim(), mandal.trim());
+    });
+    return map;
+  }, [locations]);
+
+  const uniqueMandals = useMemo(() => Array.from(new Set(locations.map((l) => l.mandal.trim()))).sort(), [locations]);
+  const uniqueVillages = useMemo(() => Array.from(new Set(locations.map((l) => l.village.trim()))).sort(), [locations]);
+
+  // Filtered lists with 2-letter minimum filter. If filter is less than 2 letters, show full lists.
+  const filteredMandals = useMemo(() => {
+    const q = mandalFilter.trim().toLowerCase();
+    if (q.length >= 2) return uniqueMandals.filter((m) => m.toLowerCase().includes(q));
+    return uniqueMandals;
+  }, [mandalFilter, uniqueMandals]);
+
+  const filteredVillages = useMemo(() => {
+    const q = villageFilter.trim().toLowerCase();
+    const base = selectedMandal ? Array.from(villagesByMandal.get(selectedMandal) || []) : uniqueVillages;
+    if (q.length >= 2) return base.filter((v) => v.toLowerCase().includes(q));
+    return base;
+  }, [villageFilter, selectedMandal, villagesByMandal, uniqueVillages]);
+
+  // Use embedded locations as primary source (fallback to fetch if needed)
+  useEffect(() => {
+    if (CHITOOR_LOCATIONS && CHITOOR_LOCATIONS.length > 0) {
+      setLocations(CHITOOR_LOCATIONS);
+      return;
+    }
+
+    const load = async () => {
+      try {
+        const path = (process.env.PUBLIC_URL || '') + '/data/chitoor_locations.csv';
+        const res = await fetch(path, { cache: 'no-store' });
+        if (!res.ok) throw new Error('CSV fetch failed');
+        const text = await res.text();
+        if (/^\s*<\!doctype html>|<meta|<script|<html/i.test(text)) throw new Error('CSV fetch returned HTML');
+        const lines = text.split(/\r?\n/).filter(Boolean);
+        const out: { village: string; mandal: string }[] = [];
+        for (let i = 1; i < lines.length; i++) {
+          const line = lines[i];
+          const parts = line.split(',');
+          if (parts.length < 2) continue;
+          const village = parts[0];
+          const mandal = parts.slice(1).join(',');
+          if (!village || !mandal) continue;
+          out.push({ village: village.trim(), mandal: mandal.trim() });
+        }
+        if (out.length > 0) setLocations(out);
+      } catch (e) {
+        console.error('Failed to load locations CSV from path', e);
+      }
+    };
+
+    if (isOpen && locations.length === 0) load();
+  }, [isOpen, locations.length]);
 
   useEffect(() => {
     fetchChitoorProjects();
@@ -202,6 +273,16 @@ const ChitoorProjects = () => {
       try { (ch as any)?.unsubscribe?.(); } catch {}
     };
   }, [fetchChitoorProjects]);
+
+  useEffect(() => {
+    const parts: string[] = [];
+    if (selectedMandal) parts.push(selectedMandal);
+    if (selectedVillage) parts.push(selectedVillage);
+    const combined = parts.join(', ');
+    if (combined) {
+      setNewProject((prev) => ({ ...prev, address_mandal_village: combined }));
+    }
+  }, [selectedMandal, selectedVillage]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -219,7 +300,7 @@ const ChitoorProjects = () => {
   const handleSubmit = async () => {
     try {
       setLoading(true);
-      
+
       const projectData = {
         customer_name: newProject.customer_name,
         mobile_number: newProject.mobile_number,
@@ -276,6 +357,8 @@ const ChitoorProjects = () => {
         material_sent_date: '',
         balamuragan_payment: '',
       });
+      setSelectedMandal('');
+      setSelectedVillage('');
       fetchChitoorProjects();
     } catch (error) {
       console.error('Error creating Chitoor project:', error);
@@ -649,6 +732,58 @@ const ChitoorProjects = () => {
                   />
                 </FormControl>
 
+                <FormControl>
+                  <FormLabel fontSize="sm" fontWeight="medium">Mandal</FormLabel>
+                  <Input
+                    placeholder="Type 2+ letters to filter"
+                    value={mandalFilter}
+                    onChange={(e) => setMandalFilter(e.target.value)}
+                    mb={2}
+                  />
+                  <Select
+                    placeholder="Select mandal"
+                    value={selectedMandal}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                                      setSelectedMandal(val);
+                      // reset village if it doesn't belong
+                      if (selectedVillage && (villagesByMandal.get(val)?.has(selectedVillage) !== true)) {
+                        setSelectedVillage('');
+                      }
+                    }}
+                  >
+                    {filteredMandals.map((m) => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </Select>
+                </FormControl>
+
+                <FormControl>
+                  <FormLabel fontSize="sm" fontWeight="medium">Village</FormLabel>
+                  <Input
+                    placeholder="Type 2+ letters to filter"
+                    value={villageFilter}
+                    onChange={(e) => setVillageFilter(e.target.value)}
+                    mb={2}
+                  />
+                  <Select
+                    placeholder="Select village"
+                    value={selectedVillage}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setSelectedVillage(val);
+                      const mandal = mandalByVillage.get(val) || '';
+                      if (mandal) {
+                        setSelectedMandal(mandal);
+                      }
+                    }}
+                  >
+                    {filteredVillages.map((v) => (
+                      <option key={v} value={v}>{v}</option>
+                    ))}
+                  </Select>
+                </FormControl>
+
                 <FormControl isRequired>
                   <FormLabel fontSize="sm" fontWeight="medium">Address (Mandal, Village) <Text as="span" color="red.500">*</Text></FormLabel>
                   <Input
@@ -673,7 +808,7 @@ const ChitoorProjects = () => {
                 </FormControl>
 
                 <FormControl isRequired>
-                  <FormLabel fontSize="sm" fontWeight="medium">Project Cost (₹) <Text as="span" color="red.500">*</Text></FormLabel>
+                  <FormLabel fontSize="sm" fontWeight="medium">Project Cost (���) <Text as="span" color="red.500">*</Text></FormLabel>
                   <Select
                     name="project_cost"
                     value={newProject.project_cost}
