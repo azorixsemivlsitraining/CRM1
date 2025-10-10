@@ -883,7 +883,7 @@ const ChitoorProjectsTile = ({
                             {typeof isAuthenticated !== 'undefined' && isAuthenticated && (
                               <IconButton
                                 aria-label="Delete image"
-                                icon={<ChevronDownIcon />}
+                                icon={<DeleteIcon />}
                                 size="xs"
                                 colorScheme="red"
                                 position="absolute"
