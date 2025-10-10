@@ -693,6 +693,61 @@ const ChitoorProjects = () => {
                   />
                 </FormControl>
 
+                <FormControl>
+                  <FormLabel fontSize="sm" fontWeight="medium">Mandal</FormLabel>
+                  <Box position="relative">
+                    <Input
+                      value={mandalInput}
+                      onChange={(e) => {
+                        setMandalInput(e.target.value);
+                        setSelectedMandal('');
+                        if (selectedVillage) setSelectedVillage('');
+                      }}
+                      placeholder="Type at least 2 letters"
+                    />
+                    <AutocompleteList
+                      items={filteredMandals}
+                      isOpen={mandalInput.trim().length >= 2}
+                      onSelect={(val) => {
+                        setSelectedMandal(val);
+                        setMandalInput(val);
+                        // If current village doesn't belong to this mandal, reset it
+                        if (selectedVillage && (villagesByMandal.get(val)?.has(selectedVillage) !== true)) {
+                          setSelectedVillage('');
+                          setVillageInput('');
+                        }
+                      }}
+                    />
+                  </Box>
+                </FormControl>
+
+                <FormControl>
+                  <FormLabel fontSize="sm" fontWeight="medium">Village</FormLabel>
+                  <Box position="relative">
+                    <Input
+                      value={villageInput}
+                      onChange={(e) => {
+                        setVillageInput(e.target.value);
+                        setSelectedVillage('');
+                      }}
+                      placeholder="Type at least 2 letters"
+                    />
+                    <AutocompleteList
+                      items={filteredVillages}
+                      isOpen={villageInput.trim().length >= 2}
+                      onSelect={(val) => {
+                        setSelectedVillage(val);
+                        setVillageInput(val);
+                        const mandal = mandalByVillage.get(val) || '';
+                        if (mandal) {
+                          setSelectedMandal(mandal);
+                          setMandalInput(mandal);
+                        }
+                      }}
+                    />
+                  </Box>
+                </FormControl>
+
                 <FormControl isRequired>
                   <FormLabel fontSize="sm" fontWeight="medium">Address (Mandal, Village) <Text as="span" color="red.500">*</Text></FormLabel>
                   <Input
