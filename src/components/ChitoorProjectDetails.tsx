@@ -573,7 +573,7 @@ const ChitoorProjectDetails = () => {
                     <Text><strong>Capacity (kW):</strong> {a.capacity_kw ?? a.capacity ?? '—'}</Text>
                     <Text><strong>Villages / Location:</strong> {a.location || '—'}</Text>
                     <Text><strong>Power Bill Number:</strong> {a.power_bill_number || '—'}</Text>
-                    <Text><strong>Project Cost:</strong> {a.project_cost != null ? `₹${Number(a.project_cost).toLocaleString()}` : '—'}</Text>
+                    <Text><strong>Project Cost:</strong> {a.project_cost != null ? `₹${Number(a.project_cost).toLocaleString()}` : '��'}</Text>
                   </VStack>
                 </CardBody>
               </Card>
@@ -631,6 +631,9 @@ const ChitoorProjectDetails = () => {
               <Text color="gray.600">
                 Project ID: {project.id}
               </Text>
+              {project.edited_at && (
+                <Text color="gray.500" fontSize="sm">Last edited {new Date(project.edited_at).toLocaleString()}{project.edited_by ? ` by ${project.edited_by}` : ''}</Text>
+              )}
             </Box>
           </HStack>
           {project && (
