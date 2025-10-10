@@ -481,6 +481,49 @@ const ChitoorProjectDetails = () => {
     }
   };
 
+  const handleDeleteImage = async (img: any) => {
+    if (!project) return;
+    if (!isAuthenticated) {
+      toast({ title: 'Unauthorized', description: 'You must be authenticated to delete images.', status: 'warning' });
+      return;
+    }
+    if (!img || !img.id) return;
+    const ok = window.confirm('Delete this image? This will remove it from storage and the database.');
+    if (!ok) return;
+    try {
+      // Delete from storage (path is expected)
+      if (img.path) {
+        const { error: storageErr } = await supabase.storage.from('project-images').remove([img.path]);
+        if (storageErr) console.warn('Storage delete returned error', storageErr);
+      }
+      // Delete DB record
+      const { error: delErr } = await supabase.from('project_images').delete().eq('id', img.id);
+      if (delErr) throw delErr;
+
+      // Refresh images
+      const { data: imgs } = await supabase
+        .from('project_images')
+        .select('*')
+        .eq('project_id', project.id)
+        .order('uploaded_at', { ascending: false });
+      const enriched = (Array.isArray(imgs) ? imgs : (imgs ? [imgs] : [])).map((it: any) => {
+        try {
+          const urlData = supabase.storage.from('project-images').getPublicUrl(it.path);
+          const publicUrl = urlData?.data?.publicUrl || (urlData as any)?.publicUrl || '';
+          return { ...it, public_url: publicUrl };
+        } catch (e) {
+          return { ...it, public_url: '' };
+        }
+      });
+      setProjectImages(enriched);
+
+      toast({ title: 'Image deleted', status: 'success', duration: 3000 });
+    } catch (err) {
+      console.error('Failed to delete image', err);
+      toast({ title: 'Delete failed', description: formatSupabaseError(err) || 'Failed to delete image', status: 'error' });
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
       case 'completed': return 'green';
@@ -530,7 +573,7 @@ const ChitoorProjectDetails = () => {
                     <Text><strong>Capacity (kW):</strong> {a.capacity_kw ?? a.capacity ?? '—'}</Text>
                     <Text><strong>Villages / Location:</strong> {a.location || '—'}</Text>
                     <Text><strong>Power Bill Number:</strong> {a.power_bill_number || '—'}</Text>
-                    <Text><strong>Project Cost:</strong> {a.project_cost != null ? `���${Number(a.project_cost).toLocaleString()}` : '—'}</Text>
+                    <Text><strong>Project Cost:</strong> {a.project_cost != null ? `₹${Number(a.project_cost).toLocaleString()}` : '—'}</Text>
                   </VStack>
                 </CardBody>
               </Card>
