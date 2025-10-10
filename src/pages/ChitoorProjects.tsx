@@ -168,6 +168,49 @@ const ChitoorProjects = () => {
   const cardBg = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.600');
 
+  const fetchChitoorProjects = useCallback(async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('chitoor_projects')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Supabase error:', (error as any)?.message || error, error);
+        toast({
+          title: 'Error',
+          description: `Failed to fetch Chitoor projects. ${formatSupabaseError(error)}`,
+          status: 'error',
+          duration: 5000,
+          isClosable: true,
+        });
+        return;
+      }
+
+      if (data) {
+        setProjects(data);
+        const completedProjects = data.filter((p: any) => (p.project_status || '').toLowerCase() === 'completed');
+        const pendingProjects = data.filter((p: any) => (p.project_status || '').toLowerCase() !== 'completed');
+        const totalRevenue = data.reduce((sum: number, p: any) => sum + (p.project_cost || 0), 0);
+        const totalCapacity = data.reduce((sum: number, p: any) => sum + (p.capacity || 0), 0);
+
+        setStats({
+          totalProjects: data.length,
+          pendingProjects: pendingProjects.length,
+          completedProjects: completedProjects.length,
+          totalRevenue,
+          totalCapacity,
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching Chitoor projects:', error);
+      toast({ title: 'Error', description: 'An unexpected error occurred', status: 'error', duration: 5000, isClosable: true });
+    } finally {
+      setLoading(false);
+    }
+  }, [toast]);
+
   // Locations state
   const [locations, setLocations] = useState<{ village: string; mandal: string }[]>([]);
   const [mandalInput, setMandalInput] = useState('');
