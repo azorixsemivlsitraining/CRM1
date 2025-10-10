@@ -1191,7 +1191,7 @@ const ChitoorProjectsTile = ({
                                 </Td>
                               </Tr>
                             ) : (
-                              projects.map((p) => (
+                              projects.map((p, idx) => (
                                 <Tr
                                   key={p.id}
                                   _hover={{ bg: 'gray.50' }}
