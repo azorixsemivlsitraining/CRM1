@@ -118,7 +118,7 @@ const AutocompleteList: React.FC<{
 }> = ({ items, onSelect, isOpen }) => {
   if (!isOpen || items.length === 0) return null;
   return (
-    <Box position="absolute" zIndex={10} bg="white" border="1px solid" borderColor="gray.200" borderRadius="md" mt={1} w="full" maxH="200px" overflowY="auto" boxShadow="md">
+    <Box position="absolute" zIndex={1400} bg="white" border="1px solid" borderColor="gray.200" borderRadius="md" mt={1} w="full" maxH="200px" overflowY="auto" boxShadow="xl">
       <VStack align="stretch" spacing={0}>
         {items.map((opt) => (
           <Box
@@ -256,7 +256,8 @@ const ChitoorProjects = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await fetch('/data/chitoor_locations.csv');
+        const path = (process.env.PUBLIC_URL || '') + '/data/chitoor_locations.csv';
+        const res = await fetch(path);
         const text = await res.text();
         const lines = text.split(/\r?\n/).filter(Boolean);
         const out: { village: string; mandal: string }[] = [];
