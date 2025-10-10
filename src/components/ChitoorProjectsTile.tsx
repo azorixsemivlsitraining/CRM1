@@ -376,8 +376,10 @@ const ChitoorProjectsTile = ({
     fetchProjects();
 
     // Realtime updates for live project management
+    let prjCh: any = null;
+    let aprCh: any = null;
     if (isSupabaseConfigured) {
-      const prjCh = (supabase as any)
+      prjCh = (supabase as any)
         .channel('realtime-chitoor-projects')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'chitoor_projects' }, () => {
           fetchProjects();
@@ -386,7 +388,7 @@ const ChitoorProjectsTile = ({
 
       const aprTable = 'chittoor_project_approvals';
       const altAprTable = 'chitoor_project_approvals';
-      const aprCh = (supabase as any)
+      aprCh = (supabase as any)
         .channel('realtime-chitoor-approvals')
         .on('postgres_changes', { event: '*', schema: 'public', table: aprTable }, () => fetchApprovals())
         .on('postgres_changes', { event: '*', schema: 'public', table: altAprTable }, () => fetchApprovals())
