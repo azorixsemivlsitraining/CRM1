@@ -963,7 +963,9 @@ const ChitoorProjectsTile = ({
                       }
                     };
 
-                    const imageUrls = candidates.map(resolvePublicUrl).filter(Boolean);
+                    const allResolved = candidates.map(resolvePublicUrl).filter(Boolean);
+                    // only treat as images if at least one candidate is a likely image (by url or extension)
+                    const imageUrls = allResolved.filter(u => isLikelyImageString(u));
                     const thumbnail = imageUrls[0] || null;
 
                     return (
