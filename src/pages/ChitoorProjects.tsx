@@ -42,8 +42,9 @@ import {
 } from '@chakra-ui/react';
 import { supabase } from '../lib/supabase';
 import { formatSupabaseError } from '../utils/error';
-import { AddIcon, ChevronDownIcon, ViewIcon, EditIcon, DeleteIcon, PhoneIcon, EmailIcon } from '@chakra-ui/icons';
+import { AddIcon, ChevronDownIcon, ViewIcon, EditIcon, DeleteIcon, PhoneIcon } from '@chakra-ui/icons';
 import { useNavigate } from 'react-router-dom';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 interface ChitoorProject {
   id: string;
@@ -73,7 +74,7 @@ interface StatsCardProps {
 const StatsCard: React.FC<StatsCardProps> = ({ title, value, icon, color, helpText }) => {
   const cardBg = useColorModeValue('white', 'gray.800');
   const iconBg = useColorModeValue(`${color}.50`, `${color}.900`);
-  
+
   return (
     <Card bg={cardBg} shadow="sm" border="1px solid" borderColor="gray.100">
       <CardBody>
@@ -110,6 +111,33 @@ const StatsCard: React.FC<StatsCardProps> = ({ title, value, icon, color, helpTe
   );
 };
 
+// Lightweight autocomplete list for text inputs
+const AutocompleteList: React.FC<{
+  items: string[];
+  onSelect: (val: string) => void;
+  isOpen: boolean;
+}> = ({ items, onSelect, isOpen }) => {
+  if (!isOpen || items.length === 0) return null;
+  return (
+    <Box position="absolute" zIndex={10} bg="white" border="1px solid" borderColor="gray.200" borderRadius="md" mt={1} w="full" maxH="200px" overflowY="auto" boxShadow="md">
+      <VStack align="stretch" spacing={0}>
+        {items.map((opt) => (
+          <Box
+            key={opt}
+            px={3}
+            py={2}
+            _hover={{ bg: 'gray.50' }}
+            cursor="pointer"
+            onClick={() => onSelect(opt)}
+          >
+            <Text fontSize="sm" color="gray.700">{opt}</Text>
+          </Box>
+        ))}
+      </VStack>
+    </Box>
+  );
+};
+
 const ChitoorProjects = () => {
   const [projects, setProjects] = useState<ChitoorProject[]>([]);
   const { isOpen, onOpen, onClose } = useDisclosure();
@@ -141,67 +169,79 @@ const ChitoorProjects = () => {
   const cardBg = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.600');
 
-  const fetchChitoorProjects = useCallback(async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('chitoor_projects')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      if (error) {
-        console.error('Supabase error:', (error as any)?.message || error, error);
-        toast({
-          title: 'Error',
-          description: `Failed to fetch Chitoor projects. ${formatSupabaseError(error)}`,
-          status: 'error',
-          duration: 5000,
-          isClosable: true,
-        });
-        return;
-      }
-      
-      if (data) {
-        setProjects(data);
-        
-        // Calculate stats - 'Completed' status counts as completed, all others as pending
-        const completedProjects = data.filter((p: any) => p.project_status?.toLowerCase() === 'completed');
-        const pendingProjects = data.filter((p: any) => p.project_status?.toLowerCase() !== 'completed');
-        const totalRevenue = data.reduce((sum: number, p: any) => sum + (p.project_cost || 0), 0);
-        const totalCapacity = data.reduce((sum: number, p: any) => sum + (p.capacity || 0), 0);
+  // Locations state
+  const [locations, setLocations] = useState<{ village: string; mandal: string }[]>([]);
+  const [mandalInput, setMandalInput] = useState('');
+  const [villageInput, setVillageInput] = useState('');
+  const [selectedMandal, setSelectedMandal] = useState('');
+  const [selectedVillage, setSelectedVillage] = useState('');
 
-        setStats({
-          totalProjects: data.length,
-          pendingProjects: pendingProjects.length,
-          completedProjects: completedProjects.length,
-          totalRevenue,
-          totalCapacity,
-        });
+  const villagesByMandal = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+    locations.forEach(({ mandal, village }) => {
+      const key = mandal.trim();
+      if (!map.has(key)) map.set(key, new Set());
+      map.get(key)!.add(village.trim());
+    });
+    return map;
+  }, [locations]);
+
+  const mandalByVillage = useMemo(() => {
+    const map = new Map<string, string>();
+    locations.forEach(({ mandal, village }) => {
+      map.set(village.trim(), mandal.trim());
+    });
+    return map;
+  }, [locations]);
+
+  const uniqueMandals = useMemo(() => Array.from(new Set(locations.map((l) => l.mandal.trim()))).sort(), [locations]);
+  const uniqueVillages = useMemo(() => Array.from(new Set(locations.map((l) => l.village.trim()))).sort(), [locations]);
+
+  const filteredMandals = useMemo(() => {
+    const q = mandalInput.trim().toLowerCase();
+    if (q.length < 2) return [] as string[];
+    return uniqueMandals.filter((m) => m.toLowerCase().includes(q));
+  }, [mandalInput, uniqueMandals]);
+
+  const filteredVillages = useMemo(() => {
+    const q = villageInput.trim().toLowerCase();
+    if (q.length < 2) return [] as string[];
+    const base = selectedMandal ? Array.from(villagesByMandal.get(selectedMandal) || []) : uniqueVillages;
+    return base.filter((v) => v.toLowerCase().includes(q));
+  }, [villageInput, selectedMandal, villagesByMandal, uniqueVillages]);
+
+  // Load CSV on modal open
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await fetch('/data/chitoor_locations.csv');
+        const text = await res.text();
+        const lines = text.split(/\r?\n/).filter(Boolean);
+        const out: { village: string; mandal: string }[] = [];
+        for (let i = 1; i < lines.length; i++) {
+          const line = lines[i];
+          const [village, mandal] = line.split(',');
+          if (!village || !mandal) continue;
+          out.push({ village: village.trim(), mandal: mandal.trim() });
+        }
+        setLocations(out);
+      } catch (e) {
+        // Fallback: keep working without suggestions
+        console.error('Failed to load locations CSV', e);
       }
-    } catch (error) {
-      console.error('Error fetching Chitoor projects:', error);
-      toast({
-        title: 'Error',
-        description: 'An unexpected error occurred',
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [toast]);
+    };
+    if (isOpen && locations.length === 0) load();
+  }, [isOpen, locations.length]);
 
   useEffect(() => {
-    fetchChitoorProjects();
-    const ch = (supabase as any)
-      .channel('realtime-chitoor-projects-page')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'chitoor_projects' }, () => fetchChitoorProjects())
-      .subscribe();
-    return () => {
-      try { (ch as any)?.unsubscribe?.(); } catch {}
-    };
-  }, [fetchChitoorProjects]);
+    const parts: string[] = [];
+    if (selectedMandal) parts.push(selectedMandal);
+    if (selectedVillage) parts.push(selectedVillage);
+    const combined = parts.join(', ');
+    if (combined) {
+      setNewProject((prev) => ({ ...prev, address_mandal_village: combined }));
+    }
+  }, [selectedMandal, selectedVillage]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -219,7 +259,7 @@ const ChitoorProjects = () => {
   const handleSubmit = async () => {
     try {
       setLoading(true);
-      
+
       const projectData = {
         customer_name: newProject.customer_name,
         mobile_number: newProject.mobile_number,
@@ -276,6 +316,10 @@ const ChitoorProjects = () => {
         material_sent_date: '',
         balamuragan_payment: '',
       });
+      setSelectedMandal('');
+      setSelectedVillage('');
+      setMandalInput('');
+      setVillageInput('');
       fetchChitoorProjects();
     } catch (error) {
       console.error('Error creating Chitoor project:', error);
