@@ -274,6 +274,7 @@ const ChitoorProjectsTile = ({
   const { isOpen, onOpen, onClose } = useDisclosure();
   const toast = useToast();
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [approvals, setApprovals] = useState<ApprovalRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState<FilterKey>('all');
