@@ -44,6 +44,7 @@ import { supabase } from '../lib/supabase';
 import { formatSupabaseError } from '../utils/error';
 import { AddIcon, ChevronDownIcon, ViewIcon, EditIcon, DeleteIcon, PhoneIcon } from '@chakra-ui/icons';
 import { useNavigate } from 'react-router-dom';
+import CHITOOR_LOCATIONS from '../data/chitoorLocations';
 
 interface ChitoorProject {
   id: string;
