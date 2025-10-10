@@ -1287,6 +1287,39 @@ const ChitoorProjectsTile = ({
         </ModalContent>
       </Modal>
 
+      {/* Lightbox modal for field images */}
+      <Modal isOpen={lightboxOpen} onClose={closeLightbox} size="xl" isCentered>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Images</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            {lightboxImages && lightboxImages.length > 0 ? (
+              <Box textAlign="center">
+                <Image src={lightboxImages[lightboxIndex]} alt={`Image ${lightboxIndex+1}`} maxH="60vh" maxW="100%" objectFit="contain" />
+                <HStack justify="center" mt={3} spacing={4}>
+                  <Button onClick={() => setLightboxIndex(i => Math.max(0, i-1))} isDisabled={lightboxIndex<=0}>Prev</Button>
+                  <Text>{lightboxIndex+1} / {lightboxImages.length}</Text>
+                  <Button onClick={() => setLightboxIndex(i => Math.min(lightboxImages.length-1, i+1))} isDisabled={lightboxIndex>=lightboxImages.length-1}>Next</Button>
+                  {isAuthenticated && (
+                    <Button colorScheme="red" onClick={() => deleteImageFromField(lightboxFieldKey || '', lightboxImages[lightboxIndex], lightboxRecord)}>
+                      Delete
+                    </Button>
+                  )}
+                </HStack>
+                <VStack mt={3} align="stretch">
+                  {lightboxImages.map((u, idx) => (
+                    <Image key={u+idx} src={u} alt={`img-${idx}`} boxSize="80px" objectFit="cover" borderRadius="md" onClick={() => setLightboxIndex(idx)} cursor="pointer" />
+                  ))}
+                </VStack>
+              </Box>
+            ) : (
+              <Text>No images</Text>
+            )}
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+
       <Modal
         isOpen={isDetailsOpen}
         onClose={() => {
