@@ -280,6 +280,7 @@ const ChitoorProjectsTile = ({
 
   const [projects, setProjects] = useState<any[]>([]);
   const [projectsLoading, setProjectsLoading] = useState(false);
+  const [projectThumbnails, setProjectThumbnails] = useState<Record<string,string>>({});
 
   const {
     isOpen: isDetailsOpen,
