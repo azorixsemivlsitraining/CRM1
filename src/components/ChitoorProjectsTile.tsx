@@ -1207,7 +1207,7 @@ const ChitoorProjectsTile = ({
                                   <Td>{p.customer_name || p.project_name || '—'}</Td>
                                   <Td>{dateFormatter(p.date_of_order || p.date || p.created_at)}</Td>
                                   <Td>{p.capacity ?? p.capacity_kw ?? '—'}</Td>
-                                  <Td>{p.address_mandal_village || p.location || '—'}</Td>
+                                  <Td>{p.address_mandal_village || p.location || '���'}</Td>
                                   <Td>{p.project_cost ? currencyFormatter.format(p.project_cost) : '—'}</Td>
                                   <Td>{p.edited_at ? `${new Date(p.edited_at).toLocaleString()}${p.edited_by ? ` by ${p.edited_by}` : ''}` : '—'}</Td>
                                   <Td>{p.project_status || p.service_status || '—'}</Td>
@@ -1384,11 +1384,40 @@ const ChitoorProjectsTile = ({
                           </CardHeader>
                           <CardBody>
                             <VStack align="stretch" spacing={2}>
-                              {additionalDetails.map((detail) => (
-                                <Text key={detail.key}>
-                                  <strong>{detail.label}:</strong> {formatDynamicValue(detail.key, detail.value)}
-                                </Text>
-                              ))}
+                              {additionalDetails.map((detail) => {
+                                const k = detail.key.toLowerCase();
+                                const isImageField = k.includes('image') || k.includes('photo') || k.includes('img');
+                                if (isImageField) {
+                                  // split urls
+                                  const vals = Array.isArray(detail.value) ? detail.value : (typeof detail.value === 'string' ? detail.value.split(',').map(s=>s.trim()) : [String(detail.value)]);
+                                  const urls = vals.map((v: any) => {
+                                    if (!v) return '';
+                                    if (String(v).startsWith('http')) return String(v);
+                                    // try to resolve via storage
+                                    const marker = '/storage/v1/object/public/project-images/';
+                                    if (String(v).includes(marker)) return String(v);
+                                    if (String(v).includes('project-images/')) return supabase.storage.from('project-images').getPublicUrl(String(v).split('project-images/').pop() || '').data?.publicUrl || '';
+                                    return supabase.storage.from('project-images').getPublicUrl(String(v)).data?.publicUrl || '';
+                                  }).filter(Boolean);
+
+                                  return (
+                                    <Box key={detail.key}>
+                                      <Text fontWeight="semibold">{detail.label}:</Text>
+                                      <HStack spacing={2} wrap="wrap">
+                                        {urls.map((u: string, idx: number) => (
+                                          <Image key={u+idx} src={u} alt={`${detail.label}-${idx}`} boxSize="120px" objectFit="cover" borderRadius="md" />
+                                        ))}
+                                      </HStack>
+                                    </Box>
+                                  );
+                                }
+
+                                return (
+                                  <Text key={detail.key}>
+                                    <strong>{detail.label}:</strong> {formatDynamicValue(detail.key, detail.value)}
+                                  </Text>
+                                );
+                              })}
                             </VStack>
                           </CardBody>
                         </Card>
