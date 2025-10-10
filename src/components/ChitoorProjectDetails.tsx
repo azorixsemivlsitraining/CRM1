@@ -714,6 +714,49 @@ const ChitoorProjectDetails = () => {
           </Card>
         </SimpleGrid>
 
+        {/* Project Images */}
+        <Card>
+          <CardHeader>
+            <Text fontSize="lg" fontWeight="semibold" color="gray.700">Project Images</Text>
+          </CardHeader>
+          <CardBody>
+            {projectImages && projectImages.length > 0 ? (
+              <HStack spacing={4} wrap="wrap">
+                {projectImages.map((img) => (
+                  <Box key={img.id} position="relative">
+                    <Image
+                      src={img.public_url || ''}
+                      alt={img.name || img.path || 'project image'}
+                      boxSize="160px"
+                      objectFit="cover"
+                      borderRadius="md"
+                      onClick={() => window.open(img.public_url || '#', '_blank')}
+                      cursor={img.public_url ? 'pointer' : 'default'}
+                    />
+                    {isAuthenticated && (
+                      <IconButton
+                        aria-label="Delete image"
+                        icon={<DeleteIcon />}
+                        size="sm"
+                        colorScheme="red"
+                        position="absolute"
+                        top="6px"
+                        right="6px"
+                        onClick={() => handleDeleteImage(img)}
+                      />
+                    )}
+                    <Text fontSize="xs" color="gray.500" mt={1} textAlign="center">
+                      {img.uploaded_by ? `${img.uploaded_by}` : ''} {img.uploaded_at ? new Date(img.uploaded_at).toLocaleString() : ''}
+                    </Text>
+                  </Box>
+                ))}
+              </HStack>
+            ) : (
+              <Text color="gray.500">No images uploaded for this project.</Text>
+            )}
+          </CardBody>
+        </Card>
+
         {/* Project Progress */}
         <Card>
           <CardHeader>
