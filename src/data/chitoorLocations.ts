@@ -743,11 +743,23 @@ Ramireddigaripalle,Pulicheria
 Rayavaripalle,Pulicheria
 ...`;
 
-export const CHITOOR_LOCATIONS = RAW.split(/\r?\n/).filter(Boolean).map((line) => {
+const BASE_LOCATIONS = RAW.split(/\r?\n/).filter(Boolean).map((line) => {
   const [villagePart, ...mandalParts] = line.split(',');
   const village = villagePart ? villagePart.trim() : '';
   const mandal = mandalParts.join(',').trim();
   return { village, mandal };
 });
+
+// Additional mandals requested to be available in the New Project form for Chitoor projects
+const ADDITIONS: { village: string; mandal: string }[] = [
+  { village: 'Sadum', mandal: 'Sadum' },
+  { village: 'Pulicherla', mandal: 'Pulicherla' },
+  { village: 'Rompicherla', mandal: 'Rompicherla' },
+  { village: 'Vijayapuram', mandal: 'Vijayapuram' },
+  { village: 'G.D. Nellore', mandal: 'G.D. Nellore' },
+  { village: 'Palasamudram', mandal: 'Palasamudram' },
+];
+
+export const CHITOOR_LOCATIONS = [...BASE_LOCATIONS, ...ADDITIONS];
 
 export default CHITOOR_LOCATIONS;
