@@ -29,6 +29,8 @@ import {
   TabPanels,
   Tab,
   TabPanel,
+  Tooltip,
+  VStack,
 } from '@chakra-ui/react';
 import jsPDF from 'jspdf';
 import { supabase } from '../lib/supabase';
@@ -113,6 +115,86 @@ const downloadExcel = (columns: string[], rows: (string | number)[][], filename:
   const body = rows.map(r => `<tr>${r.map(c => `<td>${escape(c)}</td>`).join('')}</tr>`).join('');
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8" /></head><body><table>${headerRow}${body}</table></body></html>`;
   download(html, filename.endsWith('.xls') ? filename : `${filename}.xls`, 'application/vnd.ms-excel');
+};
+
+// Simple bar chart (pure Chakra UI)
+const BarChart: React.FC<{ labels: string[]; values: number[]; color?: string; maxBars?: number }> = ({ labels, values, color = 'green.500', maxBars = 12 }) => {
+  const items = labels.map((l, i) => ({ l, v: values[i] || 0 }));
+  const trimmed = items.slice(-maxBars);
+  const maxV = Math.max(1, ...trimmed.map(i => i.v));
+  return (
+    <Box border="1px solid" borderColor="gray.100" borderRadius="lg" p={4} bg="white">
+      <HStack align="end" spacing={4} minH="220px">
+        {trimmed.map((it) => (
+          <Tooltip key={it.l} label={`${it.l}: ${inr(it.v)}`} hasArrow>
+            <VStack spacing={2} align="center">
+              <Box w="16px" bg={color} borderRadius="sm" height={`${(it.v / maxV) * 180}px`} />
+              <Text fontSize="xs" color="gray.600" noOfLines={1} maxW="56px">{it.l}</Text>
+            </VStack>
+          </Tooltip>
+        ))}
+      </HStack>
+    </Box>
+  );
+};
+
+// Two-series comparison bar chart
+const BarCompareChart: React.FC<{ labels: string[]; seriesA: number[]; seriesB: number[]; seriesLabels: [string, string]; colors?: [string, string] }> = ({ labels, seriesA, seriesB, seriesLabels, colors = ['green.600', 'green.300'] }) => {
+  const maxV = Math.max(1, ...seriesA, ...seriesB);
+  return (
+    <Box border="1px solid" borderColor="gray.100" borderRadius="lg" p={4} bg="white">
+      <Text fontWeight="semibold" color="gray.700" mb={2}>Comparison</Text>
+      <HStack align="end" spacing={6} minH="260px">
+        {labels.map((lab, idx) => {
+          const a = seriesA[idx] || 0; const b = seriesB[idx] || 0;
+          const ah = (a / maxV) * 200; const bh = (b / maxV) * 200;
+          return (
+            <Tooltip key={lab} label={`${seriesLabels[0]}: ${inr(a)} · ${seriesLabels[1]}: ${inr(b)}`} hasArrow>
+              <VStack spacing={2} align="center">
+                <HStack align="end" spacing={2}>
+                  <Box w="14px" bg={colors[0]} borderRadius="sm" height={`${ah}px`} />
+                  <Box w="14px" bg={colors[1]} borderRadius="sm" height={`${bh}px`} />
+                </HStack>
+                <Text fontSize="xs" color="gray.600" noOfLines={1} maxW="64px">{lab}</Text>
+              </VStack>
+            </Tooltip>
+          );
+        })}
+      </HStack>
+      <HStack spacing={4} mt={3} color="gray.600">
+        <HStack spacing={2}><Box w="10px" h="10px" bg={colors[0]} borderRadius="sm" /><Text fontSize="xs">{seriesLabels[0]}</Text></HStack>
+        <HStack spacing={2}><Box w="10px" h="10px" bg={colors[1]} borderRadius="sm" /><Text fontSize="xs">{seriesLabels[1]}</Text></HStack>
+      </HStack>
+    </Box>
+  );
+};
+
+// Donut pie chart using conic-gradient
+const DonutChart: React.FC<{ segments: { label: string; value: number; color: string }[]; size?: number; thickness?: number }> = ({ segments, size = 180, thickness = 24 }) => {
+  const total = Math.max(1, segments.reduce((s, seg) => s + (seg.value || 0), 0));
+  let start = 0;
+  const parts: string[] = [];
+  segments.forEach((seg) => {
+    const angle = (seg.value / total) * 360;
+    const end = start + angle;
+    parts.push(`${seg.color} ${start}deg ${end}deg`);
+    start = end;
+  });
+  const bg = parts.length ? `conic-gradient(${parts.join(', ')})` : 'conic-gradient(#E2E8F0 0deg, #E2E8F0 360deg)';
+  return (
+    <VStack spacing={3} align="center">
+      <Box
+        w={`${size}px`}
+        h={`${size}px`}
+        borderRadius="full"
+        bgGradient={undefined}
+        bgImage={bg}
+        position="relative"
+      >
+        <Box position="absolute" top={`${thickness}px`} left={`${thickness}px`} right={`${thickness}px`} bottom={`${thickness}px`} bg="white" borderRadius="full" />
+      </Box>
+    </VStack>
+  );
 };
 
 const Finance: React.FC = () => {
@@ -329,6 +411,32 @@ const Finance: React.FC = () => {
     return arr;
   }, [payments, projects, expenses, taxPeriodType, paymentsByProject]);
 
+  // Derived datasets for charts
+  const revenueTrend = useMemo(() => {
+    const m = new Map<string, number>();
+    const source = period === 'all' ? payments : periodPayments;
+    source.forEach((p) => {
+      const key = new Date(p.created_at).toLocaleDateString('en-IN');
+      m.set(key, (m.get(key) || 0) + (p.amount || 0));
+    });
+    const arr = Array.from(m.entries()).sort((a, b) => new Date(a[0]).getTime() - new Date(b[0]).getTime());
+    return { labels: arr.map(a => a[0]), values: arr.map(a => a[1]) };
+  }, [payments, periodPayments, period]);
+
+  const expensesByCategory = useMemo(() => {
+    const m = new Map<string, number>();
+    const source = period === 'all' ? expenses : periodExpenses;
+    source.forEach((e) => {
+      const key = (e.category || 'Uncategorized').trim() || 'Uncategorized';
+      m.set(key, (m.get(key) || 0) + (e.amount || 0));
+    });
+    const arr = Array.from(m.entries()).sort((a, b) => b[1] - a[1]);
+    return { labels: arr.map(a => a[0]), values: arr.map(a => a[1]) };
+  }, [expenses, periodExpenses, period]);
+
+  const palette = ['#2F855A', '#38A169', '#68D391', '#22543D', '#276749', '#48BB78', '#9AE6B4', '#81E6D9'];
+
+  // Exports
   const exportOrdersCsv = () => {
     const rows = payments.map((p) => ({
       id: p.id,
@@ -534,6 +642,24 @@ const Finance: React.FC = () => {
                   <Stat><StatLabel>Expenses ({period === 'all' ? 'All' : 'Period'})</StatLabel><StatNumber>{inr(period === 'all' ? totalExpensesAll : totalExpensesPeriod)}</StatNumber></Stat>
                   <Stat><StatLabel>Profit ({period === 'all' ? 'All' : 'Period'})</StatLabel><StatNumber color={(period === 'all' ? profitAll : profitPeriod) >= 0 ? 'green.600' : 'red.600'}>{inr(period === 'all' ? profitAll : profitPeriod)}</StatNumber></Stat>
                 </SimpleGrid>
+                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6} mb={6}>
+                  <Card>
+                    <CardHeader><Heading size="sm">Revenue Trend</Heading></CardHeader>
+                    <CardBody>
+                      {revenueTrend.labels.length > 0 ? (
+                        <BarChart labels={revenueTrend.labels} values={revenueTrend.values} />
+                      ) : (
+                        <Text fontSize="sm" color="gray.500">No data</Text>
+                      )}
+                    </CardBody>
+                  </Card>
+                  <Card>
+                    <CardHeader><Heading size="sm">Region-wise Revenue</Heading></CardHeader>
+                    <CardBody>
+                      <Table size="sm" variant="simple"><Thead><Tr><Th>Region</Th><Th isNumeric>Revenue</Th></Tr></Thead><Tbody>{revenueByRegion.map(([region, amt]) => (<Tr key={region}><Td>{region}</Td><Td isNumeric>{inr(amt)}</Td></Tr>))}{revenueByRegion.length === 0 && (<Tr><Td colSpan={2} textAlign="center">No data</Td></Tr>)}</Tbody></Table>
+                  </CardBody>
+                  </Card>
+                </SimpleGrid>
                 <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
                   <Card>
                     <CardHeader><Heading size="sm">Top Performing Products/Projects</Heading></CardHeader>
@@ -542,9 +668,13 @@ const Finance: React.FC = () => {
                     </CardBody>
                   </Card>
                   <Card>
-                    <CardHeader><Heading size="sm">Region-wise Revenue</Heading></CardHeader>
+                    <CardHeader><Heading size="sm">Expenses by Category</Heading></CardHeader>
                     <CardBody>
-                      <Table size="sm" variant="simple"><Thead><Tr><Th>Region</Th><Th isNumeric>Revenue</Th></Tr></Thead><Tbody>{revenueByRegion.map(([region, amt]) => (<Tr key={region}><Td>{region}</Td><Td isNumeric>{inr(amt)}</Td></Tr>))}{revenueByRegion.length === 0 && (<Tr><Td colSpan={2} textAlign="center">No data</Td></Tr>)}</Tbody></Table>
+                      {expensesByCategory.labels.length > 0 ? (
+                        <BarChart labels={expensesByCategory.labels} values={expensesByCategory.values} color="green.300" />
+                      ) : (
+                        <Text fontSize="sm" color="gray.500">No data</Text>
+                      )}
                     </CardBody>
                   </Card>
                 </SimpleGrid>
@@ -627,6 +757,28 @@ const Finance: React.FC = () => {
                   </TabList>
                   <TabPanels>
                     <TabPanel>
+                      <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6} mb={4}>
+                        <Box>
+                          <Text fontWeight="semibold" color="gray.700" mb={2}>Revenue Trend</Text>
+                          {revenueTrend.labels.length > 0 ? (
+                            <BarChart labels={revenueTrend.labels} values={revenueTrend.values} />
+                          ) : (
+                            <Text fontSize="sm" color="gray.500">No data</Text>
+                          )}
+                        </Box>
+                        <Box>
+                          <Text fontWeight="semibold" color="gray.700" mb={2}>Top Projects (share)</Text>
+                          <DonutChart segments={topProducts.slice(0, 6).map(([name, amt], i) => ({ label: String(name), value: amt as number, color: palette[i % palette.length] }))} />
+                          <HStack wrap="wrap" spacing={4} mt={3}>
+                            {topProducts.slice(0, 6).map(([name, amt], i) => (
+                              <HStack key={String(name)} spacing={2}>
+                                <Box w="10px" h="10px" borderRadius="sm" bg={palette[i % palette.length]} />
+                                <Text fontSize="xs" color="gray.600">{String(name)} ({inr(amt as number)})</Text>
+                              </HStack>
+                            ))}
+                          </HStack>
+                        </Box>
+                      </SimpleGrid>
                       <HStack mb={4}>
                         <Button size="sm" onClick={exportOrdersCsv}>CSV</Button>
                         <Button size="sm" onClick={exportOrdersXls}>Excel</Button>
@@ -643,42 +795,59 @@ const Finance: React.FC = () => {
                     </TabPanel>
 
                     <TabPanel>
+                      <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6} mb={4}>
+                        <Box>
+                          <Text fontWeight="semibold" color="gray.700" mb={2}>Customer Share</Text>
+                          <DonutChart segments={customerPurchases.slice(0, 6).map(([c, amt], i) => ({ label: String(c), value: amt as number, color: palette[i % palette.length] }))} />
+                          <HStack wrap="wrap" spacing={4} mt={3}>
+                            {customerPurchases.slice(0, 6).map(([c, amt], i) => (
+                              <HStack key={String(c)} spacing={2}>
+                                <Box w="10px" h="10px" borderRadius="sm" bg={palette[i % palette.length]} />
+                                <Text fontSize="xs" color="gray.600">{String(c)} ({inr(amt as number)})</Text>
+                              </HStack>
+                            ))}
+                          </HStack>
+                        </Box>
+                        <Box>
+                          <Text fontWeight="semibold" color="gray.700" mb={2}>Top Customers</Text>
+                          <Table size="sm" variant="simple"><Thead><Tr><Th>Customer</Th><Th isNumeric>Total Purchase</Th></Tr></Thead><Tbody>{customerPurchases.slice(0, 10).map(([c, amt]) => (<Tr key={String(c)}><Td>{String(c)}</Td><Td isNumeric>{inr(amt as number)}</Td></Tr>))}</Tbody></Table>
+                        </Box>
+                      </SimpleGrid>
                       <HStack mb={4}>
-                        <Button size="sm" onClick={() => {
-                          const rows = customerPurchases.map(([c, amt]) => ({ customer: c, amount: amt }));
-                          download(makeCsv(rows), 'customer_purchases.csv');
-                        }}>CSV</Button>
-                        <Button size="sm" onClick={() => {
-                          const cols = ['Customer', 'Amount'];
-                          const rows = customerPurchases.map(([c, amt]) => [c, amt]);
-                          downloadExcel(cols, rows, 'customer_purchases.xls');
-                        }}>Excel</Button>
+                        <Button size="sm" onClick={() => { const rows = customerPurchases.map(([c, amt]) => ({ customer: c, amount: amt })); download(makeCsv(rows), 'customer_purchases.csv'); }}>CSV</Button>
+                        <Button size="sm" onClick={() => { const cols = ['Customer', 'Amount']; const rows = customerPurchases.map(([c, amt]) => [c, amt]); downloadExcel(cols, rows, 'customer_purchases.xls'); }}>Excel</Button>
                       </HStack>
-                      <Table variant="simple" size="sm">
-                        <Thead><Tr><Th>Customer</Th><Th isNumeric>Total Purchase</Th></Tr></Thead>
-                        <Tbody>
-                          {customerPurchases.map(([c, amt]) => (<Tr key={c}><Td>{c}</Td><Td isNumeric>{inr(amt)}</Td></Tr>))}
-                          {customerPurchases.length === 0 && (<Tr><Td colSpan={2} textAlign="center">No data</Td></Tr>)}
-                        </Tbody>
-                      </Table>
                     </TabPanel>
 
                     <TabPanel>
+                      <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6} mb={4}>
+                        <Box>
+                          <Text fontWeight="semibold" color="gray.700" mb={2}>Expenses by Category</Text>
+                          {expensesByCategory.labels.length > 0 ? (
+                            <BarChart labels={expensesByCategory.labels} values={expensesByCategory.values} color="green.300" />
+                          ) : (
+                            <Text fontSize="sm" color="gray.500">No data</Text>
+                          )}
+                        </Box>
+                        <Box>
+                          <Text fontWeight="semibold" color="gray.700" mb={2}>Recent Expenses</Text>
+                          <Table variant="simple" size="sm"><Thead><Tr><Th>Date</Th><Th>Category</Th><Th>Vendor</Th><Th>Description</Th><Th isNumeric>Amount</Th></Tr></Thead><Tbody>{periodExpenses.slice(0, 8).map((e) => (<Tr key={e.id}><Td>{new Date(e.date || e.created_at || '').toLocaleDateString()}</Td><Td>{e.category || '-'}</Td><Td>{e.vendor || '-'}</Td><Td>{e.description || '-'}</Td><Td isNumeric>{inr(e.amount || 0)}</Td></Tr>))}{periodExpenses.length === 0 && (<Tr><Td colSpan={5} textAlign="center">No expenses found</Td></Tr>)}</Tbody></Table>
+                        </Box>
+                      </SimpleGrid>
                       <HStack mb={4}>
                         <Button size="sm" onClick={exportExpensesCsv}>CSV</Button>
                         <Button size="sm" onClick={exportExpensesXls}>Excel</Button>
                       </HStack>
-                      <Table variant="simple" size="sm">
-                        <Thead><Tr><Th>Date</Th><Th>Category</Th><Th>Vendor</Th><Th>Description</Th><Th isNumeric>Amount</Th></Tr></Thead>
-                        <Tbody>
-                          {periodExpenses.map((e) => (<Tr key={e.id}><Td>{new Date(e.date || e.created_at || '').toLocaleDateString()}</Td><Td>{e.category || '-'}</Td><Td>{e.vendor || '-'}</Td><Td>{e.description || '-'}</Td><Td isNumeric>{inr(e.amount || 0)}</Td></Tr>))}
-                          {periodExpenses.length === 0 && (<Tr><Td colSpan={5} textAlign="center">No expenses found</Td></Tr>)}
-                        </Tbody>
-                      </Table>
                     </TabPanel>
 
                     <TabPanel>
-                      <HStack mb={4} spacing={3}>
+                      <SimpleGrid columns={{ base: 1, md: 1 }} spacing={6} mb={4}>
+                        <Box>
+                          <Text fontWeight="semibold" color="gray.700" mb={2}>Tax: Output vs Input</Text>
+                          <BarCompareChart labels={monthlyOrQuarterlyTax.map(r => r.periodKey)} seriesA={monthlyOrQuarterlyTax.map(r => Math.round(r.output))} seriesB={monthlyOrQuarterlyTax.map(r => Math.round(r.input))} seriesLabels={["Output Tax", "Input Tax"]} />
+                        </Box>
+                      </SimpleGrid>
+                      <HStack spacing={3} mb={4}>
                         <Select size="sm" value={taxPeriodType} onChange={(e) => setTaxPeriodType(e.target.value as any)} maxW="180px">
                           <option value="monthly">Monthly</option>
                           <option value="quarterly">Quarterly</option>
@@ -686,26 +855,29 @@ const Finance: React.FC = () => {
                         <Button size="sm" onClick={exportTaxCsv}>CSV</Button>
                         <Button size="sm" onClick={exportTaxXls}>Excel</Button>
                       </HStack>
-                      <Table variant="simple" size="sm">
-                        <Thead><Tr><Th>Period</Th><Th isNumeric>Output Tax</Th><Th isNumeric>Input Tax</Th><Th isNumeric>Net Tax</Th></Tr></Thead>
-                        <Tbody>
-                          {monthlyOrQuarterlyTax.map((r) => (<Tr key={r.periodKey}><Td>{r.periodKey}</Td><Td isNumeric>{inr(Math.round(r.output))}</Td><Td isNumeric>{inr(Math.round(r.input))}</Td><Td isNumeric>{inr(Math.round(r.net))}</Td></Tr>))}
-                          {monthlyOrQuarterlyTax.length === 0 && (<Tr><Td colSpan={4} textAlign="center">No data</Td></Tr>)}
-                        </Tbody>
-                      </Table>
+                      <Table variant="simple" size="sm"><Thead><Tr><Th>Period</Th><Th isNumeric>Output Tax</Th><Th isNumeric>Input Tax</Th><Th isNumeric>Net Tax</Th></Tr></Thead><Tbody>{monthlyOrQuarterlyTax.map((r) => (<Tr key={r.periodKey}><Td>{r.periodKey}</Td><Td isNumeric>{inr(Math.round(r.output))}</Td><Td isNumeric>{inr(Math.round(r.input))}</Td><Td isNumeric>{inr(Math.round(r.net))}</Td></Tr>))}{monthlyOrQuarterlyTax.length === 0 && (<Tr><Td colSpan={4} textAlign="center">No data</Td></Tr>)}</Tbody></Table>
                     </TabPanel>
 
                     <TabPanel>
+                      <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6} mb={4}>
+                        <Box>
+                          <Text fontWeight="semibold" color="gray.700" mb={2}>P&L Bars</Text>
+                          <BarCompareChart labels={[period === 'all' ? 'All' : 'Period']} seriesA={[period === 'all' ? totalRevenueAll : totalRevenuePeriod]} seriesB={[period === 'all' ? totalExpensesAll : totalExpensesPeriod]} seriesLabels={["Revenue", "Expenses"]} />
+                        </Box>
+                        <Box>
+                          <Text fontWeight="semibold" color="gray.700" mb={2}>P&L Share</Text>
+                          <DonutChart segments={[{ label: 'Revenue', value: period === 'all' ? totalRevenueAll : totalRevenuePeriod, color: '#2F855A' }, { label: 'Expenses', value: period === 'all' ? totalExpensesAll : totalExpensesPeriod, color: '#68D391' }]} />
+                          <HStack spacing={4} mt={3}>
+                            <HStack spacing={2}><Box w="10px" h="10px" bg="#2F855A" borderRadius="sm" /><Text fontSize="xs" color="gray.600">Revenue</Text></HStack>
+                            <HStack spacing={2}><Box w="10px" h="10px" bg="#68D391" borderRadius="sm" /><Text fontSize="xs" color="gray.600">Expenses</Text></HStack>
+                          </HStack>
+                        </Box>
+                      </SimpleGrid>
                       <HStack mb={4}>
                         <Button size="sm" onClick={exportPnLCsv}>CSV</Button>
                         <Button size="sm" onClick={exportPnLXls}>Excel</Button>
                         <Button size="sm" onClick={generatePnLPdf}>PDF</Button>
                       </HStack>
-                      <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6}>
-                        <Stat><StatLabel>Revenue (All)</StatLabel><StatNumber>{inr(totalRevenueAll)}</StatNumber></Stat>
-                        <Stat><StatLabel>Expenses (All)</StatLabel><StatNumber>{inr(totalExpensesAll)}</StatNumber></Stat>
-                        <Stat><StatLabel>Profit (All)</StatLabel><StatNumber color={profitAll >= 0 ? 'green.600' : 'red.600'}>{inr(profitAll)}</StatNumber></Stat>
-                      </SimpleGrid>
                     </TabPanel>
 
                     <TabPanel>
