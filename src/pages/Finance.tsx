@@ -108,7 +108,6 @@ const download = (content: string, filename: string, mime = 'text/csv') => {
 };
 
 const downloadExcel = (columns: string[], rows: (string | number)[][], filename: string) => {
-  // Excel-compatible HTML table
   const escape = (s: any) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const headerRow = `<tr>${columns.map(c => `<th>${escape(c)}</th>`).join('')}</tr>`;
   const body = rows.map(r => `<tr>${r.map(c => `<td>${escape(c)}</td>`).join('')}</tr>`).join('');
@@ -137,7 +136,7 @@ const Finance: React.FC = () => {
     if (period === 'daily') return new Date(now.getFullYear(), now.getMonth(), now.getDate());
     if (period === 'weekly') {
       const day = now.getDay();
-      const diff = now.getDate() - day + (day === 0 ? -6 : 1); // Monday start
+      const diff = now.getDate() - day + (day === 0 ? -6 : 1);
       return new Date(now.getFullYear(), now.getMonth(), diff);
     }
     if (period === 'monthly') return new Date(now.getFullYear(), now.getMonth(), 1);
@@ -149,7 +148,6 @@ const Finance: React.FC = () => {
     const fetchAll = async () => {
       try {
         setLoading(true);
-        // Projects
         let q = supabase
           .from('projects')
           .select('*')
@@ -162,7 +160,6 @@ const Finance: React.FC = () => {
         const pData: Project[] = Array.isArray(projData) ? projData as any : [];
         setProjects(pData);
 
-        // Payments
         let paymentsData: PaymentRec[] = [];
         try {
           const { data: payTry, error: payErr } = await supabase
@@ -184,7 +181,6 @@ const Finance: React.FC = () => {
         }));
         setPayments(paymentsWithProject);
 
-        // Expenses
         let expensesData: ExpenseRec[] = [];
         try {
           const { data: expTry, error: expErr } = await supabase
@@ -214,7 +210,6 @@ const Finance: React.FC = () => {
     return d >= periodStart;
   };
 
-  // Aggregations
   const totalOutstanding = useMemo(() => projects.reduce((sum, p) => sum + (p.balance_amount || 0), 0), [projects]);
   const expectedThisMonth = useMemo(() => {
     const currentDate = new Date();
@@ -305,7 +300,6 @@ const Finance: React.FC = () => {
       buckets.set(key, cur);
     };
 
-    // Attribute project tax across payments by date proportionally
     for (const pay of payments) {
       const proj = projects.find((p) => p.id === pay.project_id);
       if (!proj) continue;
@@ -335,7 +329,6 @@ const Finance: React.FC = () => {
     return arr;
   }, [payments, projects, expenses, taxPeriodType, paymentsByProject]);
 
-  // Exports
   const exportOrdersCsv = () => {
     const rows = payments.map((p) => ({
       id: p.id,
@@ -458,18 +451,13 @@ const Finance: React.FC = () => {
   const generateInvoice = (project: Project) => {
     const doc = new jsPDF();
     const left = 14; const right = 196 - 14; let y = 16;
-    // Header
     doc.setFontSize(18); doc.text('Tax Invoice', left, y); y += 8;
     doc.setFontSize(12);
     doc.text('Axiso Green Energy', left, y); y += 6;
     doc.text(`Invoice #: INV-${project.id.slice(0, 8).toUpperCase()}`, left, y); y += 6;
     doc.text(`Date: ${new Date().toLocaleDateString()}`, left, y); y += 10;
-
-    // Bill To
     doc.setFontSize(12); doc.text('Bill To:', left, y); y += 6;
     doc.text(`${project.customer_name || ''}`, left, y); y += 8;
-
-    // Table header
     doc.setFontSize(12);
     doc.text('Description', left, y);
     doc.text('Amount (INR)', right, y, { align: 'right' }); y += 4;
@@ -500,7 +488,6 @@ const Finance: React.FC = () => {
     doc.text('Total', left, y);
     doc.text(total.toLocaleString('en-IN'), right, y, { align: 'right' }); y += 10;
 
-    // Notes
     doc.setFontSize(10);
     doc.text('Terms: Due on receipt. Thank you for your business.', left, y);
 
@@ -511,222 +498,237 @@ const Finance: React.FC = () => {
     <Box p={6} maxW="1400px" mx="auto">
       <Heading as="h1" size="xl" mb={6}>Finance Dashboard</Heading>
 
-      <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6} mb={8}>
+      <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6} mb={6}>
         <Card><CardBody><Stat><StatLabel>Total Outstanding Amount</StatLabel><StatNumber>{inr(totalOutstanding)}</StatNumber><Text fontSize="sm" color="gray.500">From all projects</Text></Stat></CardBody></Card>
         <Card><CardBody><Stat><StatLabel>Expected This Month</StatLabel><StatNumber>{inr(expectedThisMonth)}</StatNumber><Text fontSize="sm" color="gray.500">Based on 45-day collection timeframe</Text></Stat></CardBody></Card>
         <Card><CardBody><Stat><StatLabel>Active Projects</StatLabel><StatNumber>{activeProjectsCount}</StatNumber><Text fontSize="sm" color="gray.500">With outstanding payments</Text></Stat></CardBody></Card>
       </SimpleGrid>
 
-      <Card mb={6}>
-        <CardHeader>
-          <Flex align="center" justify="space-between" gap={4} flexWrap="wrap">
-            <Heading size="md">Sales & Revenue</Heading>
-            <HStack>
-              <Select size="sm" value={period} onChange={(e) => setPeriod(e.target.value as any)} maxW="180px">
-                <option value="all">All Time</option>
-                <option value="daily">Today</option>
-                <option value="weekly">This Week</option>
-                <option value="monthly">This Month</option>
-              </Select>
-              <Button size="sm" onClick={exportOrdersCsv}>Export Orders CSV</Button>
-              <Button size="sm" onClick={exportOrdersXls}>Export Orders Excel</Button>
-            </HStack>
-          </Flex>
-        </CardHeader>
-        <CardBody>
-          <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6} mb={4}>
-            <Stat><StatLabel>Revenue ({period === 'all' ? 'All' : 'Period'})</StatLabel><StatNumber>{inr(period === 'all' ? totalRevenueAll : totalRevenuePeriod)}</StatNumber></Stat>
-            <Stat><StatLabel>Expenses ({period === 'all' ? 'All' : 'Period'})</StatLabel><StatNumber>{inr(period === 'all' ? totalExpensesAll : totalExpensesPeriod)}</StatNumber></Stat>
-            <Stat><StatLabel>Profit ({period === 'all' ? 'All' : 'Period'})</StatLabel><StatNumber color={(period === 'all' ? profitAll : profitPeriod) >= 0 ? 'green.600' : 'red.600'}>{inr(period === 'all' ? profitAll : profitPeriod)}</StatNumber></Stat>
-          </SimpleGrid>
-          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
-            <Card>
-              <CardHeader><Heading size="sm">Top Performing Products/Projects</Heading></CardHeader>
+      <Tabs colorScheme="green" isFitted variant="enclosed">
+        <TabList>
+          <Tab>Sales & Revenue</Tab>
+          <Tab>Projects Receivables</Tab>
+          <Tab>Reports & Export</Tab>
+        </TabList>
+        <TabPanels>
+          <TabPanel p={0} pt={4}>
+            <Card mb={6}>
+              <CardHeader>
+                <Flex align="center" justify="space-between" gap={4} flexWrap="wrap">
+                  <Heading size="md">Sales & Revenue</Heading>
+                  <HStack>
+                    <Select size="sm" value={period} onChange={(e) => setPeriod(e.target.value as any)} maxW="180px">
+                      <option value="all">All Time</option>
+                      <option value="daily">Today</option>
+                      <option value="weekly">This Week</option>
+                      <option value="monthly">This Month</option>
+                    </Select>
+                    <Button size="sm" onClick={exportOrdersCsv}>Export Orders CSV</Button>
+                    <Button size="sm" onClick={exportOrdersXls}>Export Orders Excel</Button>
+                  </HStack>
+                </Flex>
+              </CardHeader>
               <CardBody>
-                <Table size="sm" variant="simple"><Thead><Tr><Th>Project</Th><Th isNumeric>Revenue</Th></Tr></Thead><Tbody>{topProducts.map(([name, amt]) => (<Tr key={name}><Td>{name}</Td><Td isNumeric>{inr(amt)}</Td></Tr>))}{topProducts.length === 0 && (<Tr><Td colSpan={2} textAlign="center">No data</Td></Tr>)}</Tbody></Table>
-              </CardBody>
-            </Card>
-            <Card>
-              <CardHeader><Heading size="sm">Region-wise Revenue</Heading></CardHeader>
-              <CardBody>
-                <Table size="sm" variant="simple"><Thead><Tr><Th>Region</Th><Th isNumeric>Revenue</Th></Tr></Thead><Tbody>{revenueByRegion.map(([region, amt]) => (<Tr key={region}><Td>{region}</Td><Td isNumeric>{inr(amt)}</Td></Tr>))}{revenueByRegion.length === 0 && (<Tr><Td colSpan={2} textAlign="center">No data</Td></Tr>)}</Tbody></Table>
-              </CardBody>
-            </Card>
-          </SimpleGrid>
-        </CardBody>
-      </Card>
-
-      <Card mb={6}>
-        <CardHeader>
-          <Flex align="center" justify="space-between" gap={4} flexWrap="wrap">
-            <Heading size="md">Reports & Export</Heading>
-          </Flex>
-        </CardHeader>
-        <CardBody>
-          <Tabs colorScheme="green" isFitted>
-            <TabList>
-              <Tab>Order & Payment</Tab>
-              <Tab>Customer Purchase</Tab>
-              <Tab>Expense Report</Tab>
-              <Tab>Tax Summary</Tab>
-              <Tab>P&L Statement</Tab>
-              <Tab>Exports</Tab>
-            </TabList>
-            <TabPanels>
-              <TabPanel>
-                <HStack mb={4}>
-                  <Button size="sm" onClick={exportOrdersCsv}>CSV</Button>
-                  <Button size="sm" onClick={exportOrdersXls}>Excel</Button>
-                </HStack>
-                <Table variant="simple" size="sm">
-                  <Thead><Tr><Th>Date</Th><Th>Project</Th><Th>Customer</Th><Th isNumeric>Amount</Th><Th>Status</Th><Th>Order ID</Th><Th>Payment ID</Th></Tr></Thead>
-                  <Tbody>
-                    {payments.map((p) => (
-                      <Tr key={p.id}><Td>{new Date(p.created_at).toLocaleDateString()}</Td><Td>{p.project_name}</Td><Td>{p.customer_name}</Td><Td isNumeric>{inr(p.amount)}</Td><Td><Badge colorScheme={p.status === 'success' ? 'green' : 'yellow'}>{p.status}</Badge></Td><Td>{p.order_id}</Td><Td>{p.payment_id}</Td></Tr>
-                    ))}
-                    {payments.length === 0 && (<Tr><Td colSpan={7} textAlign="center">No orders found</Td></Tr>)}
-                  </Tbody>
-                </Table>
-              </TabPanel>
-
-              <TabPanel>
-                <HStack mb={4}>
-                  <Button size="sm" onClick={() => {
-                    const rows = customerPurchases.map(([c, amt]) => ({ customer: c, amount: amt }));
-                    download(makeCsv(rows), 'customer_purchases.csv');
-                  }}>CSV</Button>
-                  <Button size="sm" onClick={() => {
-                    const cols = ['Customer', 'Amount'];
-                    const rows = customerPurchases.map(([c, amt]) => [c, amt]);
-                    downloadExcel(cols, rows, 'customer_purchases.xls');
-                  }}>Excel</Button>
-                </HStack>
-                <Table variant="simple" size="sm">
-                  <Thead><Tr><Th>Customer</Th><Th isNumeric>Total Purchase</Th></Tr></Thead>
-                  <Tbody>
-                    {customerPurchases.map(([c, amt]) => (<Tr key={c}><Td>{c}</Td><Td isNumeric>{inr(amt)}</Td></Tr>))}
-                    {customerPurchases.length === 0 && (<Tr><Td colSpan={2} textAlign="center">No data</Td></Tr>)}
-                  </Tbody>
-                </Table>
-              </TabPanel>
-
-              <TabPanel>
-                <HStack mb={4}>
-                  <Button size="sm" onClick={exportExpensesCsv}>CSV</Button>
-                  <Button size="sm" onClick={exportExpensesXls}>Excel</Button>
-                </HStack>
-                <Table variant="simple" size="sm">
-                  <Thead><Tr><Th>Date</Th><Th>Category</Th><Th>Vendor</Th><Th>Description</Th><Th isNumeric>Amount</Th></Tr></Thead>
-                  <Tbody>
-                    {periodExpenses.map((e) => (<Tr key={e.id}><Td>{new Date(e.date || e.created_at || '').toLocaleDateString()}</Td><Td>{e.category || '-'}</Td><Td>{e.vendor || '-'}</Td><Td>{e.description || '-'}</Td><Td isNumeric>{inr(e.amount || 0)}</Td></Tr>))}
-                    {periodExpenses.length === 0 && (<Tr><Td colSpan={5} textAlign="center">No expenses found</Td></Tr>)}
-                  </Tbody>
-                </Table>
-              </TabPanel>
-
-              <TabPanel>
-                <HStack mb={4} spacing={3}>
-                  <Select size="sm" value={taxPeriodType} onChange={(e) => setTaxPeriodType(e.target.value as any)} maxW="180px">
-                    <option value="monthly">Monthly</option>
-                    <option value="quarterly">Quarterly</option>
-                  </Select>
-                  <Button size="sm" onClick={exportTaxCsv}>CSV</Button>
-                  <Button size="sm" onClick={exportTaxXls}>Excel</Button>
-                </HStack>
-                <Table variant="simple" size="sm">
-                  <Thead><Tr><Th>Period</Th><Th isNumeric>Output Tax</Th><Th isNumeric>Input Tax</Th><Th isNumeric>Net Tax</Th></Tr></Thead>
-                  <Tbody>
-                    {monthlyOrQuarterlyTax.map((r) => (<Tr key={r.periodKey}><Td>{r.periodKey}</Td><Td isNumeric>{inr(Math.round(r.output))}</Td><Td isNumeric>{inr(Math.round(r.input))}</Td><Td isNumeric>{inr(Math.round(r.net))}</Td></Tr>))}
-                    {monthlyOrQuarterlyTax.length === 0 && (<Tr><Td colSpan={4} textAlign="center">No data</Td></Tr>)}
-                  </Tbody>
-                </Table>
-              </TabPanel>
-
-              <TabPanel>
-                <HStack mb={4}>
-                  <Button size="sm" onClick={exportPnLCsv}>CSV</Button>
-                  <Button size="sm" onClick={exportPnLXls}>Excel</Button>
-                  <Button size="sm" onClick={generatePnLPdf}>PDF</Button>
-                </HStack>
-                <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6}>
-                  <Stat><StatLabel>Revenue (All)</StatLabel><StatNumber>{inr(totalRevenueAll)}</StatNumber></Stat>
-                  <Stat><StatLabel>Expenses (All)</StatLabel><StatNumber>{inr(totalExpensesAll)}</StatNumber></Stat>
-                  <Stat><StatLabel>Profit (All)</StatLabel><StatNumber color={profitAll >= 0 ? 'green.600' : 'red.600'}>{inr(profitAll)}</StatNumber></Stat>
+                <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6} mb={4}>
+                  <Stat><StatLabel>Revenue ({period === 'all' ? 'All' : 'Period'})</StatLabel><StatNumber>{inr(period === 'all' ? totalRevenueAll : totalRevenuePeriod)}</StatNumber></Stat>
+                  <Stat><StatLabel>Expenses ({period === 'all' ? 'All' : 'Period'})</StatLabel><StatNumber>{inr(period === 'all' ? totalExpensesAll : totalExpensesPeriod)}</StatNumber></Stat>
+                  <Stat><StatLabel>Profit ({period === 'all' ? 'All' : 'Period'})</StatLabel><StatNumber color={(period === 'all' ? profitAll : profitPeriod) >= 0 ? 'green.600' : 'red.600'}>{inr(period === 'all' ? profitAll : profitPeriod)}</StatNumber></Stat>
                 </SimpleGrid>
-              </TabPanel>
+                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
+                  <Card>
+                    <CardHeader><Heading size="sm">Top Performing Products/Projects</Heading></CardHeader>
+                    <CardBody>
+                      <Table size="sm" variant="simple"><Thead><Tr><Th>Project</Th><Th isNumeric>Revenue</Th></Tr></Thead><Tbody>{topProducts.map(([name, amt]) => (<Tr key={name}><Td>{name}</Td><Td isNumeric>{inr(amt)}</Td></Tr>))}{topProducts.length === 0 && (<Tr><Td colSpan={2} textAlign="center">No data</Td></Tr>)}</Tbody></Table>
+                    </CardBody>
+                  </Card>
+                  <Card>
+                    <CardHeader><Heading size="sm">Region-wise Revenue</Heading></CardHeader>
+                    <CardBody>
+                      <Table size="sm" variant="simple"><Thead><Tr><Th>Region</Th><Th isNumeric>Revenue</Th></Tr></Thead><Tbody>{revenueByRegion.map(([region, amt]) => (<Tr key={region}><Td>{region}</Td><Td isNumeric>{inr(amt)}</Td></Tr>))}{revenueByRegion.length === 0 && (<Tr><Td colSpan={2} textAlign="center">No data</Td></Tr>)}</Tbody></Table>
+                    </CardBody>
+                  </Card>
+                </SimpleGrid>
+              </CardBody>
+            </Card>
+          </TabPanel>
 
-              <TabPanel>
-                <HStack spacing={3} mb={4}>
-                  <Button size="sm" onClick={exportOrdersCsv}>Orders CSV</Button>
-                  <Button size="sm" onClick={exportOrdersXls}>Orders Excel</Button>
-                  <Button size="sm" onClick={exportExpensesCsv}>Expenses CSV</Button>
-                  <Button size="sm" onClick={exportExpensesXls}>Expenses Excel</Button>
-                  <Button size="sm" onClick={exportPnLCsv}>P&L CSV</Button>
-                  <Button size="sm" onClick={exportPnLXls}>P&L Excel</Button>
-                  <Button size="sm" onClick={exportTaxCsv}>Tax CSV</Button>
-                  <Button size="sm" onClick={exportTaxXls}>Tax Excel</Button>
-                  <Button size="sm" onClick={exportReceivablesPdf}>Receivables PDF</Button>
-                </HStack>
-                <Text fontSize="sm" color="gray.600">Download CSV, Excel, or PDF versions of your finance data.</Text>
-              </TabPanel>
-            </TabPanels>
-          </Tabs>
-        </CardBody>
-      </Card>
+          <TabPanel p={0} pt={4}>
+            <Flex mb={4} justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={4}>
+              <HStack>
+                <Button colorScheme={filter === 'all' ? 'blue' : 'gray'} onClick={() => setFilter('all')}>All Projects</Button>
+                <Button colorScheme={filter === 'active' ? 'blue' : 'gray'} onClick={() => setFilter('active')}>Active Projects</Button>
+                <Button colorScheme={filter === 'completed' ? 'blue' : 'gray'} onClick={() => setFilter('completed')}>Completed Projects</Button>
+              </HStack>
+              <FormControl maxW="300px">
+                <Input placeholder="Search by name or customer" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+              </FormControl>
+            </Flex>
+            <Card>
+              <CardHeader>
+                <Flex align="center" justify="space-between">
+                  <Heading size="md">Projects Receivables</Heading>
+                  <Button size="sm" onClick={exportReceivablesPdf}>Download PDF</Button>
+                </Flex>
+              </CardHeader>
+              <CardBody>
+                <Table variant="simple">
+                  <Thead>
+                    <Tr>
+                      <Th>Project Name</Th>
+                      <Th>Customer</Th>
+                      <Th>Total Amount</Th>
+                      <Th>Paid</Th>
+                      <Th>Outstanding</Th>
+                      <Th>Payment Mode</Th>
+                      <Th>Stage</Th>
+                      <Th>Status</Th>
+                      <Th></Th>
+                    </Tr>
+                  </Thead>
+                  <Tbody>
+                    {filteredProjects.map(project => (
+                      <Tr key={project.id}>
+                        <Td fontWeight="medium">{project.name}</Td>
+                        <Td>{project.customer_name}</Td>
+                        <Td>{inr(project.proposal_amount || 0)}</Td>
+                        <Td>{inr((project.advance_payment || 0) + (project.paid_amount || 0))}</Td>
+                        <Td fontWeight="bold" color={(project.balance_amount || 0) > 0 ? 'red.500' : 'green.500'}>{inr(project.balance_amount || 0)}</Td>
+                        <Td><Badge colorScheme={project.payment_mode === 'Loan' ? 'purple' : 'blue'}>{project.payment_mode}</Badge></Td>
+                        <Td>{project.current_stage}</Td>
+                        <Td><Badge colorScheme={project.status === 'active' ? 'green' : 'gray'}>{project.status}</Badge></Td>
+                        <Td><Button size="xs" variant="outline" onClick={() => generateInvoice(project)}>Invoice</Button></Td>
+                      </Tr>
+                    ))}
+                    {filteredProjects.length === 0 && (
+                      <Tr>
+                        <Td colSpan={9} textAlign="center" py={4}>{loading ? 'Loading...' : 'No projects found'}</Td>
+                      </Tr>
+                    )}
+                  </Tbody>
+                </Table>
+              </CardBody>
+            </Card>
+          </TabPanel>
 
-      <Flex mb={6} justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={4}>
-        <HStack>
-          <Button colorScheme={filter === 'all' ? 'blue' : 'gray'} onClick={() => setFilter('all')}>All Projects</Button>
-          <Button colorScheme={filter === 'active' ? 'blue' : 'gray'} onClick={() => setFilter('active')}>Active Projects</Button>
-          <Button colorScheme={filter === 'completed' ? 'blue' : 'gray'} onClick={() => setFilter('completed')}>Completed Projects</Button>
-        </HStack>
-        <FormControl maxW="300px">
-          <Input placeholder="Search by name or customer" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-        </FormControl>
-      </Flex>
+          <TabPanel p={0} pt={4}>
+            <Card>
+              <CardHeader>
+                <Heading size="md">Reports & Export</Heading>
+              </CardHeader>
+              <CardBody>
+                <Tabs colorScheme="green" isFitted>
+                  <TabList>
+                    <Tab>Order & Payment</Tab>
+                    <Tab>Customer Purchase</Tab>
+                    <Tab>Expense Report</Tab>
+                    <Tab>Tax Summary</Tab>
+                    <Tab>P&L Statement</Tab>
+                    <Tab>Exports</Tab>
+                  </TabList>
+                  <TabPanels>
+                    <TabPanel>
+                      <HStack mb={4}>
+                        <Button size="sm" onClick={exportOrdersCsv}>CSV</Button>
+                        <Button size="sm" onClick={exportOrdersXls}>Excel</Button>
+                      </HStack>
+                      <Table variant="simple" size="sm">
+                        <Thead><Tr><Th>Date</Th><Th>Project</Th><Th>Customer</Th><Th isNumeric>Amount</Th><Th>Status</Th><Th>Order ID</Th><Th>Payment ID</Th></Tr></Thead>
+                        <Tbody>
+                          {payments.map((p) => (
+                            <Tr key={p.id}><Td>{new Date(p.created_at).toLocaleDateString()}</Td><Td>{p.project_name}</Td><Td>{p.customer_name}</Td><Td isNumeric>{inr(p.amount)}</Td><Td><Badge colorScheme={p.status === 'success' ? 'green' : 'yellow'}>{p.status}</Badge></Td><Td>{p.order_id}</Td><Td>{p.payment_id}</Td></Tr>
+                          ))}
+                          {payments.length === 0 && (<Tr><Td colSpan={7} textAlign="center">No orders found</Td></Tr>)}
+                        </Tbody>
+                      </Table>
+                    </TabPanel>
 
-      <Card>
-        <CardHeader>
-          <Heading size="md">Projects Receivables</Heading>
-        </CardHeader>
-        <CardBody>
-          <Table variant="simple">
-            <Thead>
-              <Tr>
-                <Th>Project Name</Th>
-                <Th>Customer</Th>
-                <Th>Total Amount</Th>
-                <Th>Paid</Th>
-                <Th>Outstanding</Th>
-                <Th>Payment Mode</Th>
-                <Th>Stage</Th>
-                <Th>Status</Th>
-                <Th></Th>
-              </Tr>
-            </Thead>
-            <Tbody>
-              {filteredProjects.map(project => (
-                <Tr key={project.id}>
-                  <Td fontWeight="medium">{project.name}</Td>
-                  <Td>{project.customer_name}</Td>
-                  <Td>{inr(project.proposal_amount || 0)}</Td>
-                  <Td>{inr((project.advance_payment || 0) + (project.paid_amount || 0))}</Td>
-                  <Td fontWeight="bold" color={(project.balance_amount || 0) > 0 ? 'red.500' : 'green.500'}>{inr(project.balance_amount || 0)}</Td>
-                  <Td><Badge colorScheme={project.payment_mode === 'Loan' ? 'purple' : 'blue'}>{project.payment_mode}</Badge></Td>
-                  <Td>{project.current_stage}</Td>
-                  <Td><Badge colorScheme={project.status === 'active' ? 'green' : 'gray'}>{project.status}</Badge></Td>
-                  <Td><Button size="xs" variant="outline" onClick={() => generateInvoice(project)}>Invoice</Button></Td>
-                </Tr>
-              ))}
-              {filteredProjects.length === 0 && (
-                <Tr>
-                  <Td colSpan={9} textAlign="center" py={4}>{loading ? 'Loading...' : 'No projects found'}</Td>
-                </Tr>
-              )}
-            </Tbody>
-          </Table>
-        </CardBody>
-      </Card>
+                    <TabPanel>
+                      <HStack mb={4}>
+                        <Button size="sm" onClick={() => {
+                          const rows = customerPurchases.map(([c, amt]) => ({ customer: c, amount: amt }));
+                          download(makeCsv(rows), 'customer_purchases.csv');
+                        }}>CSV</Button>
+                        <Button size="sm" onClick={() => {
+                          const cols = ['Customer', 'Amount'];
+                          const rows = customerPurchases.map(([c, amt]) => [c, amt]);
+                          downloadExcel(cols, rows, 'customer_purchases.xls');
+                        }}>Excel</Button>
+                      </HStack>
+                      <Table variant="simple" size="sm">
+                        <Thead><Tr><Th>Customer</Th><Th isNumeric>Total Purchase</Th></Tr></Thead>
+                        <Tbody>
+                          {customerPurchases.map(([c, amt]) => (<Tr key={c}><Td>{c}</Td><Td isNumeric>{inr(amt)}</Td></Tr>))}
+                          {customerPurchases.length === 0 && (<Tr><Td colSpan={2} textAlign="center">No data</Td></Tr>)}
+                        </Tbody>
+                      </Table>
+                    </TabPanel>
+
+                    <TabPanel>
+                      <HStack mb={4}>
+                        <Button size="sm" onClick={exportExpensesCsv}>CSV</Button>
+                        <Button size="sm" onClick={exportExpensesXls}>Excel</Button>
+                      </HStack>
+                      <Table variant="simple" size="sm">
+                        <Thead><Tr><Th>Date</Th><Th>Category</Th><Th>Vendor</Th><Th>Description</Th><Th isNumeric>Amount</Th></Tr></Thead>
+                        <Tbody>
+                          {periodExpenses.map((e) => (<Tr key={e.id}><Td>{new Date(e.date || e.created_at || '').toLocaleDateString()}</Td><Td>{e.category || '-'}</Td><Td>{e.vendor || '-'}</Td><Td>{e.description || '-'}</Td><Td isNumeric>{inr(e.amount || 0)}</Td></Tr>))}
+                          {periodExpenses.length === 0 && (<Tr><Td colSpan={5} textAlign="center">No expenses found</Td></Tr>)}
+                        </Tbody>
+                      </Table>
+                    </TabPanel>
+
+                    <TabPanel>
+                      <HStack mb={4} spacing={3}>
+                        <Select size="sm" value={taxPeriodType} onChange={(e) => setTaxPeriodType(e.target.value as any)} maxW="180px">
+                          <option value="monthly">Monthly</option>
+                          <option value="quarterly">Quarterly</option>
+                        </Select>
+                        <Button size="sm" onClick={exportTaxCsv}>CSV</Button>
+                        <Button size="sm" onClick={exportTaxXls}>Excel</Button>
+                      </HStack>
+                      <Table variant="simple" size="sm">
+                        <Thead><Tr><Th>Period</Th><Th isNumeric>Output Tax</Th><Th isNumeric>Input Tax</Th><Th isNumeric>Net Tax</Th></Tr></Thead>
+                        <Tbody>
+                          {monthlyOrQuarterlyTax.map((r) => (<Tr key={r.periodKey}><Td>{r.periodKey}</Td><Td isNumeric>{inr(Math.round(r.output))}</Td><Td isNumeric>{inr(Math.round(r.input))}</Td><Td isNumeric>{inr(Math.round(r.net))}</Td></Tr>))}
+                          {monthlyOrQuarterlyTax.length === 0 && (<Tr><Td colSpan={4} textAlign="center">No data</Td></Tr>)}
+                        </Tbody>
+                      </Table>
+                    </TabPanel>
+
+                    <TabPanel>
+                      <HStack mb={4}>
+                        <Button size="sm" onClick={exportPnLCsv}>CSV</Button>
+                        <Button size="sm" onClick={exportPnLXls}>Excel</Button>
+                        <Button size="sm" onClick={generatePnLPdf}>PDF</Button>
+                      </HStack>
+                      <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6}>
+                        <Stat><StatLabel>Revenue (All)</StatLabel><StatNumber>{inr(totalRevenueAll)}</StatNumber></Stat>
+                        <Stat><StatLabel>Expenses (All)</StatLabel><StatNumber>{inr(totalExpensesAll)}</StatNumber></Stat>
+                        <Stat><StatLabel>Profit (All)</StatLabel><StatNumber color={profitAll >= 0 ? 'green.600' : 'red.600'}>{inr(profitAll)}</StatNumber></Stat>
+                      </SimpleGrid>
+                    </TabPanel>
+
+                    <TabPanel>
+                      <HStack spacing={3} mb={4}>
+                        <Button size="sm" onClick={exportOrdersCsv}>Orders CSV</Button>
+                        <Button size="sm" onClick={exportOrdersXls}>Orders Excel</Button>
+                        <Button size="sm" onClick={exportExpensesCsv}>Expenses CSV</Button>
+                        <Button size="sm" onClick={exportExpensesXls}>Expenses Excel</Button>
+                        <Button size="sm" onClick={exportPnLCsv}>P&L CSV</Button>
+                        <Button size="sm" onClick={exportPnLXls}>P&L Excel</Button>
+                        <Button size="sm" onClick={exportTaxCsv}>Tax CSV</Button>
+                        <Button size="sm" onClick={exportTaxXls}>Tax Excel</Button>
+                        <Button size="sm" onClick={exportReceivablesPdf}>Receivables PDF</Button>
+                      </HStack>
+                      <Text fontSize="sm" color="gray.600">Download CSV, Excel, or PDF versions of your finance data.</Text>
+                    </TabPanel>
+                  </TabPanels>
+                </Tabs>
+              </CardBody>
+            </Card>
+          </TabPanel>
+        </TabPanels>
+      </Tabs>
     </Box>
   );
 };
