@@ -165,7 +165,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const financeItems = [
     { icon: '💰', label: 'Finance', to: '/finance' },
-    { icon: '💳', label: 'Payments', to: '/payments' },
   ];
 
   const SidebarContent = ({ onClose }: { onClose?: () => void }) => (

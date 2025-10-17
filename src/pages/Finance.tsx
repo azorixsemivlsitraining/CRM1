@@ -24,7 +24,11 @@ import {
   useToast,
   HStack,
   SimpleGrid,
-  Divider,
+  Tabs,
+  TabList,
+  TabPanels,
+  Tab,
+  TabPanel,
 } from '@chakra-ui/react';
 import jsPDF from 'jspdf';
 import { supabase } from '../lib/supabase';
@@ -83,7 +87,7 @@ const makeCsv = (rows: any[]) => {
     const s = val == null ? '' : String(val);
     if (s.includes(',') || s.includes('"') || s.includes('\n')) {
       return '"' + s.replace(/"/g, '""') + '"';
-      }
+    }
     return s;
   };
   const lines = [headers.join(',')];
@@ -103,6 +107,15 @@ const download = (content: string, filename: string, mime = 'text/csv') => {
   URL.revokeObjectURL(url);
 };
 
+const downloadExcel = (columns: string[], rows: (string | number)[][], filename: string) => {
+  // Excel-compatible HTML table
+  const escape = (s: any) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const headerRow = `<tr>${columns.map(c => `<th>${escape(c)}</th>`).join('')}</tr>`;
+  const body = rows.map(r => `<tr>${r.map(c => `<td>${escape(c)}</td>`).join('')}</tr>`).join('');
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8" /></head><body><table>${headerRow}${body}</table></body></html>`;
+  download(html, filename.endsWith('.xls') ? filename : `${filename}.xls`, 'application/vnd.ms-excel');
+};
+
 const Finance: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [payments, setPayments] = useState<(PaymentRec & { project_name?: string; customer_name?: string; state?: string })[]>([]);
@@ -112,6 +125,7 @@ const Finance: React.FC = () => {
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [period, setPeriod] = useState<'all' | 'daily' | 'weekly' | 'monthly'>('all');
+  const [taxPeriodType, setTaxPeriodType] = useState<'monthly' | 'quarterly'>('monthly');
 
   const { isFinance, isAuthenticated, isAdmin } = useAuth();
   const toast = useToast();
@@ -120,17 +134,13 @@ const Finance: React.FC = () => {
 
   const periodStart = useMemo(() => {
     const now = new Date();
-    if (period === 'daily') {
-      return new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    }
+    if (period === 'daily') return new Date(now.getFullYear(), now.getMonth(), now.getDate());
     if (period === 'weekly') {
       const day = now.getDay();
       const diff = now.getDate() - day + (day === 0 ? -6 : 1); // Monday start
       return new Date(now.getFullYear(), now.getMonth(), diff);
     }
-    if (period === 'monthly') {
-      return new Date(now.getFullYear(), now.getMonth(), 1);
-    }
+    if (period === 'monthly') return new Date(now.getFullYear(), now.getMonth(), 1);
     return null;
   }, [period]);
 
@@ -139,17 +149,14 @@ const Finance: React.FC = () => {
     const fetchAll = async () => {
       try {
         setLoading(true);
-
         // Projects
         let q = supabase
           .from('projects')
           .select('*')
           .neq('status', 'deleted')
           .order('created_at', { ascending: false });
-
         if (filter === 'active') q = q.eq('status', 'active');
         if (filter === 'completed') q = q.eq('status', 'completed');
-
         const { data: projData, error: projErr } = await q as any;
         if (projErr) throw projErr;
         const pData: Project[] = Array.isArray(projData) ? projData as any : [];
@@ -164,11 +171,9 @@ const Finance: React.FC = () => {
             .order('created_at', { ascending: false });
           if (payErr) throw payErr;
           paymentsData = (payTry || []) as any;
-        } catch (e: any) {
-          // Missing table or not configured
+        } catch {
           paymentsData = [];
         }
-
         const map = new Map<string, Project>();
         pData.forEach((p) => map.set(p.id, p));
         const paymentsWithProject = paymentsData.map((r) => ({
@@ -189,24 +194,17 @@ const Finance: React.FC = () => {
             .order('created_at', { ascending: false });
           if (expErr) throw expErr;
           expensesData = (expTry || []) as any;
-        } catch (e: any) {
+        } catch {
           expensesData = [];
         }
         setExpenses(expensesData);
       } catch (error) {
         console.error('Error fetching finance data:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to fetch financial data',
-          status: 'error',
-          duration: 5000,
-          isClosable: true,
-        });
+        toast({ title: 'Error', description: 'Failed to fetch financial data', status: 'error', duration: 5000, isClosable: true });
       } finally {
         setLoading(false);
       }
     };
-
     fetchAll();
   }, [authorized, filter, toast]);
 
@@ -217,11 +215,7 @@ const Finance: React.FC = () => {
   };
 
   // Aggregations
-  const totalOutstanding = useMemo(() =>
-    projects.reduce((sum, p) => sum + (p.balance_amount || 0), 0),
-    [projects]
-  );
-
+  const totalOutstanding = useMemo(() => projects.reduce((sum, p) => sum + (p.balance_amount || 0), 0), [projects]);
   const expectedThisMonth = useMemo(() => {
     const currentDate = new Date();
     return projects
@@ -239,7 +233,6 @@ const Finance: React.FC = () => {
         return sum;
       }, 0);
   }, [projects]);
-
   const activeProjectsCount = useMemo(() => projects.filter(p => p.status === 'active').length, [projects]);
 
   const periodPayments = useMemo(() => payments.filter((p) => dateInPeriod(p.created_at)), [payments, periodStart, period]);
@@ -282,11 +275,65 @@ const Finance: React.FC = () => {
   }, [payments]);
 
   const taxSummary = useMemo(() => {
-    // Use explicit tax fields if present; otherwise zero
     const taxFromProjects = projects.reduce((s, p) => s + (p.tax_amount || 0), 0);
     const taxFromExpenses = expenses.reduce((s, e) => s + (e.tax_amount || 0), 0);
     return { outputTax: taxFromProjects, inputTax: taxFromExpenses, netTax: taxFromProjects - taxFromExpenses };
   }, [projects, expenses]);
+
+  const paymentsByProject = useMemo(() => {
+    const m = new Map<string, number>();
+    payments.forEach((p) => m.set(p.project_id, (m.get(p.project_id) || 0) + (p.amount || 0)));
+    return m;
+  }, [payments]);
+
+  const customerPurchases = useMemo(() => {
+    const m = new Map<string, number>();
+    payments.forEach((p) => {
+      const cust = p.customer_name || 'Unknown';
+      m.set(cust, (m.get(cust) || 0) + (p.amount || 0));
+    });
+    return Array.from(m.entries()).sort((a, b) => b[1] - a[1]);
+  }, [payments]);
+
+  const monthlyOrQuarterlyTax = useMemo(() => {
+    const buckets = new Map<string, { output: number; input: number }>();
+
+    const addToBucket = (key: string, out: number, inp: number) => {
+      const cur = buckets.get(key) || { output: 0, input: 0 };
+      cur.output += out;
+      cur.input += inp;
+      buckets.set(key, cur);
+    };
+
+    // Attribute project tax across payments by date proportionally
+    for (const pay of payments) {
+      const proj = projects.find((p) => p.id === pay.project_id);
+      if (!proj) continue;
+      const totalForProj = paymentsByProject.get(pay.project_id) || 0;
+      if (!totalForProj) continue;
+      const attributedTax = (proj.tax_amount || 0) * ((pay.amount || 0) / totalForProj);
+      const d = new Date(pay.created_at);
+      const monthKey = `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}`;
+      const quarter = Math.floor(d.getMonth() / 3) + 1;
+      const quarterKey = `${d.getFullYear()}-Q${quarter}`;
+      const key = taxPeriodType === 'monthly' ? monthKey : quarterKey;
+      addToBucket(key, attributedTax, 0);
+    }
+
+    for (const e of expenses) {
+      const d = new Date(e.date || e.created_at || '');
+      if (isNaN(d.getTime())) continue;
+      const monthKey = `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}`;
+      const quarter = Math.floor(d.getMonth() / 3) + 1;
+      const quarterKey = `${d.getFullYear()}-Q${quarter}`;
+      const key = taxPeriodType === 'monthly' ? monthKey : quarterKey;
+      addToBucket(key, 0, e.tax_amount || 0);
+    }
+
+    const arr = Array.from(buckets.entries()).map(([periodKey, v]) => ({ periodKey, output: v.output, input: v.input, net: v.output - v.input }));
+    arr.sort((a, b) => a.periodKey.localeCompare(b.periodKey));
+    return arr;
+  }, [payments, projects, expenses, taxPeriodType, paymentsByProject]);
 
   // Exports
   const exportOrdersCsv = () => {
@@ -304,6 +351,12 @@ const Finance: React.FC = () => {
     download(makeCsv(rows), `orders_${period}.csv`);
   };
 
+  const exportOrdersXls = () => {
+    const cols = ['Date', 'Project', 'Customer', 'Amount', 'Status', 'Order ID', 'Payment ID', 'Region'];
+    const rows = payments.map((p) => [new Date(p.created_at).toLocaleDateString(), p.project_name || '', p.customer_name || '', p.amount || 0, p.status || '', p.order_id || '', p.payment_id || '', p.state || '']);
+    downloadExcel(cols, rows, `orders_${period}.xls`);
+  };
+
   const exportExpensesCsv = () => {
     const rows = expenses.map((e) => ({
       id: e.id,
@@ -315,6 +368,12 @@ const Finance: React.FC = () => {
       tax_amount: e.tax_amount || 0,
     }));
     download(makeCsv(rows), `expenses_${period}.csv`);
+  };
+
+  const exportExpensesXls = () => {
+    const cols = ['Date', 'Category', 'Vendor', 'Description', 'Amount', 'Tax Amount'];
+    const rows = expenses.map((e) => [new Date(e.date || e.created_at || '').toLocaleDateString(), e.category || '', e.vendor || '', e.description || '', e.amount || 0, e.tax_amount || 0]);
+    downloadExcel(cols, rows, `expenses_${period}.xls`);
   };
 
   const exportPnLCsv = () => {
@@ -329,13 +388,28 @@ const Finance: React.FC = () => {
     download(makeCsv(rows), `pnl_${period}.csv`);
   };
 
-  const exportTaxCsv = () => {
+  const exportPnLXls = () => {
+    const cols = ['Metric', 'Amount'];
     const rows = [
-      { metric: 'Output Tax (Sales)', amount: taxSummary.outputTax },
-      { metric: 'Input Tax (Expenses)', amount: taxSummary.inputTax },
-      { metric: 'Net Tax Payable', amount: taxSummary.netTax },
+      ['Revenue (All)', totalRevenueAll],
+      ['Expenses (All)', totalExpensesAll],
+      ['Profit (All)', profitAll],
+      [`Revenue (${period})`, totalRevenuePeriod],
+      [`Expenses (${period})`, totalExpensesPeriod],
+      [`Profit (${period})`, profitPeriod],
     ];
-    download(makeCsv(rows), `tax_summary_${period}.csv`);
+    downloadExcel(cols, rows, `pnl_${period}.xls`);
+  };
+
+  const exportTaxCsv = () => {
+    const rows = monthlyOrQuarterlyTax.map((r) => ({ period: r.periodKey, output_tax: Math.round(r.output), input_tax: Math.round(r.input), net_tax: Math.round(r.net) }));
+    download(makeCsv(rows), `tax_summary_${taxPeriodType}.csv`);
+  };
+
+  const exportTaxXls = () => {
+    const cols = ['Period', 'Output Tax', 'Input Tax', 'Net Tax'];
+    const rows = monthlyOrQuarterlyTax.map((r) => [r.periodKey, Math.round(r.output), Math.round(r.input), Math.round(r.net)]);
+    downloadExcel(cols, rows, `tax_summary_${taxPeriodType}.xls`);
   };
 
   const exportReceivablesPdf = () => {
@@ -358,102 +432,89 @@ const Finance: React.FC = () => {
         p.current_stage || '',
         p.status || '',
       ].join(' | ');
-      if (y > 280) {
-        doc.addPage();
-        y = 14;
-      }
-      doc.text(row, 14, y);
-      y += 6;
+      if (y > 280) { doc.addPage(); y = 14; }
+      doc.text(row, 14, y); y += 6;
     });
     doc.save('receivables.pdf');
   };
 
+  const generatePnLPdf = () => {
+    const doc = new jsPDF();
+    let y = 16;
+    doc.setFontSize(16); doc.text('Profit & Loss Statement', 14, y); y += 10;
+    doc.setFontSize(12);
+    const lines = [
+      [`Revenue (All)`, inr(totalRevenueAll)],
+      [`Expenses (All)`, inr(totalExpensesAll)],
+      [`Profit (All)`, inr(profitAll)],
+      [`Revenue (${period})`, inr(totalRevenuePeriod)],
+      [`Expenses (${period})`, inr(totalExpensesPeriod)],
+      [`Profit (${period})`, inr(profitPeriod)],
+    ];
+    lines.forEach((l) => { doc.text(l[0], 14, y); doc.text(l[1], 196 - 14, y, { align: 'right' }); y += 8; });
+    doc.save('pnl.pdf');
+  };
+
   const generateInvoice = (project: Project) => {
     const doc = new jsPDF();
-    const left = 14;
-    let y = 16;
-
-    doc.setFontSize(16);
-    doc.text('Tax Invoice', left, y);
-    y += 10;
-
+    const left = 14; const right = 196 - 14; let y = 16;
+    // Header
+    doc.setFontSize(18); doc.text('Tax Invoice', left, y); y += 8;
     doc.setFontSize(12);
     doc.text('Axiso Green Energy', left, y); y += 6;
     doc.text(`Invoice #: INV-${project.id.slice(0, 8).toUpperCase()}`, left, y); y += 6;
     doc.text(`Date: ${new Date().toLocaleDateString()}`, left, y); y += 10;
 
-    doc.text('Bill To:', left, y); y += 6;
-    doc.text(`${project.customer_name || ''}`, left, y); y += 10;
+    // Bill To
+    doc.setFontSize(12); doc.text('Bill To:', left, y); y += 6;
+    doc.text(`${project.customer_name || ''}`, left, y); y += 8;
 
+    // Table header
     doc.setFontSize(12);
     doc.text('Description', left, y);
-    doc.text('Amount (INR)', 160, y, { align: 'right' });
-    y += 6;
-    doc.setLineWidth(0.2);
-    doc.line(left, y, 196, y);
-    y += 6;
+    doc.text('Amount (INR)', right, y, { align: 'right' }); y += 4;
+    doc.setLineWidth(0.3); doc.line(left, y, 196, y); y += 6;
 
-    const baseAmount = project.proposal_amount || 0;
+    const base = project.proposal_amount || 0;
     const discount = project.discount_amount || 0;
     const delivery = project.delivery_fee || 0;
     const tax = project.tax_amount || 0;
+    const taxable = Math.max(base - discount + delivery, 0);
+    const taxRate = taxable ? (tax / taxable) * 100 : 0;
 
-    const lines = [
-      { label: `Solar Project - ${project.name}`, amount: baseAmount },
+    const lines: { label: string; amount: number }[] = [
+      { label: `Solar Project - ${project.name}`, amount: base },
     ];
     if (discount) lines.push({ label: 'Discount', amount: -discount });
     if (delivery) lines.push({ label: 'Delivery Charges', amount: delivery });
-    if (tax) lines.push({ label: 'GST', amount: tax });
+    if (tax) lines.push({ label: `GST (${taxRate.toFixed(2)}%)`, amount: tax });
 
     lines.forEach((l) => {
       doc.text(l.label, left, y);
-      doc.text((l.amount || 0).toLocaleString('en-IN'), 160, y, { align: 'right' });
-      y += 6;
+      doc.text((l.amount || 0).toLocaleString('en-IN'), right, y, { align: 'right' }); y += 6;
     });
 
-    doc.line(left, y, 196, y); y += 6;
+    doc.setLineWidth(0.3); doc.line(left, y, 196, y); y += 6;
     const total = lines.reduce((s, l) => s + (l.amount || 0), 0);
     doc.setFontSize(13);
     doc.text('Total', left, y);
-    doc.text(total.toLocaleString('en-IN'), 160, y, { align: 'right' });
+    doc.text(total.toLocaleString('en-IN'), right, y, { align: 'right' }); y += 10;
+
+    // Notes
+    doc.setFontSize(10);
+    doc.text('Terms: Due on receipt. Thank you for your business.', left, y);
 
     doc.save(`invoice_${project.id}.pdf`);
   };
 
   return (
     <Box p={6} maxW="1400px" mx="auto">
-      <Heading as="h1" size="xl" mb={6}>
-        Finance Dashboard
-      </Heading>
+      <Heading as="h1" size="xl" mb={6}>Finance Dashboard</Heading>
 
       <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6} mb={8}>
-        <Card>
-          <CardBody>
-            <Stat>
-              <StatLabel>Total Outstanding Amount</StatLabel>
-              <StatNumber>{inr(totalOutstanding)}</StatNumber>
-              <Text fontSize="sm" color="gray.500">From all projects</Text>
-            </Stat>
-          </CardBody>
-        </Card>
-        <Card>
-          <CardBody>
-            <Stat>
-              <StatLabel>Expected This Month</StatLabel>
-              <StatNumber>{inr(expectedThisMonth)}</StatNumber>
-              <Text fontSize="sm" color="gray.500">Based on 45-day collection timeframe</Text>
-            </Stat>
-          </CardBody>
-        </Card>
-        <Card>
-          <CardBody>
-            <Stat>
-              <StatLabel>Active Projects</StatLabel>
-              <StatNumber>{activeProjectsCount}</StatNumber>
-              <Text fontSize="sm" color="gray.500">With outstanding payments</Text>
-            </Stat>
-          </CardBody>
-        </Card>
+        <Card><CardBody><Stat><StatLabel>Total Outstanding Amount</StatLabel><StatNumber>{inr(totalOutstanding)}</StatNumber><Text fontSize="sm" color="gray.500">From all projects</Text></Stat></CardBody></Card>
+        <Card><CardBody><Stat><StatLabel>Expected This Month</StatLabel><StatNumber>{inr(expectedThisMonth)}</StatNumber><Text fontSize="sm" color="gray.500">Based on 45-day collection timeframe</Text></Stat></CardBody></Card>
+        <Card><CardBody><Stat><StatLabel>Active Projects</StatLabel><StatNumber>{activeProjectsCount}</StatNumber><Text fontSize="sm" color="gray.500">With outstanding payments</Text></Stat></CardBody></Card>
       </SimpleGrid>
 
       <Card mb={6}>
@@ -468,114 +529,30 @@ const Finance: React.FC = () => {
                 <option value="monthly">This Month</option>
               </Select>
               <Button size="sm" onClick={exportOrdersCsv}>Export Orders CSV</Button>
+              <Button size="sm" onClick={exportOrdersXls}>Export Orders Excel</Button>
             </HStack>
           </Flex>
         </CardHeader>
         <CardBody>
           <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6} mb={4}>
-            <Stat>
-              <StatLabel>Revenue ({period === 'all' ? 'All' : 'Period'})</StatLabel>
-              <StatNumber>{inr(period === 'all' ? totalRevenueAll : totalRevenuePeriod)}</StatNumber>
-            </Stat>
-            <Stat>
-              <StatLabel>Expenses ({period === 'all' ? 'All' : 'Period'})</StatLabel>
-              <StatNumber>{inr(period === 'all' ? totalExpensesAll : totalExpensesPeriod)}</StatNumber>
-            </Stat>
-            <Stat>
-              <StatLabel>Profit ({period === 'all' ? 'All' : 'Period'})</StatLabel>
-              <StatNumber color={(period === 'all' ? profitAll : profitPeriod) >= 0 ? 'green.600' : 'red.600'}>
-                {inr(period === 'all' ? profitAll : profitPeriod)}
-              </StatNumber>
-            </Stat>
+            <Stat><StatLabel>Revenue ({period === 'all' ? 'All' : 'Period'})</StatLabel><StatNumber>{inr(period === 'all' ? totalRevenueAll : totalRevenuePeriod)}</StatNumber></Stat>
+            <Stat><StatLabel>Expenses ({period === 'all' ? 'All' : 'Period'})</StatLabel><StatNumber>{inr(period === 'all' ? totalExpensesAll : totalExpensesPeriod)}</StatNumber></Stat>
+            <Stat><StatLabel>Profit ({period === 'all' ? 'All' : 'Period'})</StatLabel><StatNumber color={(period === 'all' ? profitAll : profitPeriod) >= 0 ? 'green.600' : 'red.600'}>{inr(period === 'all' ? profitAll : profitPeriod)}</StatNumber></Stat>
           </SimpleGrid>
           <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
             <Card>
               <CardHeader><Heading size="sm">Top Performing Products/Projects</Heading></CardHeader>
               <CardBody>
-                <Table size="sm" variant="simple">
-                  <Thead>
-                    <Tr>
-                      <Th>Project</Th>
-                      <Th isNumeric>Revenue</Th>
-                    </Tr>
-                  </Thead>
-                  <Tbody>
-                    {topProducts.map(([name, amt]) => (
-                      <Tr key={name}>
-                        <Td>{name}</Td>
-                        <Td isNumeric>{inr(amt)}</Td>
-                      </Tr>
-                    ))}
-                    {topProducts.length === 0 && (
-                      <Tr><Td colSpan={2} textAlign="center">No data</Td></Tr>
-                    )}
-                  </Tbody>
-                </Table>
+                <Table size="sm" variant="simple"><Thead><Tr><Th>Project</Th><Th isNumeric>Revenue</Th></Tr></Thead><Tbody>{topProducts.map(([name, amt]) => (<Tr key={name}><Td>{name}</Td><Td isNumeric>{inr(amt)}</Td></Tr>))}{topProducts.length === 0 && (<Tr><Td colSpan={2} textAlign="center">No data</Td></Tr>)}</Tbody></Table>
               </CardBody>
             </Card>
             <Card>
               <CardHeader><Heading size="sm">Region-wise Revenue</Heading></CardHeader>
               <CardBody>
-                <Table size="sm" variant="simple">
-                  <Thead>
-                    <Tr>
-                      <Th>Region</Th>
-                      <Th isNumeric>Revenue</Th>
-                    </Tr>
-                  </Thead>
-                  <Tbody>
-                    {revenueByRegion.map(([region, amt]) => (
-                      <Tr key={region}>
-                        <Td>{region}</Td>
-                        <Td isNumeric>{inr(amt)}</Td>
-                      </Tr>
-                    ))}
-                    {revenueByRegion.length === 0 && (
-                      <Tr><Td colSpan={2} textAlign="center">No data</Td></Tr>
-                    )}
-                  </Tbody>
-                </Table>
+                <Table size="sm" variant="simple"><Thead><Tr><Th>Region</Th><Th isNumeric>Revenue</Th></Tr></Thead><Tbody>{revenueByRegion.map(([region, amt]) => (<Tr key={region}><Td>{region}</Td><Td isNumeric>{inr(amt)}</Td></Tr>))}{revenueByRegion.length === 0 && (<Tr><Td colSpan={2} textAlign="center">No data</Td></Tr>)}</Tbody></Table>
               </CardBody>
             </Card>
           </SimpleGrid>
-        </CardBody>
-      </Card>
-
-      <Card mb={6}>
-        <CardHeader>
-          <Flex align="center" justify="space-between" gap={4} flexWrap="wrap">
-            <Heading size="md">Expense Management</Heading>
-            <HStack>
-              <Button size="sm" onClick={exportExpensesCsv}>Export Expenses CSV</Button>
-            </HStack>
-          </Flex>
-        </CardHeader>
-        <CardBody>
-          <Table variant="simple" size="sm">
-            <Thead>
-              <Tr>
-                <Th>Date</Th>
-                <Th>Category</Th>
-                <Th>Vendor</Th>
-                <Th>Description</Th>
-                <Th isNumeric>Amount</Th>
-              </Tr>
-            </Thead>
-            <Tbody>
-              {periodExpenses.slice(0, 10).map((e) => (
-                <Tr key={e.id}>
-                  <Td>{new Date(e.date || e.created_at || '').toLocaleDateString()}</Td>
-                  <Td>{e.category || '-'}</Td>
-                  <Td>{e.vendor || '-'}</Td>
-                  <Td>{e.description || '-'}</Td>
-                  <Td isNumeric>{inr(e.amount || 0)}</Td>
-                </Tr>
-              ))}
-              {periodExpenses.length === 0 && (
-                <Tr><Td colSpan={5} textAlign="center">No expenses found</Td></Tr>
-              )}
-            </Tbody>
-          </Table>
         </CardBody>
       </Card>
 
@@ -583,58 +560,128 @@ const Finance: React.FC = () => {
         <CardHeader>
           <Flex align="center" justify="space-between" gap={4} flexWrap="wrap">
             <Heading size="md">Reports & Export</Heading>
-            <HStack>
-              <Button size="sm" onClick={exportPnLCsv}>Export P&L CSV</Button>
-              <Button size="sm" onClick={exportTaxCsv}>Export Tax Summary CSV</Button>
-              <Button size="sm" onClick={exportReceivablesPdf}>Download Receivables PDF</Button>
-            </HStack>
           </Flex>
         </CardHeader>
         <CardBody>
-          <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6}>
-            <Stat>
-              <StatLabel>Output Tax (Sales)</StatLabel>
-              <StatNumber>{inr(taxSummary.outputTax)}</StatNumber>
-            </Stat>
-            <Stat>
-              <StatLabel>Input Tax (Expenses)</StatLabel>
-              <StatNumber>{inr(taxSummary.inputTax)}</StatNumber>
-            </Stat>
-            <Stat>
-              <StatLabel>Net Tax Payable</StatLabel>
-              <StatNumber color={taxSummary.netTax >= 0 ? 'red.600' : 'green.600'}>{inr(taxSummary.netTax)}</StatNumber>
-            </Stat>
-          </SimpleGrid>
+          <Tabs colorScheme="green" isFitted>
+            <TabList>
+              <Tab>Order & Payment</Tab>
+              <Tab>Customer Purchase</Tab>
+              <Tab>Expense Report</Tab>
+              <Tab>Tax Summary</Tab>
+              <Tab>P&L Statement</Tab>
+              <Tab>Exports</Tab>
+            </TabList>
+            <TabPanels>
+              <TabPanel>
+                <HStack mb={4}>
+                  <Button size="sm" onClick={exportOrdersCsv}>CSV</Button>
+                  <Button size="sm" onClick={exportOrdersXls}>Excel</Button>
+                </HStack>
+                <Table variant="simple" size="sm">
+                  <Thead><Tr><Th>Date</Th><Th>Project</Th><Th>Customer</Th><Th isNumeric>Amount</Th><Th>Status</Th><Th>Order ID</Th><Th>Payment ID</Th></Tr></Thead>
+                  <Tbody>
+                    {payments.map((p) => (
+                      <Tr key={p.id}><Td>{new Date(p.created_at).toLocaleDateString()}</Td><Td>{p.project_name}</Td><Td>{p.customer_name}</Td><Td isNumeric>{inr(p.amount)}</Td><Td><Badge colorScheme={p.status === 'success' ? 'green' : 'yellow'}>{p.status}</Badge></Td><Td>{p.order_id}</Td><Td>{p.payment_id}</Td></Tr>
+                    ))}
+                    {payments.length === 0 && (<Tr><Td colSpan={7} textAlign="center">No orders found</Td></Tr>)}
+                  </Tbody>
+                </Table>
+              </TabPanel>
+
+              <TabPanel>
+                <HStack mb={4}>
+                  <Button size="sm" onClick={() => {
+                    const rows = customerPurchases.map(([c, amt]) => ({ customer: c, amount: amt }));
+                    download(makeCsv(rows), 'customer_purchases.csv');
+                  }}>CSV</Button>
+                  <Button size="sm" onClick={() => {
+                    const cols = ['Customer', 'Amount'];
+                    const rows = customerPurchases.map(([c, amt]) => [c, amt]);
+                    downloadExcel(cols, rows, 'customer_purchases.xls');
+                  }}>Excel</Button>
+                </HStack>
+                <Table variant="simple" size="sm">
+                  <Thead><Tr><Th>Customer</Th><Th isNumeric>Total Purchase</Th></Tr></Thead>
+                  <Tbody>
+                    {customerPurchases.map(([c, amt]) => (<Tr key={c}><Td>{c}</Td><Td isNumeric>{inr(amt)}</Td></Tr>))}
+                    {customerPurchases.length === 0 && (<Tr><Td colSpan={2} textAlign="center">No data</Td></Tr>)}
+                  </Tbody>
+                </Table>
+              </TabPanel>
+
+              <TabPanel>
+                <HStack mb={4}>
+                  <Button size="sm" onClick={exportExpensesCsv}>CSV</Button>
+                  <Button size="sm" onClick={exportExpensesXls}>Excel</Button>
+                </HStack>
+                <Table variant="simple" size="sm">
+                  <Thead><Tr><Th>Date</Th><Th>Category</Th><Th>Vendor</Th><Th>Description</Th><Th isNumeric>Amount</Th></Tr></Thead>
+                  <Tbody>
+                    {periodExpenses.map((e) => (<Tr key={e.id}><Td>{new Date(e.date || e.created_at || '').toLocaleDateString()}</Td><Td>{e.category || '-'}</Td><Td>{e.vendor || '-'}</Td><Td>{e.description || '-'}</Td><Td isNumeric>{inr(e.amount || 0)}</Td></Tr>))}
+                    {periodExpenses.length === 0 && (<Tr><Td colSpan={5} textAlign="center">No expenses found</Td></Tr>)}
+                  </Tbody>
+                </Table>
+              </TabPanel>
+
+              <TabPanel>
+                <HStack mb={4} spacing={3}>
+                  <Select size="sm" value={taxPeriodType} onChange={(e) => setTaxPeriodType(e.target.value as any)} maxW="180px">
+                    <option value="monthly">Monthly</option>
+                    <option value="quarterly">Quarterly</option>
+                  </Select>
+                  <Button size="sm" onClick={exportTaxCsv}>CSV</Button>
+                  <Button size="sm" onClick={exportTaxXls}>Excel</Button>
+                </HStack>
+                <Table variant="simple" size="sm">
+                  <Thead><Tr><Th>Period</Th><Th isNumeric>Output Tax</Th><Th isNumeric>Input Tax</Th><Th isNumeric>Net Tax</Th></Tr></Thead>
+                  <Tbody>
+                    {monthlyOrQuarterlyTax.map((r) => (<Tr key={r.periodKey}><Td>{r.periodKey}</Td><Td isNumeric>{inr(Math.round(r.output))}</Td><Td isNumeric>{inr(Math.round(r.input))}</Td><Td isNumeric>{inr(Math.round(r.net))}</Td></Tr>))}
+                    {monthlyOrQuarterlyTax.length === 0 && (<Tr><Td colSpan={4} textAlign="center">No data</Td></Tr>)}
+                  </Tbody>
+                </Table>
+              </TabPanel>
+
+              <TabPanel>
+                <HStack mb={4}>
+                  <Button size="sm" onClick={exportPnLCsv}>CSV</Button>
+                  <Button size="sm" onClick={exportPnLXls}>Excel</Button>
+                  <Button size="sm" onClick={generatePnLPdf}>PDF</Button>
+                </HStack>
+                <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6}>
+                  <Stat><StatLabel>Revenue (All)</StatLabel><StatNumber>{inr(totalRevenueAll)}</StatNumber></Stat>
+                  <Stat><StatLabel>Expenses (All)</StatLabel><StatNumber>{inr(totalExpensesAll)}</StatNumber></Stat>
+                  <Stat><StatLabel>Profit (All)</StatLabel><StatNumber color={profitAll >= 0 ? 'green.600' : 'red.600'}>{inr(profitAll)}</StatNumber></Stat>
+                </SimpleGrid>
+              </TabPanel>
+
+              <TabPanel>
+                <HStack spacing={3} mb={4}>
+                  <Button size="sm" onClick={exportOrdersCsv}>Orders CSV</Button>
+                  <Button size="sm" onClick={exportOrdersXls}>Orders Excel</Button>
+                  <Button size="sm" onClick={exportExpensesCsv}>Expenses CSV</Button>
+                  <Button size="sm" onClick={exportExpensesXls}>Expenses Excel</Button>
+                  <Button size="sm" onClick={exportPnLCsv}>P&L CSV</Button>
+                  <Button size="sm" onClick={exportPnLXls}>P&L Excel</Button>
+                  <Button size="sm" onClick={exportTaxCsv}>Tax CSV</Button>
+                  <Button size="sm" onClick={exportTaxXls}>Tax Excel</Button>
+                  <Button size="sm" onClick={exportReceivablesPdf}>Receivables PDF</Button>
+                </HStack>
+                <Text fontSize="sm" color="gray.600">Download CSV, Excel, or PDF versions of your finance data.</Text>
+              </TabPanel>
+            </TabPanels>
+          </Tabs>
         </CardBody>
       </Card>
 
       <Flex mb={6} justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={4}>
         <HStack>
-          <Button 
-            colorScheme={filter === 'all' ? 'blue' : 'gray'} 
-            onClick={() => setFilter('all')}
-          >
-            All Projects
-          </Button>
-          <Button 
-            colorScheme={filter === 'active' ? 'blue' : 'gray'} 
-            onClick={() => setFilter('active')}
-          >
-            Active Projects
-          </Button>
-          <Button 
-            colorScheme={filter === 'completed' ? 'blue' : 'gray'} 
-            onClick={() => setFilter('completed')}
-          >
-            Completed Projects
-          </Button>
+          <Button colorScheme={filter === 'all' ? 'blue' : 'gray'} onClick={() => setFilter('all')}>All Projects</Button>
+          <Button colorScheme={filter === 'active' ? 'blue' : 'gray'} onClick={() => setFilter('active')}>Active Projects</Button>
+          <Button colorScheme={filter === 'completed' ? 'blue' : 'gray'} onClick={() => setFilter('completed')}>Completed Projects</Button>
         </HStack>
         <FormControl maxW="300px">
-          <Input
-            placeholder="Search by name or customer"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+          <Input placeholder="Search by name or customer" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
         </FormControl>
       </Flex>
 
@@ -664,30 +711,16 @@ const Finance: React.FC = () => {
                   <Td>{project.customer_name}</Td>
                   <Td>{inr(project.proposal_amount || 0)}</Td>
                   <Td>{inr((project.advance_payment || 0) + (project.paid_amount || 0))}</Td>
-                  <Td fontWeight="bold" color={(project.balance_amount || 0) > 0 ? 'red.500' : 'green.500'}>
-                    {inr(project.balance_amount || 0)}
-                  </Td>
-                  <Td>
-                    <Badge colorScheme={project.payment_mode === 'Loan' ? 'purple' : 'blue'}>
-                      {project.payment_mode}
-                    </Badge>
-                  </Td>
+                  <Td fontWeight="bold" color={(project.balance_amount || 0) > 0 ? 'red.500' : 'green.500'}>{inr(project.balance_amount || 0)}</Td>
+                  <Td><Badge colorScheme={project.payment_mode === 'Loan' ? 'purple' : 'blue'}>{project.payment_mode}</Badge></Td>
                   <Td>{project.current_stage}</Td>
-                  <Td>
-                    <Badge colorScheme={project.status === 'active' ? 'green' : 'gray'}>
-                      {project.status}
-                    </Badge>
-                  </Td>
-                  <Td>
-                    <Button size="xs" variant="outline" onClick={() => generateInvoice(project)}>Invoice</Button>
-                  </Td>
+                  <Td><Badge colorScheme={project.status === 'active' ? 'green' : 'gray'}>{project.status}</Badge></Td>
+                  <Td><Button size="xs" variant="outline" onClick={() => generateInvoice(project)}>Invoice</Button></Td>
                 </Tr>
               ))}
               {filteredProjects.length === 0 && (
                 <Tr>
-                  <Td colSpan={9} textAlign="center" py={4}>
-                    {loading ? 'Loading...' : 'No projects found'}
-                  </Td>
+                  <Td colSpan={9} textAlign="center" py={4}>{loading ? 'Loading...' : 'No projects found'}</Td>
                 </Tr>
               )}
             </Tbody>
