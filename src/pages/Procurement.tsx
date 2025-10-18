@@ -131,7 +131,8 @@ const Procurement: React.FC = () => {
     const groups = new Map<string, ProcurementItem[]>();
     records.forEach(r=>{ const arr = groups.get(r.item_name) || []; arr.push(r); groups.set(r.item_name, arr); });
 
-    for (const [item, items] of Array.from(groups.entries())) {
+    for (const item of Array.from(groups.keys())) {
+      const items = groups.get(item) || [];
       const list = (items.slice() as ProcurementItem[]).sort((a: ProcurementItem, b: ProcurementItem) => new Date(a.created_at || '').getTime() - new Date(b.created_at || '').getTime());
       const seq = valuationMethod === 'FIFO' ? list : list.slice().reverse();
       for (const rec of seq) {
