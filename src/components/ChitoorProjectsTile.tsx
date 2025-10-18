@@ -403,15 +403,23 @@ const ChitoorProjectsTile = ({
         throw lastError;
       }
     } catch (error: any) {
+      let message = 'Unable to load Chitoor approvals.';
       try {
-        console.error('Failed to load Chitoor approvals', JSON.stringify(error, Object.getOwnPropertyNames(error)));
-      } catch (e) {
-        console.error('Failed to load Chitoor approvals', error);
-      }
+        const isNetwork = (error && (error.name === 'TypeError' || /Failed to fetch/i.test(String(error)))) || /TypeError: Failed to fetch/i.test(String(error?.message || error));
+        if (isNetwork) {
+          message = 'Network error: could not reach database. Check Supabase URL, CORS, or connectivity.';
+        } else {
+          const rawMessage = formatSupabaseError(error);
+          message = typeof rawMessage === 'string' ? rawMessage : String(rawMessage) || message;
+        }
+      } catch {}
 
-      const rawMessage = formatSupabaseError(error);
-      const message = typeof rawMessage === 'string' ? rawMessage : String(rawMessage) || 'Unable to load Chitoor approvals.';
+      try {
+        // Keep logs concise to avoid noisy FullStory stack traces
+        console.warn('Failed to load Chitoor approvals:', message);
+      } catch {}
 
+      setApprovals([]);
       toast({
         title: 'Chitoor approvals unavailable',
         description: message,
