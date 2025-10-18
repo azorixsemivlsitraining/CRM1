@@ -557,7 +557,7 @@ EXECUTE FUNCTION update_updated_at();`}
                     </Td>
                     <Td isNumeric>
                       {editingInvoice?.id === inv.id ? (
-                        <Input type="number" value={String(editingInvoice.amount || 0)} onChange={(e)=> setEditingInvoice(prev => ({ ...(prev as any), amount: Number(e.target.value||0) }))} />
+                        <Input type="number" value={String((editingInvoice as any)?.amount || 0)} onChange={(e)=> setEditingInvoice(prev => ({ ...(prev as any), amount: Number(e.target.value||0) }))} />
                       ) : (
                         inr(inv.amount||0)
                       )}
