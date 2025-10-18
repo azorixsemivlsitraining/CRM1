@@ -475,7 +475,7 @@ EXECUTE FUNCTION update_updated_at();`}
                     </Td>
                     <Td>
                       {editingOrder?.id === o.id ? (
-                        <Input type="date" value={editingOrder.expected_delivery ? String(editingOrder.expected_delivery).slice(0,10) : ''} onChange={(e)=> setEditingOrder(prev => ({ ...(prev as any), expected_delivery: e.target.value || null }))} />
+                        <Input type="date" value={(editingOrder as any)?.expected_delivery ? String((editingOrder as any).expected_delivery).slice(0,10) : ''} onChange={(e)=> setEditingOrder(prev => ({ ...(prev as any), expected_delivery: e.target.value || null }))} />
                       ) : (
                         o.expected_delivery ? new Date(o.expected_delivery).toLocaleDateString() : '-'
                       )}
