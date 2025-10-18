@@ -20,6 +20,8 @@ import {
   CardBody,
   Textarea,
   Code,
+  SimpleGrid,
+  Select,
 } from '@chakra-ui/react';
 import { supabase } from '../lib/supabase';
 
@@ -34,6 +36,8 @@ interface ProcurementItem {
   created_at?: string;
   updated_at?: string;
 }
+
+const inr = (v: number) => `₹${(v || 0).toLocaleString('en-IN')}`;
 
 const Procurement: React.FC = () => {
   const [records, setRecords] = useState<ProcurementItem[]>([]);
