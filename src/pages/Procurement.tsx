@@ -68,10 +68,10 @@ const Procurement: React.FC = () => {
   const [grossMargin, setGrossMargin] = useState<{ revenue: number; cost: number; margin: number } | null>(null);
 
   // Procurement modules data
-  interface PurchaseOrder { id?: string; supplier: string; items: string; order_date?: string; expected_delivery?: string; total_amount?: number; status?: string; }
-  interface SupplierInvoice { id?: string; invoice_number: string; supplier: string; date?: string; amount?: number; status?: 'paid'|'unpaid'|'pending'; }
-  interface PurchaseReturn { id?: string; reference_id?: string; supplier?: string; date?: string; amount?: number; reason?: string; }
-  interface CostEntry { id?: string; item_name: string; material_cost: number; logistics_cost: number; per_unit_cost?: number; created_at?: string; }
+  interface PurchaseOrder { id?: string; supplier: string; items: string; order_date?: string | null; expected_delivery?: string | null; total_amount?: number; status?: string; }
+  interface SupplierInvoice { id?: string; invoice_number: string; supplier: string; date?: string | null; amount?: number; status?: 'paid'|'unpaid'|'pending'; }
+  interface PurchaseReturn { id?: string; reference_id?: string; supplier?: string; date?: string | null; amount?: number; reason?: string; }
+  interface CostEntry { id?: string; item_name: string; material_cost: number; logistics_cost: number; per_unit_cost?: number; created_at?: string | null; }
 
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
   const [invoices, setInvoices] = useState<SupplierInvoice[]>([]);
