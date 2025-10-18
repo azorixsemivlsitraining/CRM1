@@ -48,6 +48,16 @@ const Procurement: React.FC = () => {
   const [editing, setEditing] = useState<ProcurementItem | null>(null);
   const toast = useToast();
 
+  // Analytics and integrations
+  const [payments, setPayments] = useState<any[]>([]);
+  const [revenueTrend, setRevenueTrend] = useState<{ labels: string[]; values: number[] }>({ labels: [], values: [] });
+  const [expensesByCategory, setExpensesByCategory] = useState<{ labels: string[]; values: number[] }>({ labels: [], values: [] });
+  const [topSuppliers, setTopSuppliers] = useState<[string, number][]>([]);
+  const [valuationMethod, setValuationMethod] = useState<'FIFO' | 'LIFO'>('FIFO');
+  const [logisticsPerUnit, setLogisticsPerUnit] = useState<number>(0);
+  const [inventoryValuationResult, setInventoryValuationResult] = useState<{ totalCost: number; perUnitCost: number } | null>(null);
+  const [grossMargin, setGrossMargin] = useState<{ revenue: number; cost: number; margin: number } | null>(null);
+
   const fetchRecords = async () => {
     try {
       const { data, error } = await supabase
@@ -68,6 +78,74 @@ const Procurement: React.FC = () => {
   };
 
   useEffect(() => { fetchRecords(); }, []);
+
+  // Fetch payments and derive simple analytics for procurement
+  useEffect(() => {
+    const fetchPayments = async () => {
+      try {
+        const { data, error } = await supabase.from('payments').select('id,created_at,amount,project_id');
+        if (!error && Array.isArray(data)) {
+          setPayments(data as any[]);
+          // revenue trend
+          const map = new Map<string, number>();
+          (data as any[]).forEach((p) => {
+            const d = new Date(p.created_at).toLocaleDateString('en-IN');
+            map.set(d, (map.get(d) || 0) + (p.amount || 0));
+          });
+          const arr = Array.from(map.entries()).sort((a,b)=> new Date(a[0]).getTime()-new Date(b[0]).getTime());
+          setRevenueTrend({ labels: arr.map(a=>a[0]), values: arr.map(a=>a[1]) });
+        }
+      } catch (e) {
+        // ignore
+      }
+
+      try {
+        const { data: exp, error: expErr } = await supabase.from('expenses').select('category,amount');
+        if (!expErr && Array.isArray(exp)) {
+          const m = new Map<string, number>();
+          exp.forEach((r:any)=> m.set((r.category||'Uncategorized'), (m.get(r.category)||0)+(r.amount||0)));
+          const labels = Array.from(m.keys());
+          const values = Array.from(m.values());
+          setExpensesByCategory({ labels, values });
+        }
+      } catch (e) {}
+    };
+    fetchPayments();
+  }, []);
+
+  useEffect(() => {
+    // derive top suppliers from procurements
+    const m = new Map<string, number>();
+    records.forEach((r) => { if (r.supplier) m.set(r.supplier, (m.get(r.supplier)||0) + ((r.price||0) * (r.quantity||0))); });
+    const arr = Array.from(m.entries()).sort((a,b)=>b[1]-a[1]);
+    setTopSuppliers(arr.slice(0,6) as [string, number][]);
+  }, [records]);
+
+  const computeInventoryValuation = () => {
+    // group by item and simulate FIFO/LIFO
+    let totalCost = 0; let totalQty = 0;
+    const groups = new Map<string, ProcurementItem[]>();
+    records.forEach(r=>{ const arr = groups.get(r.item_name) || []; arr.push(r); groups.set(r.item_name, arr); });
+
+    for (const [item, items] of groups.entries()) {
+      const list = items.slice().sort((a,b)=> new Date(a.created_at || '').getTime() - new Date(b.created_at || '').getTime());
+      const seq = valuationMethod === 'FIFO' ? list : list.slice().reverse();
+      for (const rec of seq) {
+        const qty = rec.quantity || 0; const unitCost = (rec.price || 0) + logisticsPerUnit;
+        totalCost += qty * unitCost; totalQty += qty;
+      }
+    }
+    const perUnitCost = totalQty ? totalCost / totalQty : 0;
+    setInventoryValuationResult({ totalCost, perUnitCost });
+  };
+
+  const computeGrossMargin = async () => {
+    // revenue from payments, cost from procurements
+    const revenue = payments.reduce((s,p)=> s + (p.amount||0), 0);
+    const cost = records.reduce((s,r)=> s + ((r.price||0) * (r.quantity||0)), 0) + (logisticsPerUnit * records.reduce((s,r)=> s + (r.quantity||0), 0));
+    const margin = revenue ? ((revenue - cost) / revenue) * 100 : 0;
+    setGrossMargin({ revenue, cost, margin });
+  };
 
   const addRecord = async () => {
     try {
@@ -206,6 +284,78 @@ EXECUTE FUNCTION update_updated_at();`}
           ))}
         </Tbody>
       </Table>
+
+      {/* Procurement analytics and valuation */}
+      <Box mt={6}>
+        <Card mb={4}>
+          <CardBody>
+            <Heading size="md" mb={3}>Procurement Analytics</Heading>
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
+              <Box>
+                <Text fontWeight="semibold" mb={2}>Revenue Trend (recent)</Text>
+                {revenueTrend.labels.length > 0 ? (
+                  <Table size="sm" variant="simple">
+                    <Thead><Tr><Th>Date</Th><Th isNumeric>Amount</Th></Tr></Thead>
+                    <Tbody>
+                      {revenueTrend.labels.slice(-12).map((d,i)=> (<Tr key={d}><Td>{d}</Td><Td isNumeric>{(revenueTrend.values[i]||0).toLocaleString('en-IN')}</Td></Tr>))}
+                    </Tbody>
+                  </Table>
+                ) : (
+                  <Text fontSize="sm" color="gray.500">No payment data</Text>
+                )}
+              </Box>
+
+              <Box>
+                <Text fontWeight="semibold" mb={2}>Expenses by Category</Text>
+                {expensesByCategory.labels.length > 0 ? (
+                  <Table size="sm" variant="simple">
+                    <Thead><Tr><Th>Category</Th><Th isNumeric>Amount</Th></Tr></Thead>
+                    <Tbody>
+                      {expensesByCategory.labels.map((l,idx)=>(<Tr key={l}><Td>{l}</Td><Td isNumeric>{expensesByCategory.values[idx]||0}</Td></Tr>))}
+                    </Tbody>
+                  </Table>
+                ) : (
+                  <Text fontSize="sm" color="gray.500">No expense data</Text>
+                )}
+              </Box>
+            </SimpleGrid>
+
+            <Box mt={4}>
+              <Text fontWeight="semibold" mb={2}>Top Suppliers</Text>
+              {topSuppliers.length > 0 ? (
+                <Table size="sm" variant="simple">
+                  <Thead><Tr><Th>Supplier</Th><Th isNumeric>Spend</Th></Tr></Thead>
+                  <Tbody>
+                    {topSuppliers.map(([s,amt])=> (<Tr key={s}><Td>{s}</Td><Td isNumeric>{inr(amt)}</Td></Tr>))}
+                  </Tbody>
+                </Table>
+              ) : (
+                <Text fontSize="sm" color="gray.500">No suppliers yet</Text>
+              )}
+            </Box>
+
+            <Box mt={4}>
+              <Text fontWeight="semibold" mb={2}>Inventory Valuation & Costing</Text>
+              <HStack spacing={3} mb={3}>
+                <Select value={valuationMethod} onChange={(e)=> setValuationMethod(e.target.value as any)} maxW="160px">
+                  <option value="FIFO">FIFO</option>
+                  <option value="LIFO">LIFO</option>
+                </Select>
+                <Input type="number" value={logisticsPerUnit} onChange={(e)=> setLogisticsPerUnit(Number(e.target.value||0))} placeholder="Logistics per unit" maxW="180px" />
+                <Button colorScheme="green" onClick={()=>{ computeInventoryValuation(); computeGrossMargin(); }}>Compute</Button>
+              </HStack>
+
+              {inventoryValuationResult && (
+                <Text>Inventory total cost: {inr(inventoryValuationResult.totalCost)} · Per unit cost: {inr(inventoryValuationResult.perUnitCost)}</Text>
+              )}
+              {grossMargin && (
+                <Text mt={2}>Gross margin: {grossMargin.margin.toFixed(2)}% (Revenue {inr(grossMargin.revenue)} · Cost {inr(grossMargin.cost)})</Text>
+              )}
+            </Box>
+          </CardBody>
+        </Card>
+      </Box>
+
     </Box>
   );
 };
