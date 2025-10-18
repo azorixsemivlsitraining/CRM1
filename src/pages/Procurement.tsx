@@ -490,7 +490,7 @@ EXECUTE FUNCTION update_updated_at();`}
                     <Td>
                       {editingOrder?.id === o.id ? (
                         <HStack>
-                          <Button size="sm" colorScheme="green" onClick={()=> updateOrder(editingOrder)}>Save</Button>
+                          <Button size="sm" colorScheme="green" onClick={()=> updateOrder(editingOrder as PurchaseOrder)}>Save</Button>
                           <Button size="sm" variant="ghost" onClick={()=> setEditingOrder(null)}>Cancel</Button>
                         </HStack>
                       ) : (
