@@ -450,7 +450,59 @@ EXECUTE FUNCTION update_updated_at();`}
             <Table size="sm" variant="simple">
               <Thead><Tr><Th>Supplier</Th><Th>Items</Th><Th>Order Date</Th><Th>Expected</Th><Th isNumeric>Amount</Th><Th>Status</Th></Tr></Thead>
               <Tbody>
-                {purchaseOrders.map((o) => (<Tr key={o.id}><Td>{o.supplier}</Td><Td>{o.items}</Td><Td>{o.order_date ? new Date(o.order_date).toLocaleDateString() : '-'}</Td><Td>{o.expected_delivery ? new Date(o.expected_delivery).toLocaleDateString() : '-'}</Td><Td isNumeric>{inr(o.total_amount||0)}</Td><Td>{o.status}</Td></Tr>))}
+                {purchaseOrders.map((o) => (
+                  <Tr key={o.id}>
+                    <Td>
+                      {editingOrder?.id === o.id ? (
+                        <Input value={editingOrder.supplier || ''} onChange={(e)=> setEditingOrder({...editingOrder, supplier: e.target.value})} />
+                      ) : (
+                        o.supplier
+                      )}
+                    </Td>
+                    <Td>
+                      {editingOrder?.id === o.id ? (
+                        <Input value={String(editingOrder.items || '')} onChange={(e)=> setEditingOrder({...editingOrder, items: e.target.value})} />
+                      ) : (
+                        String(o.items || '')
+                      )}
+                    </Td>
+                    <Td>
+                      {editingOrder?.id === o.id ? (
+                        <Input type="date" value={editingOrder.order_date ? String(editingOrder.order_date).slice(0,10) : ''} onChange={(e)=> setEditingOrder({...editingOrder, order_date: e.target.value || null})} />
+                      ) : (
+                        o.order_date ? new Date(o.order_date).toLocaleDateString() : '-'
+                      )}
+                    </Td>
+                    <Td>
+                      {editingOrder?.id === o.id ? (
+                        <Input type="date" value={editingOrder.expected_delivery ? String(editingOrder.expected_delivery).slice(0,10) : ''} onChange={(e)=> setEditingOrder({...editingOrder, expected_delivery: e.target.value || null})} />
+                      ) : (
+                        o.expected_delivery ? new Date(o.expected_delivery).toLocaleDateString() : '-'
+                      )}
+                    </Td>
+                    <Td isNumeric>
+                      {editingOrder?.id === o.id ? (
+                        <Input type="number" value={String(editingOrder.total_amount || 0)} onChange={(e)=> setEditingOrder({...editingOrder, total_amount: Number(e.target.value || 0)})} />
+                      ) : (
+                        inr(o.total_amount || 0)
+                      )}
+                    </Td>
+                    <Td>
+                      {editingOrder?.id === o.id ? (
+                        <HStack>
+                          <Button size="sm" colorScheme="green" onClick={()=> updateOrder(editingOrder)}>Save</Button>
+                          <Button size="sm" variant="ghost" onClick={()=> setEditingOrder(null)}>Cancel</Button>
+                        </HStack>
+                      ) : (
+                        <HStack>
+                          <Text>{o.status}</Text>
+                          <Button size="sm" onClick={()=> setEditingOrder(o)}>Edit</Button>
+                          <Button size="sm" colorScheme="red" onClick={()=> deleteOrder(o.id)}>Delete</Button>
+                        </HStack>
+                      )}
+                    </Td>
+                  </Tr>
+                ))}
                 {purchaseOrders.length===0 && (<Tr><Td colSpan={6} textAlign="center">No orders</Td></Tr>)}
               </Tbody>
             </Table>
@@ -480,7 +532,59 @@ EXECUTE FUNCTION update_updated_at();`}
             <Table size="sm" variant="simple">
               <Thead><Tr><Th>Invoice #</Th><Th>Supplier</Th><Th>Date</Th><Th isNumeric>Amount</Th><Th>Status</Th><Th>Actions</Th></Tr></Thead>
               <Tbody>
-                {invoices.map(inv=> (<Tr key={inv.id}><Td>{inv.invoice_number}</Td><Td>{inv.supplier}</Td><Td>{inv.date ? new Date(inv.date).toLocaleDateString() : '-'}</Td><Td isNumeric>{inr(inv.amount||0)}</Td><Td>{inv.status}</Td><Td><Button size="sm" onClick={async ()=>{ try{ const { data, error } = await supabase.from('supplier_invoices').update({ status: 'paid' }).eq('id', inv.id).select('*'); if(error) throw error; await fetchInvoices(); toast({ title:'Marked paid', status:'success'}); }catch(e:any){ toast({ title:'Failed', description:e?.message||String(e) }); } }}>Mark Paid</Button></Td></Tr>))}
+                {invoices.map(inv=> (
+                  <Tr key={inv.id}>
+                    <Td>
+                      {editingInvoice?.id === inv.id ? (
+                        <Input value={editingInvoice.invoice_number || ''} onChange={(e)=> setEditingInvoice({...editingInvoice, invoice_number: e.target.value})} />
+                      ) : (
+                        inv.invoice_number
+                      )}
+                    </Td>
+                    <Td>
+                      {editingInvoice?.id === inv.id ? (
+                        <Input value={editingInvoice.supplier || ''} onChange={(e)=> setEditingInvoice({...editingInvoice, supplier: e.target.value})} />
+                      ) : (
+                        inv.supplier
+                      )}
+                    </Td>
+                    <Td>
+                      {editingInvoice?.id === inv.id ? (
+                        <Input type="date" value={editingInvoice.date ? String(editingInvoice.date).slice(0,10) : ''} onChange={(e)=> setEditingInvoice({...editingInvoice, date: e.target.value || null})} />
+                      ) : (
+                        inv.date ? new Date(inv.date).toLocaleDateString() : '-'
+                      )}
+                    </Td>
+                    <Td isNumeric>
+                      {editingInvoice?.id === inv.id ? (
+                        <Input type="number" value={String(editingInvoice.amount || 0)} onChange={(e)=> setEditingInvoice({...editingInvoice, amount: Number(e.target.value||0)})} />
+                      ) : (
+                        inr(inv.amount||0)
+                      )}
+                    </Td>
+                    <Td>
+                      {editingInvoice?.id === inv.id ? (
+                        <Select value={editingInvoice.status || 'unpaid'} onChange={(e)=> setEditingInvoice({...editingInvoice, status: e.target.value as any})} maxW="140px"><option value="unpaid">Unpaid</option><option value="paid">Paid</option><option value="pending">Pending</option></Select>
+                      ) : (
+                        inv.status
+                      )}
+                    </Td>
+                    <Td>
+                      {editingInvoice?.id === inv.id ? (
+                        <HStack>
+                          <Button size="sm" colorScheme="green" onClick={()=> updateInvoice(editingInvoice)}>Save</Button>
+                          <Button size="sm" variant="ghost" onClick={()=> setEditingInvoice(null)}>Cancel</Button>
+                        </HStack>
+                      ) : (
+                        <HStack>
+                          <Button size="sm" onClick={()=> markInvoicePaid(inv.id)}>Mark Paid</Button>
+                          <Button size="sm" onClick={()=> setEditingInvoice(inv)}>Edit</Button>
+                          <Button size="sm" colorScheme="red" onClick={()=> deleteInvoice(inv.id)}>Delete</Button>
+                        </HStack>
+                      )}
+                    </Td>
+                  </Tr>
+                ))}
                 {invoices.length===0 && (<Tr><Td colSpan={6} textAlign="center">No invoices</Td></Tr>)}
               </Tbody>
             </Table>
@@ -502,7 +606,28 @@ EXECUTE FUNCTION update_updated_at();`}
             <Table size="sm" variant="simple">
               <Thead><Tr><Th>Reference</Th><Th>Supplier</Th><Th>Date</Th><Th isNumeric>Amount</Th><Th>Reason</Th></Tr></Thead>
               <Tbody>
-                {returnsList.map(r=> (<Tr key={r.id}><Td>{r.reference_id}</Td><Td>{r.supplier}</Td><Td>{r.date ? new Date(r.date).toLocaleDateString() : '-'}</Td><Td isNumeric>{inr(r.amount||0)}</Td><Td>{r.reason}</Td></Tr>))}
+                {returnsList.map(r=> (
+                  <Tr key={r.id}>
+                    <Td>{editingReturn?.id === r.id ? (<Input value={editingReturn.reference_id || ''} onChange={(e)=> setEditingReturn({...editingReturn, reference_id: e.target.value})} />) : r.reference_id}</Td>
+                    <Td>{editingReturn?.id === r.id ? (<Input value={editingReturn.supplier || ''} onChange={(e)=> setEditingReturn({...editingReturn, supplier: e.target.value})} />) : r.supplier}</Td>
+                    <Td>{editingReturn?.id === r.id ? (<Input type="date" value={editingReturn.date ? String(editingReturn.date).slice(0,10) : ''} onChange={(e)=> setEditingReturn({...editingReturn, date: e.target.value || null})} />) : (r.date ? new Date(r.date).toLocaleDateString() : '-')}</Td>
+                    <Td isNumeric>{editingReturn?.id === r.id ? (<Input type="number" value={String(editingReturn.amount || 0)} onChange={(e)=> setEditingReturn({...editingReturn, amount: Number(e.target.value||0)})} />) : inr(r.amount||0)}</Td>
+                    <Td>{editingReturn?.id === r.id ? (<Input value={editingReturn.reason || ''} onChange={(e)=> setEditingReturn({...editingReturn, reason: e.target.value})} />) : r.reason}</Td>
+                    <Td>
+                      {editingReturn?.id === r.id ? (
+                        <HStack>
+                          <Button size="sm" colorScheme="green" onClick={()=> updateReturn(editingReturn)}>Save</Button>
+                          <Button size="sm" variant="ghost" onClick={()=> setEditingReturn(null)}>Cancel</Button>
+                        </HStack>
+                      ) : (
+                        <HStack>
+                          <Button size="sm" onClick={()=> setEditingReturn(r)}>Edit</Button>
+                          <Button size="sm" colorScheme="red" onClick={()=> deleteReturn(r.id)}>Delete</Button>
+                        </HStack>
+                      )}
+                    </Td>
+                  </Tr>
+                ))}
                 {returnsList.length===0 && (<Tr><Td colSpan={5} textAlign="center">No returns</Td></Tr>)}
               </Tbody>
             </Table>
@@ -522,7 +647,27 @@ EXECUTE FUNCTION update_updated_at();`}
             <Table size="sm" variant="simple">
               <Thead><Tr><Th>Item</Th><Th isNumeric>Material</Th><Th isNumeric>Logistics</Th><Th isNumeric>Per Unit</Th></Tr></Thead>
               <Tbody>
-                {costEntries.map(c=> (<Tr key={c.id}><Td>{c.item_name}</Td><Td isNumeric>{inr(c.material_cost||0)}</Td><Td isNumeric>{inr(c.logistics_cost||0)}</Td><Td isNumeric>{inr(c.per_unit_cost||0)}</Td></Tr>))}
+                {costEntries.map(c=> (
+                  <Tr key={c.id}>
+                    <Td>{editingCost?.id === c.id ? (<Input value={editingCost.item_name || ''} onChange={(e)=> setEditingCost({...editingCost, item_name: e.target.value})} />) : c.item_name}</Td>
+                    <Td isNumeric>{editingCost?.id === c.id ? (<Input type="number" value={String(editingCost.material_cost || 0)} onChange={(e)=> setEditingCost({...editingCost, material_cost: Number(e.target.value||0)})} />) : inr(c.material_cost||0)}</Td>
+                    <Td isNumeric>{editingCost?.id === c.id ? (<Input type="number" value={String(editingCost.logistics_cost || 0)} onChange={(e)=> setEditingCost({...editingCost, logistics_cost: Number(e.target.value||0)})} />) : inr(c.logistics_cost||0)}</Td>
+                    <Td isNumeric>{editingCost?.id === c.id ? (<Text>{inr((editingCost.material_cost||0)+(editingCost.logistics_cost||0))}</Text>) : inr(c.per_unit_cost||0)}</Td>
+                    <Td>
+                      {editingCost?.id === c.id ? (
+                        <HStack>
+                          <Button size="sm" colorScheme="green" onClick={()=> updateCostEntry(editingCost)}>Save</Button>
+                          <Button size="sm" variant="ghost" onClick={()=> setEditingCost(null)}>Cancel</Button>
+                        </HStack>
+                      ) : (
+                        <HStack>
+                          <Button size="sm" onClick={()=> setEditingCost(c)}>Edit</Button>
+                          <Button size="sm" colorScheme="red" onClick={()=> deleteCostEntry(c.id)}>Delete</Button>
+                        </HStack>
+                      )}
+                    </Td>
+                  </Tr>
+                ))}
                 {costEntries.length===0 && (<Tr><Td colSpan={4} textAlign="center">No cost entries</Td></Tr>)}
               </Tbody>
             </Table>
