@@ -604,7 +604,11 @@ const Finance: React.FC = () => {
 
   return (
     <Box p={6} maxW="1400px" mx="auto">
-      <Heading as="h1" size="xl" mb={6}>Finance Dashboard</Heading>
+      <Heading as="h1" size="xl" mb={2}>Finance Dashboard</Heading>
+      <HStack mb={4} spacing={3}>
+        <Button size="sm" colorScheme="green" onClick={() => { window.location.href = '#/procurement'; }}>Open Procurement</Button>
+        <Button size="sm" onClick={() => { window.location.href = '#/stock'; }}>Open Warehouse</Button>
+      </HStack>
 
       <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6} mb={6}>
         <Card><CardBody><Stat><StatLabel>Total Outstanding Amount</StatLabel><StatNumber>{inr(totalOutstanding)}</StatNumber><Text fontSize="sm" color="gray.500">From all projects</Text></Stat></CardBody></Card>
@@ -647,7 +651,14 @@ const Finance: React.FC = () => {
                     <CardHeader><Heading size="sm">Revenue Trend</Heading></CardHeader>
                     <CardBody>
                       {revenueTrend.labels.length > 0 ? (
-                        <BarChart labels={revenueTrend.labels} values={revenueTrend.values} />
+                        <Table size="sm" variant="simple">
+                          <Thead><Tr><Th>Date</Th><Th isNumeric>Amount</Th></Tr></Thead>
+                          <Tbody>
+                            {revenueTrend.labels.slice(-12).map((d, i) => (
+                              <Tr key={d}><Td>{d}</Td><Td isNumeric>{inr(revenueTrend.values[i] || 0)}</Td></Tr>
+                            ))}
+                          </Tbody>
+                        </Table>
                       ) : (
                         <Text fontSize="sm" color="gray.500">No data</Text>
                       )}
@@ -671,7 +682,14 @@ const Finance: React.FC = () => {
                     <CardHeader><Heading size="sm">Expenses by Category</Heading></CardHeader>
                     <CardBody>
                       {expensesByCategory.labels.length > 0 ? (
-                        <BarChart labels={expensesByCategory.labels} values={expensesByCategory.values} color="green.300" />
+                        <Table size="sm" variant="simple">
+                          <Thead><Tr><Th>Category</Th><Th isNumeric>Amount</Th></Tr></Thead>
+                          <Tbody>
+                            {expensesByCategory.labels.map((lbl, idx) => (
+                              <Tr key={lbl}><Td>{lbl}</Td><Td isNumeric>{inr(expensesByCategory.values[idx] || 0)}</Td></Tr>
+                            ))}
+                          </Tbody>
+                        </Table>
                       ) : (
                         <Text fontSize="sm" color="gray.500">No data</Text>
                       )}
@@ -761,22 +779,29 @@ const Finance: React.FC = () => {
                         <Box>
                           <Text fontWeight="semibold" color="gray.700" mb={2}>Revenue Trend</Text>
                           {revenueTrend.labels.length > 0 ? (
-                            <BarChart labels={revenueTrend.labels} values={revenueTrend.values} />
+                            <Table size="sm" variant="simple">
+                              <Thead><Tr><Th>Date</Th><Th isNumeric>Amount</Th></Tr></Thead>
+                              <Tbody>
+                                {revenueTrend.labels.slice(-12).map((d, i) => (
+                                  <Tr key={d}><Td>{d}</Td><Td isNumeric>{inr(revenueTrend.values[i] || 0)}</Td></Tr>
+                                ))}
+                              </Tbody>
+                            </Table>
                           ) : (
                             <Text fontSize="sm" color="gray.500">No data</Text>
                           )}
                         </Box>
                         <Box>
                           <Text fontWeight="semibold" color="gray.700" mb={2}>Top Projects (share)</Text>
-                          <DonutChart segments={topProducts.slice(0, 6).map(([name, amt], i) => ({ label: String(name), value: amt as number, color: palette[i % palette.length] }))} />
-                          <HStack wrap="wrap" spacing={4} mt={3}>
-                            {topProducts.slice(0, 6).map(([name, amt], i) => (
-                              <HStack key={String(name)} spacing={2}>
-                                <Box w="10px" h="10px" borderRadius="sm" bg={palette[i % palette.length]} />
-                                <Text fontSize="xs" color="gray.600">{String(name)} ({inr(amt as number)})</Text>
-                              </HStack>
-                            ))}
-                          </HStack>
+                          <Table size="sm" variant="simple">
+                            <Thead><Tr><Th>Project</Th><Th isNumeric>Revenue</Th></Tr></Thead>
+                            <Tbody>
+                              {topProducts.map(([name, amt]) => (
+                                <Tr key={String(name)}><Td>{String(name)}</Td><Td isNumeric>{inr(amt as number)}</Td></Tr>
+                              ))}
+                              {topProducts.length === 0 && (<Tr><Td colSpan={2} textAlign="center">No data</Td></Tr>)}
+                            </Tbody>
+                          </Table>
                         </Box>
                       </SimpleGrid>
                       <HStack mb={4}>
