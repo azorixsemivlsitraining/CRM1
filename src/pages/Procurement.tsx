@@ -564,7 +564,7 @@ EXECUTE FUNCTION update_updated_at();`}
                     </Td>
                     <Td>
                       {editingInvoice?.id === inv.id ? (
-                        <Select value={editingInvoice.status || 'unpaid'} onChange={(e)=> setEditingInvoice(prev => ({ ...(prev as any), status: e.target.value as any }))} maxW="140px"><option value="unpaid">Unpaid</option><option value="paid">Paid</option><option value="pending">Pending</option></Select>
+                        <Select value={(editingInvoice as any)?.status || 'unpaid'} onChange={(e)=> setEditingInvoice(prev => ({ ...(prev as any), status: e.target.value as any }))} maxW="140px"><option value="unpaid">Unpaid</option><option value="paid">Paid</option><option value="pending">Pending</option></Select>
                       ) : (
                         inv.status
                       )}
