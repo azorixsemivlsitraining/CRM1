@@ -550,7 +550,7 @@ EXECUTE FUNCTION update_updated_at();`}
                     </Td>
                     <Td>
                       {editingInvoice?.id === inv.id ? (
-                        <Input type="date" value={editingInvoice.date ? String(editingInvoice.date).slice(0,10) : ''} onChange={(e)=> setEditingInvoice(prev => ({ ...(prev as any), date: e.target.value || null }))} />
+                        <Input type="date" value={(editingInvoice as any)?.date ? String((editingInvoice as any).date).slice(0,10) : ''} onChange={(e)=> setEditingInvoice(prev => ({ ...(prev as any), date: e.target.value || null }))} />
                       ) : (
                         inv.date ? new Date(inv.date).toLocaleDateString() : '-'
                       )}
