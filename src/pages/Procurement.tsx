@@ -468,7 +468,7 @@ EXECUTE FUNCTION update_updated_at();`}
                     </Td>
                     <Td>
                       {editingOrder?.id === o.id ? (
-                        <Input type="date" value={editingOrder.order_date ? String(editingOrder.order_date).slice(0,10) : ''} onChange={(e)=> setEditingOrder(prev => ({ ...(prev as any), order_date: e.target.value || null }))} />
+                        <Input type="date" value={(editingOrder as any)?.order_date ? String((editingOrder as any).order_date).slice(0,10) : ''} onChange={(e)=> setEditingOrder(prev => ({ ...(prev as any), order_date: e.target.value || null }))} />
                       ) : (
                         o.order_date ? new Date(o.order_date).toLocaleDateString() : '-'
                       )}
