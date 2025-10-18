@@ -650,9 +650,9 @@ EXECUTE FUNCTION update_updated_at();`}
                 {costEntries.map(c=> (
                   <Tr key={c.id}>
                     <Td>{editingCost?.id === c.id ? (<Input value={(editingCost as any)?.item_name || ''} onChange={(e)=> setEditingCost(prev => ({ ...(prev as any), item_name: e.target.value }))} />) : c.item_name}</Td>
-                    <Td isNumeric>{editingCost?.id === c.id ? (<Input type="number" value={String(editingCost.material_cost || 0)} onChange={(e)=> setEditingCost(prev => ({ ...(prev as any), material_cost: Number(e.target.value||0) }))} />) : inr(c.material_cost||0)}</Td>
-                    <Td isNumeric>{editingCost?.id === c.id ? (<Input type="number" value={String(editingCost.logistics_cost || 0)} onChange={(e)=> setEditingCost(prev => ({ ...(prev as any), logistics_cost: Number(e.target.value||0) }))} />) : inr(c.logistics_cost||0)}</Td>
-                    <Td isNumeric>{editingCost?.id === c.id ? (<Text>{inr((editingCost.material_cost||0)+(editingCost.logistics_cost||0))}</Text>) : inr(c.per_unit_cost||0)}</Td>
+                    <Td isNumeric>{editingCost?.id === c.id ? (<Input type="number" value={String((editingCost as any)?.material_cost || 0)} onChange={(e)=> setEditingCost(prev => ({ ...(prev as any), material_cost: Number(e.target.value||0) }))} />) : inr(c.material_cost||0)}</Td>
+                    <Td isNumeric>{editingCost?.id === c.id ? (<Input type="number" value={String((editingCost as any)?.logistics_cost || 0)} onChange={(e)=> setEditingCost(prev => ({ ...(prev as any), logistics_cost: Number(e.target.value||0) }))} />) : inr(c.logistics_cost||0)}</Td>
+                    <Td isNumeric>{editingCost?.id === c.id ? (<Text>{inr(((editingCost as any)?.material_cost||0)+((editingCost as any)?.logistics_cost||0))}</Text>) : inr(c.per_unit_cost||0)}</Td>
                     <Td>
                       {editingCost?.id === c.id ? (
                         <HStack>
