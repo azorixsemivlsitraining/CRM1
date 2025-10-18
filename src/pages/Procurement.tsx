@@ -482,7 +482,7 @@ EXECUTE FUNCTION update_updated_at();`}
                     </Td>
                     <Td isNumeric>
                       {editingOrder?.id === o.id ? (
-                        <Input type="number" value={String(editingOrder.total_amount || 0)} onChange={(e)=> setEditingOrder(prev => ({ ...(prev as any), total_amount: Number(e.target.value || 0) }))} />
+                        <Input type="number" value={String((editingOrder as any)?.total_amount || 0)} onChange={(e)=> setEditingOrder(prev => ({ ...(prev as any), total_amount: Number(e.target.value || 0) }))} />
                       ) : (
                         inr(o.total_amount || 0)
                       )}
