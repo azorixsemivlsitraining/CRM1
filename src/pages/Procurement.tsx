@@ -138,29 +138,43 @@ const Procurement: React.FC = () => {
     try {
       const { data, error } = await supabase.from('purchase_orders').select('*').order('created_at', { ascending: false });
       if (!error) setPurchaseOrders((data as any) || []);
-    } catch {}
+    } catch (e:any){ console.warn('fetchOrders', e); }
   };
 
   const fetchInvoices = async () => {
     try {
       const { data, error } = await supabase.from('supplier_invoices').select('*').order('date', { ascending: false });
       if (!error) setInvoices((data as any) || []);
-    } catch {}
+    } catch (e:any){ console.warn('fetchInvoices', e); }
   };
 
   const fetchReturns = async () => {
     try {
       const { data, error } = await supabase.from('purchase_returns').select('*').order('date', { ascending: false });
       if (!error) setReturnsList((data as any) || []);
-    } catch {}
+    } catch (e:any){ console.warn('fetchReturns', e); }
   };
 
   const fetchCostEntries = async () => {
     try {
       const { data, error } = await supabase.from('cost_entries').select('*').order('created_at', { ascending: false });
       if (!error) setCostEntries((data as any) || []);
-    } catch {}
+    } catch (e:any){ console.warn('fetchCostEntries', e); }
   };
+
+  // Helper actions
+  const markInvoicePaid = async (id?: string) => {
+    if (!id) return;
+    try { const { error } = await supabase.from('supplier_invoices').update({ status: 'paid' }).eq('id', id); if (error) throw error; await fetchInvoices(); toast({ title:'Invoice marked paid', status:'success' }); } catch (e:any) { toast({ title:'Failed', description:e?.message||String(e), status:'error' }); }
+  };
+
+  const deleteOrder = async (id?: string) => { if (!id) return; try { const { error } = await supabase.from('purchase_orders').delete().eq('id', id); if (error) throw error; await fetchOrders(); toast({ title:'Order deleted', status:'success' }); } catch (e:any){ toast({ title:'Failed to delete', description:e?.message||String(e), status:'error' }); } };
+
+  const deleteInvoice = async (id?: string) => { if (!id) return; try { const { error } = await supabase.from('supplier_invoices').delete().eq('id', id); if (error) throw error; await fetchInvoices(); toast({ title:'Invoice deleted', status:'success' }); } catch (e:any){ toast({ title:'Failed to delete', description:e?.message||String(e), status:'error' }); } };
+
+  const deleteReturn = async (id?: string) => { if (!id) return; try { const { error } = await supabase.from('purchase_returns').delete().eq('id', id); if (error) throw error; await fetchReturns(); toast({ title:'Return deleted', status:'success' }); } catch (e:any){ toast({ title:'Failed to delete', description:e?.message||String(e), status:'error' }); } };
+
+  const deleteCostEntry = async (id?: string) => { if (!id) return; try { const { error } = await supabase.from('cost_entries').delete().eq('id', id); if (error) throw error; await fetchCostEntries(); toast({ title:'Cost entry deleted', status:'success' }); } catch (e:any){ toast({ title:'Failed to delete', description:e?.message||String(e), status:'error' }); } };
 
   useEffect(() => {
     // derive top suppliers from procurements
