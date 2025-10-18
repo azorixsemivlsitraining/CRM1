@@ -22,6 +22,11 @@ import {
   Code,
   SimpleGrid,
   Select,
+  Tabs,
+  TabList,
+  TabPanels,
+  Tab,
+  TabPanel,
 } from '@chakra-ui/react';
 import { supabase } from '../lib/supabase';
 
@@ -62,6 +67,17 @@ const Procurement: React.FC = () => {
   const [inventoryValuationResult, setInventoryValuationResult] = useState<{ totalCost: number; perUnitCost: number } | null>(null);
   const [grossMargin, setGrossMargin] = useState<{ revenue: number; cost: number; margin: number } | null>(null);
 
+  // Procurement modules data
+  interface PurchaseOrder { id?: string; supplier: string; items: string; order_date?: string; expected_delivery?: string; total_amount?: number; status?: string; }
+  interface SupplierInvoice { id?: string; invoice_number: string; supplier: string; date?: string; amount?: number; status?: 'paid'|'unpaid'|'pending'; }
+  interface PurchaseReturn { id?: string; reference_id?: string; supplier?: string; date?: string; amount?: number; reason?: string; }
+  interface CostEntry { id?: string; item_name: string; material_cost: number; logistics_cost: number; per_unit_cost?: number; created_at?: string; }
+
+  const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
+  const [invoices, setInvoices] = useState<SupplierInvoice[]>([]);
+  const [returnsList, setReturnsList] = useState<PurchaseReturn[]>([]);
+  const [costEntries, setCostEntries] = useState<CostEntry[]>([]);
+
   const fetchRecords = async () => {
     try {
       const { data, error } = await supabase
@@ -81,7 +97,7 @@ const Procurement: React.FC = () => {
     }
   };
 
-  useEffect(() => { fetchRecords(); }, []);
+  useEffect(() => { fetchRecords(); fetchOrders(); fetchInvoices(); fetchReturns(); fetchCostEntries(); }, []);
 
   // Fetch payments and derive simple analytics for procurement
   useEffect(() => {
@@ -116,6 +132,35 @@ const Procurement: React.FC = () => {
     };
     fetchPayments();
   }, []);
+
+  // Purchase Orders, Invoices, Returns, Cost entries fetchers
+  const fetchOrders = async () => {
+    try {
+      const { data, error } = await supabase.from('purchase_orders').select('*').order('created_at', { ascending: false });
+      if (!error) setPurchaseOrders((data as any) || []);
+    } catch {}
+  };
+
+  const fetchInvoices = async () => {
+    try {
+      const { data, error } = await supabase.from('supplier_invoices').select('*').order('date', { ascending: false });
+      if (!error) setInvoices((data as any) || []);
+    } catch {}
+  };
+
+  const fetchReturns = async () => {
+    try {
+      const { data, error } = await supabase.from('purchase_returns').select('*').order('date', { ascending: false });
+      if (!error) setReturnsList((data as any) || []);
+    } catch {}
+  };
+
+  const fetchCostEntries = async () => {
+    try {
+      const { data, error } = await supabase.from('cost_entries').select('*').order('created_at', { ascending: false });
+      if (!error) setCostEntries((data as any) || []);
+    } catch {}
+  };
 
   useEffect(() => {
     // derive top suppliers from procurements
@@ -222,23 +267,36 @@ EXECUTE FUNCTION update_updated_at();`}
   return (
     <Box>
       <Heading size="lg" mb={4}>Procurement</Heading>
-      <Card mb={6}><CardBody>
-        <VStack align="stretch" spacing={3}>
-          <HStack align="flex-start">
-            <Input placeholder="Item name" value={itemName} onChange={(e) => setItemName(e.target.value)} />
-            <Input type="number" placeholder="Qty" value={quantity} onChange={(e) => setQuantity(Number(e.target.value))} w="120px" />
-            <Input placeholder="Supplier" value={supplier} onChange={(e) => setSupplier(e.target.value)} />
-            <Input type="date" placeholder="Purchase date" value={purchaseDate} onChange={(e) => setPurchaseDate(e.target.value)} w="200px" />
-            <Input type="number" step="0.01" placeholder="Price" value={price} onChange={(e) => setPrice(e.target.value === '' ? '' : Number(e.target.value))} w="160px" />
-          </HStack>
-          <Textarea placeholder="Notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
-          <HStack>
-            <Button colorScheme="green" onClick={addRecord} isLoading={loading}>Save Procurement</Button>
-          </HStack>
-        </VStack>
-      </CardBody></Card>
+      <Tabs colorScheme="green" variant="enclosed">
+        <TabList>
+          <Tab>Procurements</Tab>
+          <Tab>Purchase Orders</Tab>
+          <Tab>Supplier Invoices</Tab>
+          <Tab>Returns & Debit Notes</Tab>
+          <Tab>Costing</Tab>
+          <Tab>Inventory Valuation</Tab>
+          <Tab>Analysis</Tab>
+        </TabList>
 
-      <Table variant="simple" size="sm">
+        <TabPanels>
+          <TabPanel>
+            <Card mb={6}><CardBody>
+              <VStack align="stretch" spacing={3}>
+                <HStack align="flex-start">
+                  <Input placeholder="Item name" value={itemName} onChange={(e) => setItemName(e.target.value)} />
+                  <Input type="number" placeholder="Qty" value={quantity} onChange={(e) => setQuantity(Number(e.target.value))} w="120px" />
+                  <Input placeholder="Supplier" value={supplier} onChange={(e) => setSupplier(e.target.value)} />
+                  <Input type="date" placeholder="Purchase date" value={purchaseDate} onChange={(e) => setPurchaseDate(e.target.value)} w="200px" />
+                  <Input type="number" step="0.01" placeholder="Price" value={price} onChange={(e) => setPrice(e.target.value === '' ? '' : Number(e.target.value))} w="160px" />
+                </HStack>
+                <Textarea placeholder="Notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
+                <HStack>
+                  <Button colorScheme="green" onClick={addRecord} isLoading={loading}>Save Procurement</Button>
+                </HStack>
+              </VStack>
+            </CardBody></Card>
+
+            <Table variant="simple" size="sm">
         <Thead>
           <Tr>
             <Th>Item</Th>
@@ -288,78 +346,150 @@ EXECUTE FUNCTION update_updated_at();`}
             </Tr>
           ))}
         </Tbody>
-      </Table>
+            </Table>
 
-      {/* Procurement analytics and valuation */}
-      <Box mt={6}>
-        <Card mb={4}>
-          <CardBody>
-            <Heading size="md" mb={3}>Procurement Analytics</Heading>
-            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
-              <Box>
-                <Text fontWeight="semibold" mb={2}>Revenue Trend (recent)</Text>
-                {revenueTrend.labels.length > 0 ? (
-                  <Table size="sm" variant="simple">
-                    <Thead><Tr><Th>Date</Th><Th isNumeric>Amount</Th></Tr></Thead>
-                    <Tbody>
-                      {revenueTrend.labels.slice(-12).map((d,i)=> (<Tr key={d}><Td>{d}</Td><Td isNumeric>{(revenueTrend.values[i]||0).toLocaleString('en-IN')}</Td></Tr>))}
-                    </Tbody>
-                  </Table>
-                ) : (
-                  <Text fontSize="sm" color="gray.500">No payment data</Text>
-                )}
-              </Box>
+          </TabPanel>
 
-              <Box>
-                <Text fontWeight="semibold" mb={2}>Expenses by Category</Text>
-                {expensesByCategory.labels.length > 0 ? (
-                  <Table size="sm" variant="simple">
-                    <Thead><Tr><Th>Category</Th><Th isNumeric>Amount</Th></Tr></Thead>
-                    <Tbody>
-                      {expensesByCategory.labels.map((l,idx)=>(<Tr key={l}><Td>{l}</Td><Td isNumeric>{expensesByCategory.values[idx]||0}</Td></Tr>))}
-                    </Tbody>
-                  </Table>
-                ) : (
-                  <Text fontSize="sm" color="gray.500">No expense data</Text>
-                )}
-              </Box>
-            </SimpleGrid>
+          <TabPanel>
+            <Heading size="md" mb={4}>Purchase Orders</Heading>
+            <Card mb={4}><CardBody>
+              <VStack align="stretch">
+                <HStack>
+                  <Input placeholder="Supplier" id="po_supplier" />
+                  <Input placeholder="Items (comma separated)" id="po_items" />
+                  <Input type="date" placeholder="Order date" id="po_date" />
+                  <Input type="date" placeholder="Expected delivery" id="po_expected" />
+                  <Input type="number" placeholder="Total amount" id="po_total" />
+                </HStack>
+                <HStack>
+                  <Button onClick={async ()=>{
+                    const supplierEl = (document.getElementById('po_supplier') as HTMLInputElement);
+                    const itemsEl = (document.getElementById('po_items') as HTMLInputElement);
+                    const dateEl = (document.getElementById('po_date') as HTMLInputElement);
+                    const expectedEl = (document.getElementById('po_expected') as HTMLInputElement);
+                    const totalEl = (document.getElementById('po_total') as HTMLInputElement);
+                    const payload: PurchaseOrder = { supplier: supplierEl?.value||'', items: itemsEl?.value||'', order_date: dateEl?.value||null, expected_delivery: expectedEl?.value||null, total_amount: Number(totalEl?.value||0), status: 'pending' };
+                    try{
+                      const { data, error } = await supabase.from('purchase_orders').insert([payload]).select('*');
+                      if(error) throw error;
+                      await fetchOrders();
+                      toast({ title:'Order saved', status:'success' });
+                    }catch(e:any){ toast({ title:'Failed to save order', description:e?.message||String(e), status:'error' }); }
+                  }} colorScheme="green">Add Order</Button>
+                </HStack>
+              </VStack>
+            </CardBody></Card>
 
-            <Box mt={4}>
-              <Text fontWeight="semibold" mb={2}>Top Suppliers</Text>
-              {topSuppliers.length > 0 ? (
-                <Table size="sm" variant="simple">
-                  <Thead><Tr><Th>Supplier</Th><Th isNumeric>Spend</Th></Tr></Thead>
-                  <Tbody>
-                    {topSuppliers.map(([s,amt])=> (<Tr key={s}><Td>{s}</Td><Td isNumeric>{inr(amt)}</Td></Tr>))}
-                  </Tbody>
-                </Table>
-              ) : (
-                <Text fontSize="sm" color="gray.500">No suppliers yet</Text>
-              )}
-            </Box>
+            <Table size="sm" variant="simple">
+              <Thead><Tr><Th>Supplier</Th><Th>Items</Th><Th>Order Date</Th><Th>Expected</Th><Th isNumeric>Amount</Th><Th>Status</Th></Tr></Thead>
+              <Tbody>
+                {purchaseOrders.map((o) => (<Tr key={o.id}><Td>{o.supplier}</Td><Td>{o.items}</Td><Td>{o.order_date ? new Date(o.order_date).toLocaleDateString() : '-'}</Td><Td>{o.expected_delivery ? new Date(o.expected_delivery).toLocaleDateString() : '-'}</Td><Td isNumeric>{inr(o.total_amount||0)}</Td><Td>{o.status}</Td></Tr>))}
+                {purchaseOrders.length===0 && (<Tr><Td colSpan={6} textAlign="center">No orders</Td></Tr>)}
+              </Tbody>
+            </Table>
+          </TabPanel>
 
-            <Box mt={4}>
-              <Text fontWeight="semibold" mb={2}>Inventory Valuation & Costing</Text>
+          <TabPanel>
+            <Heading size="md" mb={4}>Supplier Invoices</Heading>
+            <Card mb={4}><CardBody>
+              <HStack>
+                <Input placeholder="Invoice #" id="inv_number" />
+                <Input placeholder="Supplier" id="inv_supplier" />
+                <Input type="date" id="inv_date" />
+                <Input type="number" placeholder="Amount" id="inv_amount" />
+                <Select id="inv_status" maxW="160px"><option value="unpaid">Unpaid</option><option value="paid">Paid</option><option value="pending">Pending</option></Select>
+                <Button colorScheme="green" onClick={async ()=>{
+                  const num = (document.getElementById('inv_number') as HTMLInputElement).value;
+                  const sup = (document.getElementById('inv_supplier') as HTMLInputElement).value;
+                  const d = (document.getElementById('inv_date') as HTMLInputElement).value;
+                  const amt = Number((document.getElementById('inv_amount') as HTMLInputElement).value||0);
+                  const st = (document.getElementById('inv_status') as HTMLSelectElement).value as any;
+                  const payload: SupplierInvoice = { invoice_number: num, supplier: sup, date: d||null, amount: amt, status: st };
+                  try{ const { data, error } = await supabase.from('supplier_invoices').insert([payload]).select('*'); if(error) throw error; await fetchInvoices(); toast({ title:'Invoice saved', status:'success' }); }catch(e:any){ toast({ title:'Failed to save', description:e?.message||String(e), status:'error' }); }
+                }}>Add Invoice</Button>
+              </HStack>
+            </CardBody></Card>
+
+            <Table size="sm" variant="simple">
+              <Thead><Tr><Th>Invoice #</Th><Th>Supplier</Th><Th>Date</Th><Th isNumeric>Amount</Th><Th>Status</Th><Th>Actions</Th></Tr></Thead>
+              <Tbody>
+                {invoices.map(inv=> (<Tr key={inv.id}><Td>{inv.invoice_number}</Td><Td>{inv.supplier}</Td><Td>{inv.date ? new Date(inv.date).toLocaleDateString() : '-'}</Td><Td isNumeric>{inr(inv.amount||0)}</Td><Td>{inv.status}</Td><Td><Button size="sm" onClick={async ()=>{ try{ const { data, error } = await supabase.from('supplier_invoices').update({ status: 'paid' }).eq('id', inv.id).select('*'); if(error) throw error; await fetchInvoices(); toast({ title:'Marked paid', status:'success'}); }catch(e:any){ toast({ title:'Failed', description:e?.message||String(e) }); } }}>Mark Paid</Button></Td></Tr>))}
+                {invoices.length===0 && (<Tr><Td colSpan={6} textAlign="center">No invoices</Td></Tr>)}
+              </Tbody>
+            </Table>
+          </TabPanel>
+
+          <TabPanel>
+            <Heading size="md" mb={4}>Purchase Returns & Debit Notes</Heading>
+            <Card mb={4}><CardBody>
+              <HStack>
+                <Input placeholder="Reference ID" id="ret_ref" />
+                <Input placeholder="Supplier" id="ret_supplier" />
+                <Input type="date" id="ret_date" />
+                <Input type="number" placeholder="Amount" id="ret_amount" />
+                <Input placeholder="Reason" id="ret_reason" />
+                <Button colorScheme="green" onClick={async ()=>{ const ref=(document.getElementById('ret_ref') as HTMLInputElement).value; const sup=(document.getElementById('ret_supplier') as HTMLInputElement).value; const d=(document.getElementById('ret_date') as HTMLInputElement).value; const amt=Number((document.getElementById('ret_amount') as HTMLInputElement).value||0); const reason=(document.getElementById('ret_reason') as HTMLInputElement).value; const payload: PurchaseReturn = { reference_id: ref, supplier: sup, date: d||null, amount: amt, reason }; try{ const { data, error } = await supabase.from('purchase_returns').insert([payload]).select('*'); if(error) throw error; await fetchReturns(); toast({ title:'Return saved', status:'success' }); }catch(e:any){ toast({ title:'Failed', description:e?.message||String(e), status:'error' }); } }}>Add Return</Button>
+              </HStack>
+            </CardBody></Card>
+
+            <Table size="sm" variant="simple">
+              <Thead><Tr><Th>Reference</Th><Th>Supplier</Th><Th>Date</Th><Th isNumeric>Amount</Th><Th>Reason</Th></Tr></Thead>
+              <Tbody>
+                {returnsList.map(r=> (<Tr key={r.id}><Td>{r.reference_id}</Td><Td>{r.supplier}</Td><Td>{r.date ? new Date(r.date).toLocaleDateString() : '-'}</Td><Td isNumeric>{inr(r.amount||0)}</Td><Td>{r.reason}</Td></Tr>))}
+                {returnsList.length===0 && (<Tr><Td colSpan={5} textAlign="center">No returns</Td></Tr>)}
+              </Tbody>
+            </Table>
+          </TabPanel>
+
+          <TabPanel>
+            <Heading size="md" mb={4}>Cost per Unit Tracking</Heading>
+            <Card mb={4}><CardBody>
+              <HStack>
+                <Input placeholder="Item name" id="cost_item" />
+                <Input type="number" placeholder="Material cost" id="cost_material" />
+                <Input type="number" placeholder="Logistics cost" id="cost_logistics" />
+                <Button colorScheme="green" onClick={async ()=>{ const name=(document.getElementById('cost_item') as HTMLInputElement).value; const mat=Number((document.getElementById('cost_material') as HTMLInputElement).value||0); const log=Number((document.getElementById('cost_logistics') as HTMLInputElement).value||0); const per = mat + log; const payload: CostEntry = { item_name: name, material_cost: mat, logistics_cost: log, per_unit_cost: per }; try{ const { data, error } = await supabase.from('cost_entries').insert([payload]).select('*'); if(error) throw error; await fetchCostEntries(); toast({ title:'Cost entry saved', status:'success' }); }catch(e:any){ toast({ title:'Failed', description:e?.message||String(e), status:'error' }); } }}>Add Cost</Button>
+              </HStack>
+            </CardBody></Card>
+
+            <Table size="sm" variant="simple">
+              <Thead><Tr><Th>Item</Th><Th isNumeric>Material</Th><Th isNumeric>Logistics</Th><Th isNumeric>Per Unit</Th></Tr></Thead>
+              <Tbody>
+                {costEntries.map(c=> (<Tr key={c.id}><Td>{c.item_name}</Td><Td isNumeric>{inr(c.material_cost||0)}</Td><Td isNumeric>{inr(c.logistics_cost||0)}</Td><Td isNumeric>{inr(c.per_unit_cost||0)}</Td></Tr>))}
+                {costEntries.length===0 && (<Tr><Td colSpan={4} textAlign="center">No cost entries</Td></Tr>)}
+              </Tbody>
+            </Table>
+          </TabPanel>
+
+          <TabPanel>
+            <Heading size="md" mb={4}>Inventory Valuation</Heading>
+            <Card mb={4}><CardBody>
               <HStack spacing={3} mb={3}>
                 <Select value={valuationMethod} onChange={(e)=> setValuationMethod(e.target.value as any)} maxW="160px">
                   <option value="FIFO">FIFO</option>
                   <option value="LIFO">LIFO</option>
                 </Select>
                 <Input type="number" value={logisticsPerUnit} onChange={(e)=> setLogisticsPerUnit(Number(e.target.value||0))} placeholder="Logistics per unit" maxW="180px" />
-                <Button colorScheme="green" onClick={()=>{ computeInventoryValuation(); computeGrossMargin(); }}>Compute</Button>
+                <Button colorScheme="green" onClick={()=>{ computeInventoryValuation(); }}>Compute Valuation</Button>
               </HStack>
+              {inventoryValuationResult && (<Text>Inventory total cost: {inr(inventoryValuationResult.totalCost)} · Per unit cost: {inr(inventoryValuationResult.perUnitCost)}</Text>)}
+            </CardBody></Card>
+          </TabPanel>
 
-              {inventoryValuationResult && (
-                <Text>Inventory total cost: {inr(inventoryValuationResult.totalCost)} · Per unit cost: {inr(inventoryValuationResult.perUnitCost)}</Text>
-              )}
-              {grossMargin && (
-                <Text mt={2}>Gross margin: {grossMargin.margin.toFixed(2)}% (Revenue {inr(grossMargin.revenue)} · Cost {inr(grossMargin.cost)})</Text>
-              )}
-            </Box>
-          </CardBody>
-        </Card>
-      </Box>
+          <TabPanel>
+            <Heading size="md" mb={4}>Analysis & Gross Margin</Heading>
+            <Card mb={4}><CardBody>
+              <VStack align="stretch">
+                <HStack>
+                  <Input type="number" placeholder="Logistics per unit (override)" value={logisticsPerUnit} onChange={(e)=> setLogisticsPerUnit(Number(e.target.value||0))} />
+                  <Button colorScheme="green" onClick={() => computeGrossMargin()}>Compute Gross Margin</Button>
+                </HStack>
+                {grossMargin ? (<Text>Gross margin: {grossMargin.margin.toFixed(2)}% · Revenue: {inr(grossMargin.revenue)} · Cost: {inr(grossMargin.cost)}</Text>) : (<Text color="gray.500">No metrics computed yet</Text>)}
+              </VStack>
+            </CardBody></Card>
+          </TabPanel>
+        </TabPanels>
+      </Tabs>
 
     </Box>
   );
