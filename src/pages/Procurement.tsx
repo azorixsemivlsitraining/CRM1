@@ -611,7 +611,7 @@ EXECUTE FUNCTION update_updated_at();`}
                     <Td>{editingReturn?.id === r.id ? (<Input value={(editingReturn as any)?.reference_id || ''} onChange={(e)=> setEditingReturn(prev => ({ ...(prev as any), reference_id: e.target.value }))} />) : r.reference_id}</Td>
                     <Td>{editingReturn?.id === r.id ? (<Input value={(editingReturn as any)?.supplier || ''} onChange={(e)=> setEditingReturn(prev => ({ ...(prev as any), supplier: e.target.value }))} />) : r.supplier}</Td>
                     <Td>{editingReturn?.id === r.id ? (<Input type="date" value={(editingReturn as any)?.date ? String((editingReturn as any).date).slice(0,10) : ''} onChange={(e)=> setEditingReturn(prev => ({ ...(prev as any), date: e.target.value || null }))} />) : (r.date ? new Date(r.date).toLocaleDateString() : '-')}</Td>
-                    <Td isNumeric>{editingReturn?.id === r.id ? (<Input type="number" value={String(editingReturn.amount || 0)} onChange={(e)=> setEditingReturn(prev => ({ ...(prev as any), amount: Number(e.target.value||0) }))} />) : inr(r.amount||0)}</Td>
+                    <Td isNumeric>{editingReturn?.id === r.id ? (<Input type="number" value={String((editingReturn as any)?.amount || 0)} onChange={(e)=> setEditingReturn(prev => ({ ...(prev as any), amount: Number(e.target.value||0) }))} />) : inr(r.amount||0)}</Td>
                     <Td>{editingReturn?.id === r.id ? (<Input value={(editingReturn as any)?.reason || ''} onChange={(e)=> setEditingReturn(prev => ({ ...(prev as any), reason: e.target.value }))} />) : r.reason}</Td>
                     <Td>
                       {editingReturn?.id === r.id ? (
