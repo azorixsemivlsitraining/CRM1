@@ -162,7 +162,12 @@ const Procurement: React.FC = () => {
     } catch (e:any){ console.warn('fetchCostEntries', e); }
   };
 
-  // Helper actions
+  // Edit states and actions
+  const [editingOrder, setEditingOrder] = useState<PurchaseOrder | null>(null);
+  const [editingInvoice, setEditingInvoice] = useState<SupplierInvoice | null>(null);
+  const [editingReturn, setEditingReturn] = useState<PurchaseReturn | null>(null);
+  const [editingCost, setEditingCost] = useState<CostEntry | null>(null);
+
   const markInvoicePaid = async (id?: string) => {
     if (!id) return;
     try { const { error } = await supabase.from('supplier_invoices').update({ status: 'paid' }).eq('id', id); if (error) throw error; await fetchInvoices(); toast({ title:'Invoice marked paid', status:'success' }); } catch (e:any) { toast({ title:'Failed', description:e?.message||String(e), status:'error' }); }
@@ -175,6 +180,54 @@ const Procurement: React.FC = () => {
   const deleteReturn = async (id?: string) => { if (!id) return; try { const { error } = await supabase.from('purchase_returns').delete().eq('id', id); if (error) throw error; await fetchReturns(); toast({ title:'Return deleted', status:'success' }); } catch (e:any){ toast({ title:'Failed to delete', description:e?.message||String(e), status:'error' }); } };
 
   const deleteCostEntry = async (id?: string) => { if (!id) return; try { const { error } = await supabase.from('cost_entries').delete().eq('id', id); if (error) throw error; await fetchCostEntries(); toast({ title:'Cost entry deleted', status:'success' }); } catch (e:any){ toast({ title:'Failed to delete', description:e?.message||String(e), status:'error' }); } };
+
+  const updateOrder = async (order: PurchaseOrder) => {
+    if (!order?.id) return;
+    try {
+      const payload = { supplier: order.supplier, items: order.items, order_date: order.order_date || null, expected_delivery: order.expected_delivery || null, total_amount: order.total_amount || 0, status: order.status || 'pending' } as any;
+      const { error } = await supabase.from('purchase_orders').update(payload).eq('id', order.id);
+      if (error) throw error;
+      await fetchOrders();
+      setEditingOrder(null);
+      toast({ title: 'Order updated', status: 'success' });
+    } catch (e:any) { toast({ title: 'Failed to update order', description: e?.message || String(e), status: 'error' }); }
+  };
+
+  const updateInvoice = async (inv: SupplierInvoice) => {
+    if (!inv?.id) return;
+    try {
+      const payload = { invoice_number: inv.invoice_number, supplier: inv.supplier, date: inv.date || null, amount: inv.amount || 0, status: inv.status || 'unpaid' } as any;
+      const { error } = await supabase.from('supplier_invoices').update(payload).eq('id', inv.id);
+      if (error) throw error;
+      await fetchInvoices();
+      setEditingInvoice(null);
+      toast({ title: 'Invoice updated', status: 'success' });
+    } catch (e:any) { toast({ title: 'Failed to update invoice', description: e?.message || String(e), status: 'error' }); }
+  };
+
+  const updateReturn = async (ret: PurchaseReturn) => {
+    if (!ret?.id) return;
+    try {
+      const payload = { reference_id: ret.reference_id, supplier: ret.supplier, date: ret.date || null, amount: ret.amount || 0, reason: ret.reason || '' } as any;
+      const { error } = await supabase.from('purchase_returns').update(payload).eq('id', ret.id);
+      if (error) throw error;
+      await fetchReturns();
+      setEditingReturn(null);
+      toast({ title: 'Return updated', status: 'success' });
+    } catch (e:any) { toast({ title: 'Failed to update', description: e?.message || String(e), status: 'error' }); }
+  };
+
+  const updateCostEntry = async (c: CostEntry) => {
+    if (!c?.id) return;
+    try {
+      const payload = { item_name: c.item_name, material_cost: c.material_cost || 0, logistics_cost: c.logistics_cost || 0 } as any;
+      const { error } = await supabase.from('cost_entries').update(payload).eq('id', c.id);
+      if (error) throw error;
+      await fetchCostEntries();
+      setEditingCost(null);
+      toast({ title: 'Cost entry updated', status: 'success' });
+    } catch (e:any) { toast({ title: 'Failed to update', description: e?.message || String(e), status: 'error' }); }
+  };
 
   useEffect(() => {
     // derive top suppliers from procurements
