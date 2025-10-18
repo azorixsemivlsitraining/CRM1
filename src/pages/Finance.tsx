@@ -604,7 +604,11 @@ const Finance: React.FC = () => {
 
   return (
     <Box p={6} maxW="1400px" mx="auto">
-      <Heading as="h1" size="xl" mb={6}>Finance Dashboard</Heading>
+      <Heading as="h1" size="xl" mb={2}>Finance Dashboard</Heading>
+      <HStack mb={4} spacing={3}>
+        <Button size="sm" colorScheme="green" onClick={() => { window.location.href = '#/procurement'; }}>Open Procurement</Button>
+        <Button size="sm" onClick={() => { window.location.href = '#/stock'; }}>Open Warehouse</Button>
+      </HStack>
 
       <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6} mb={6}>
         <Card><CardBody><Stat><StatLabel>Total Outstanding Amount</StatLabel><StatNumber>{inr(totalOutstanding)}</StatNumber><Text fontSize="sm" color="gray.500">From all projects</Text></Stat></CardBody></Card>
