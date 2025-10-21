@@ -124,12 +124,13 @@ const StockWarehouse: React.FC = () => {
       y += 24;
 
       // table header
-      doc.setFont(undefined, 'bold');
+      // jsPDF typings require string; use standard 'helvetica' font family explicitly
+      doc.setFont('helvetica', 'bold');
       doc.text('Item', marginX, y);
       doc.text('Qty', marginX + 240, y);
       doc.text('Location', marginX + 300, y);
       doc.text('Notes', marginX + 420, y);
-      doc.setFont(undefined, 'normal');
+      doc.setFont('helvetica', 'normal');
       y += 10;
       doc.line(marginX, y, 555, y);
       y += 14;
