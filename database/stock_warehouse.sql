@@ -28,8 +28,19 @@ create table if not exists locations (
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
-create index if not exists idx_locations_name on locations(lower(name));
-create trigger trg_locations_updated_at before update on locations for each row execute function update_updated_at();
+
+-- safe index creation for locations.name
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE tablename='locations' AND indexname='idx_locations_name') THEN
+    EXECUTE 'CREATE INDEX idx_locations_name ON locations (lower(name))';
+  END IF;
+END;
+$$;
+
+-- safe trigger for locations
+DROP TRIGGER IF EXISTS trg_locations_updated_at ON locations;
+CREATE TRIGGER trg_locations_updated_at BEFORE UPDATE ON locations FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 -- settings (warehouse area, dispatch time etc.)
 create table if not exists settings (
@@ -53,10 +64,40 @@ create table if not exists stock_warehouse (
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
-create index if not exists idx_stock_sku on stock_warehouse(lower(sku));
-create index if not exists idx_stock_item_name on stock_warehouse(lower(item_name));
-create index if not exists idx_stock_location_id on stock_warehouse(location_id);
-create trigger trg_stock_updated_at before update on stock_warehouse for each row execute function update_updated_at();
+
+-- safe index creation: sku (if column exists)
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='stock_warehouse' AND column_name='sku')
+     AND NOT EXISTS (SELECT 1 FROM pg_indexes WHERE tablename='stock_warehouse' AND indexname='idx_stock_sku') THEN
+    EXECUTE 'CREATE INDEX idx_stock_sku ON stock_warehouse (lower(sku))';
+  END IF;
+END;
+$$;
+
+-- safe index for item_name
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='stock_warehouse' AND column_name='item_name')
+     AND NOT EXISTS (SELECT 1 FROM pg_indexes WHERE tablename='stock_warehouse' AND indexname='idx_stock_item_name') THEN
+    EXECUTE 'CREATE INDEX idx_stock_item_name ON stock_warehouse (lower(item_name))';
+  END IF;
+END;
+$$;
+
+-- safe index for location_id
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='stock_warehouse' AND column_name='location_id')
+     AND NOT EXISTS (SELECT 1 FROM pg_indexes WHERE tablename='stock_warehouse' AND indexname='idx_stock_location_id') THEN
+    EXECUTE 'CREATE INDEX idx_stock_location_id ON stock_warehouse (location_id)';
+  END IF;
+END;
+$$;
+
+-- safe trigger for stock_warehouse
+DROP TRIGGER IF EXISTS trg_stock_updated_at ON stock_warehouse;
+CREATE TRIGGER trg_stock_updated_at BEFORE UPDATE ON stock_warehouse FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 -- procurements (incoming purchases)
 create table if not exists procurements (
@@ -73,8 +114,17 @@ create table if not exists procurements (
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
-create index if not exists idx_procurements_supplier on procurements(lower(supplier));
-create trigger trg_procurements_updated_at before update on procurements for each row execute function update_updated_at();
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE tablename='procurements' AND indexname='idx_procurements_supplier') THEN
+    EXECUTE 'CREATE INDEX idx_procurements_supplier ON procurements (lower(supplier))';
+  END IF;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_procurements_updated_at ON procurements;
+CREATE TRIGGER trg_procurements_updated_at BEFORE UPDATE ON procurements FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 -- purchase_orders
 create table if not exists purchase_orders (
@@ -89,7 +139,9 @@ create table if not exists purchase_orders (
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
-create trigger trg_purchase_orders_updated_at before update on purchase_orders for each row execute function update_updated_at();
+
+DROP TRIGGER IF EXISTS trg_purchase_orders_updated_at ON purchase_orders;
+CREATE TRIGGER trg_purchase_orders_updated_at BEFORE UPDATE ON purchase_orders FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 -- supplier_invoices
 create table if not exists supplier_invoices (
@@ -104,8 +156,17 @@ create table if not exists supplier_invoices (
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
-create index if not exists idx_invoices_number on supplier_invoices(lower(invoice_number));
-create trigger trg_supplier_invoices_updated_at before update on supplier_invoices for each row execute function update_updated_at();
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE tablename='supplier_invoices' AND indexname='idx_invoices_number') THEN
+    EXECUTE 'CREATE INDEX idx_invoices_number ON supplier_invoices (lower(invoice_number))';
+  END IF;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_supplier_invoices_updated_at ON supplier_invoices;
+CREATE TRIGGER trg_supplier_invoices_updated_at BEFORE UPDATE ON supplier_invoices FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 -- purchase_returns
 create table if not exists purchase_returns (
@@ -119,7 +180,9 @@ create table if not exists purchase_returns (
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
-create trigger trg_purchase_returns_updated_at before update on purchase_returns for each row execute function update_updated_at();
+
+DROP TRIGGER IF EXISTS trg_purchase_returns_updated_at ON purchase_returns;
+CREATE TRIGGER trg_purchase_returns_updated_at BEFORE UPDATE ON purchase_returns FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 -- logistics (shipments)
 create table if not exists logistics (
@@ -137,8 +200,17 @@ create table if not exists logistics (
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
-create index if not exists idx_logistics_tracking on logistics(lower(tracking_number));
-create trigger trg_logistics_updated_at before update on logistics for each row execute function update_updated_at();
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE tablename='logistics' AND indexname='idx_logistics_tracking') THEN
+    EXECUTE 'CREATE INDEX idx_logistics_tracking ON logistics (lower(tracking_number))';
+  END IF;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_logistics_updated_at ON logistics;
+CREATE TRIGGER trg_logistics_updated_at BEFORE UPDATE ON logistics FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 -- cost entries (per-unit costing)
 create table if not exists cost_entries (
@@ -152,8 +224,20 @@ create table if not exists cost_entries (
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
-create index if not exists idx_cost_sku on cost_entries(lower(sku));
-create trigger trg_cost_entries_updated_at before update on cost_entries for each row execute function update_updated_at();
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE tablename='cost_entries' AND indexname='idx_cost_sku') THEN
+    -- only create if column exists
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='cost_entries' AND column_name='sku') THEN
+      EXECUTE 'CREATE INDEX idx_cost_sku ON cost_entries (lower(sku))';
+    END IF;
+  END IF;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_cost_entries_updated_at ON cost_entries;
+CREATE TRIGGER trg_cost_entries_updated_at BEFORE UPDATE ON cost_entries FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 -- modules/inventory details
 create table if not exists modules_inventory (
@@ -168,21 +252,28 @@ create table if not exists modules_inventory (
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
-create index if not exists idx_modules_sku on modules_inventory(lower(sku));
-create trigger trg_modules_inventory_updated_at before update on modules_inventory for each row execute function update_updated_at();
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE tablename='modules_inventory' AND indexname='idx_modules_sku') THEN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='modules_inventory' AND column_name='sku') THEN
+      EXECUTE 'CREATE INDEX idx_modules_sku ON modules_inventory (lower(sku))';
+    END IF;
+  END IF;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_modules_inventory_updated_at ON modules_inventory;
+CREATE TRIGGER trg_modules_inventory_updated_at BEFORE UPDATE ON modules_inventory FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 -- Useful SELECT queries / analytics
+-- (commented examples below - run as needed)
 
 -- quick stats
--- select coalesce(sum(quantity),0) as total_units, count(distinct lower(coalesce(sku,item_name))) as unique_skus
--- from stock_warehouse;
+-- select coalesce(sum(quantity),0) as total_units, count(distinct lower(coalesce(sku,item_name))) as unique_skus from stock_warehouse;
 
 -- stock by location
--- select l.name as location, coalesce(sum(s.quantity),0) as total_units
--- from locations l
--- left join stock_warehouse s on s.location_id = l.id
--- group by l.name
--- order by total_units desc;
+-- select l.name as location, coalesce(sum(s.quantity),0) as total_units from locations l left join stock_warehouse s on s.location_id = l.id group by l.name order by total_units desc;
 
 -- items ready to ship (quantity > 0)
 -- select * from stock_warehouse where quantity > 0 order by quantity desc limit 200;
@@ -191,10 +282,7 @@ create trigger trg_modules_inventory_updated_at before update on modules_invento
 -- select * from stock_warehouse where quantity <= 10 order by quantity asc;
 
 -- SKU summary with last updated
--- select coalesce(sku,item_name) as sku_or_name, sum(quantity) as total_qty, max(updated_at) as last_update
--- from stock_warehouse
--- group by coalesce(sku,item_name)
--- order by total_qty desc;
+-- select coalesce(sku,item_name) as sku_or_name, sum(quantity) as total_qty, max(updated_at) as last_update from stock_warehouse group by coalesce(sku,item_name) order by total_qty desc;
 
 -- procurement recent (last 30 days)
 -- select * from procurements where purchase_date >= current_date - interval '30 days' order by purchase_date desc;
@@ -213,8 +301,7 @@ create trigger trg_modules_inventory_updated_at before update on modules_invento
 -- select value from settings where key = 'dispatch_time';
 
 -- Example seed inserts
--- insert into locations (name, address, city, state, contact_email)
--- values ('Hyderabad Warehouse','Some address, Hyderabad','Hyderabad','Telangana','logistics@axisogreen.in');
+-- insert into locations (name, address, city, state, contact_email) values ('Hyderabad Warehouse','Some address, Hyderabad','Hyderabad','Telangana','logistics@axisogreen.in');
 
 -- insert into settings (key, value) values ('warehouse_area_sqft','20000') on conflict (key) do update set value = excluded.value;
 -- insert into settings (key, value) values ('dispatch_time','Same-day / 24 hrs') on conflict (key) do update set value = excluded.value;
