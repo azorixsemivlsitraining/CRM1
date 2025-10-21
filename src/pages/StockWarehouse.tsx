@@ -277,7 +277,6 @@ const StockWarehouse: React.FC = () => {
                 </SimpleGrid>
                 <HStack pt={2} spacing={6}>
                   <Text>Email: <Link href="mailto:logistics@axisogreen.in" color="green.600">logistics@axisogreen.in</Link></Text>
-                  <Text>Phone: <Link href="tel:+910000000000" color="green.600">+91 00000 00000</Link></Text>
                 </HStack>
               </VStack>
             </CardBody></Card>
