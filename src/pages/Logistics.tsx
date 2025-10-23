@@ -1319,7 +1319,7 @@ const LogisticsShipmentsTab = () => {
         tracking_no: tracking || null,
       };
       const { data, error } = await supabase.from('logistics').update(payload).eq('id', editing.id).select('*');
-      if (error) throw error as any;
+      if (error) throw new Error(error.message || 'Failed to update shipment');
       setRows(rows.map(r => (r.id === editing.id ? (data as any)[0] : r)));
       setEditing(null);
       setItem('');
