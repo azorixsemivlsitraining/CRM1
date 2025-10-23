@@ -1281,7 +1281,8 @@ const LogisticsShipmentsTab = () => {
       setNotes('');
       toast({ title: 'Shipment added', status: 'success', duration: 2000, isClosable: true });
     } catch (e: any) {
-      toast({ title: 'Failed to add shipment', description: e?.message || String(e), status: 'error', duration: 4000, isClosable: true });
+      const errorMsg = e instanceof Error ? e.message : String(e);
+      toast({ title: 'Failed to add shipment', description: errorMsg, status: 'error', duration: 4000, isClosable: true });
     } finally {
       setLoading(false);
     }
