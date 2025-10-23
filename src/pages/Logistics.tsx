@@ -40,8 +40,8 @@ import {
   IconButton,
 } from '@chakra-ui/react';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { supabase } from '../lib/supabase';
 import { DeleteIcon, EditIcon } from '@chakra-ui/icons';
+import { supabase } from '../lib/supabase';
 
 interface LogisticsRecord {
   id: string;
@@ -82,7 +82,6 @@ interface Partner {
   email: string;
   phone: string;
   location: string;
-  bulk_order_id?: string;
   distribution_area: string;
   partnership_date: string;
   status: 'Active' | 'Inactive' | 'Pending';
@@ -105,15 +104,6 @@ interface BulkOrder {
 const COLORS = ['#10b981', '#f59e0b', '#ef4444', '#3b82f6', '#8b5cf6'];
 
 const LogisticsMetrics = () => {
-  const [metrics, setMetrics] = useState({
-    deliverySuccessRate: 94,
-    avgDeliveryTime: 3.2,
-    inventoryTurnover: 12.5,
-    totalDeliveries: 1250,
-    activePartners: 45,
-    totalDealers: 89,
-  });
-
   const deliveryTrendData = [
     { week: 'Week 1', success: 90, failed: 10 },
     { week: 'Week 2', success: 92, failed: 8 },
@@ -176,12 +166,12 @@ const LogisticsMetrics = () => {
       <Heading size="md">Performance Metrics & KPIs</Heading>
 
       <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
-        <AnimatedCounter end={metrics.deliverySuccessRate} label="Delivery Success Rate" unit="%" />
-        <AnimatedCounter end={metrics.avgDeliveryTime} label="Avg Delivery Time (Days)" unit="" />
-        <AnimatedCounter end={metrics.inventoryTurnover} label="Inventory Turnover Rate" unit="x" />
-        <AnimatedCounter end={metrics.totalDeliveries} label="Total Deliveries" unit="" />
-        <AnimatedCounter end={metrics.activePartners} label="Active Partners" unit="" />
-        <AnimatedCounter end={metrics.totalDealers} label="Total Dealers" unit="" />
+        <AnimatedCounter end={94} label="Delivery Success Rate" unit="%" />
+        <AnimatedCounter end={3.2} label="Avg Delivery Time (Days)" unit="" />
+        <AnimatedCounter end={12.5} label="Inventory Turnover Rate" unit="x" />
+        <AnimatedCounter end={1250} label="Total Deliveries" unit="" />
+        <AnimatedCounter end={45} label="Active Partners" unit="" />
+        <AnimatedCounter end={89} label="Total Dealers" unit="" />
       </SimpleGrid>
 
       <Heading size="md" mt={6}>
@@ -254,13 +244,11 @@ const LogisticsMetrics = () => {
 };
 
 const DistributionNetworkTab = () => {
-  const [locations, setLocations] = useState([
+  const locations = [
     {
       id: '1',
       location: 'New Delhi',
       region: 'North',
-      lat: 28.7041,
-      lng: 77.1025,
       capacity: 500,
       currentStock: 350,
       status: 'Active',
@@ -269,8 +257,6 @@ const DistributionNetworkTab = () => {
       id: '2',
       location: 'Mumbai',
       region: 'West',
-      lat: 19.0760,
-      lng: 72.8777,
       capacity: 600,
       currentStock: 420,
       status: 'Active',
@@ -279,8 +265,6 @@ const DistributionNetworkTab = () => {
       id: '3',
       location: 'Bangalore',
       region: 'South',
-      lat: 12.9716,
-      lng: 77.5946,
       capacity: 550,
       currentStock: 380,
       status: 'Active',
@@ -289,13 +273,11 @@ const DistributionNetworkTab = () => {
       id: '4',
       location: 'Kolkata',
       region: 'East',
-      lat: 22.5726,
-      lng: 88.3639,
       capacity: 400,
       currentStock: 290,
       status: 'Active',
     },
-  ]);
+  ];
 
   return (
     <VStack align="stretch" spacing={6}>
@@ -431,7 +413,7 @@ const PartnerPortalTab = () => {
     notes: '',
   });
 
-  const fetchPartners = async () => {
+  const fetchPartners = React.useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('partners')
@@ -442,16 +424,16 @@ const PartnerPortalTab = () => {
           setTableMissing(true);
           return;
         }
-        throw error;
+        throw new Error(error.message || 'Failed to fetch partners');
       }
       setPartners((data as Partner[]) || []);
     } catch (e: any) {
       const errorMsg = e instanceof Error ? e.message : String(e);
       toast({ title: 'Failed to load partners', description: errorMsg, status: 'error', duration: 4000, isClosable: true });
     }
-  };
+  }, [toast]);
 
-  const fetchBulkOrders = async () => {
+  const fetchBulkOrders = React.useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('bulk_orders')
@@ -459,14 +441,14 @@ const PartnerPortalTab = () => {
         .order('order_date', { ascending: false });
       if (error) {
         if ((error as any).code === 'PGRST116') return;
-        throw error;
+        throw new Error(error.message || 'Failed to fetch orders');
       }
       setBulkOrders((data as BulkOrder[]) || []);
     } catch (e: any) {
       const errorMsg = e instanceof Error ? e.message : String(e);
       toast({ title: 'Failed to load orders', description: errorMsg, status: 'error', duration: 4000, isClosable: true });
     }
-  };
+  }, [toast]);
 
   const handleSavePartner = async () => {
     try {
@@ -587,7 +569,7 @@ const PartnerPortalTab = () => {
   useEffect(() => {
     fetchPartners();
     fetchBulkOrders();
-  }, [toast]);
+  }, [fetchPartners, fetchBulkOrders]);
 
   if (tableMissing) {
     return (
@@ -919,7 +901,7 @@ const DealerRegistrationTab = () => {
     status: 'Pending' as const,
   });
 
-  const fetchDealers = async () => {
+  const fetchDealers = React.useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('dealers')
@@ -937,7 +919,7 @@ const DealerRegistrationTab = () => {
       const errorMsg = e instanceof Error ? e.message : String(e);
       toast({ title: 'Failed to load dealers', description: errorMsg, status: 'error', duration: 4000, isClosable: true });
     }
-  };
+  }, [toast]);
 
   const handleSaveDealer = async () => {
     try {
@@ -1002,7 +984,7 @@ const DealerRegistrationTab = () => {
 
   useEffect(() => {
     fetchDealers();
-  }, [toast]);
+  }, [fetchDealers]);
 
   if (tableMissing) {
     return (
@@ -1221,7 +1203,7 @@ const LogisticsShipmentsTab = () => {
   const [editing, setEditing] = useState<LogisticsRecord | null>(null);
   const toast = useToast();
 
-  const fetchRows = async () => {
+  const fetchRows = React.useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('logistics')
@@ -1240,7 +1222,7 @@ const LogisticsShipmentsTab = () => {
       const errorMsg = e instanceof Error ? e.message : String(e);
       toast({ title: 'Failed to load logistics', description: errorMsg, status: 'error', duration: 4000, isClosable: true });
     }
-  };
+  }, [toast]);
 
   const addRow = async () => {
     try {
@@ -1357,7 +1339,7 @@ const LogisticsShipmentsTab = () => {
 
   useEffect(() => {
     fetchRows();
-  }, [toast]);
+  }, [fetchRows]);
 
   if (tableMissing) {
     return (
