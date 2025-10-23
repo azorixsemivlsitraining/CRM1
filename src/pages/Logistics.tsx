@@ -1348,13 +1348,14 @@ const LogisticsShipmentsTab = () => {
       setRows(rows.filter(r => r.id !== id));
       toast({ title: 'Deleted', status: 'success', duration: 2000, isClosable: true });
     } catch (e: any) {
-      toast({ title: 'Failed to delete', description: e?.message || String(e), status: 'error', duration: 4000, isClosable: true });
+      const errorMsg = e instanceof Error ? e.message : String(e);
+      toast({ title: 'Failed to delete', description: errorMsg, status: 'error', duration: 4000, isClosable: true });
     }
   };
 
   useEffect(() => {
     fetchRows();
-  }, []);
+  }, [toast]);
 
   if (tableMissing) {
     return (
