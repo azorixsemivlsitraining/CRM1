@@ -1232,11 +1232,12 @@ const LogisticsShipmentsTab = () => {
           setTableMissing(true);
           return;
         }
-        throw error as any;
+        throw new Error(error.message || 'Failed to fetch logistics');
       }
       setRows((data as any) || []);
     } catch (e: any) {
-      toast({ title: 'Failed to load logistics', description: e?.message || String(e), status: 'error', duration: 4000, isClosable: true });
+      const errorMsg = e instanceof Error ? e.message : String(e);
+      toast({ title: 'Failed to load logistics', description: errorMsg, status: 'error', duration: 4000, isClosable: true });
     }
   };
 
