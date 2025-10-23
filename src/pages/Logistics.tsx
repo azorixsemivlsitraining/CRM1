@@ -445,7 +445,8 @@ const PartnerPortalTab = () => {
       }
       setPartners((data as Partner[]) || []);
     } catch (e: any) {
-      toast({ title: 'Failed to load partners', description: e?.message, status: 'error', duration: 4000, isClosable: true });
+      const errorMsg = e instanceof Error ? e.message : String(e);
+      toast({ title: 'Failed to load partners', description: errorMsg, status: 'error', duration: 4000, isClosable: true });
     }
   };
 
@@ -461,7 +462,8 @@ const PartnerPortalTab = () => {
       }
       setBulkOrders((data as BulkOrder[]) || []);
     } catch (e: any) {
-      toast({ title: 'Failed to load orders', description: e?.message, status: 'error', duration: 4000, isClosable: true });
+      const errorMsg = e instanceof Error ? e.message : String(e);
+      toast({ title: 'Failed to load orders', description: errorMsg, status: 'error', duration: 4000, isClosable: true });
     }
   };
 
@@ -486,7 +488,7 @@ const PartnerPortalTab = () => {
           .from('partners')
           .insert([formData])
           .select('*');
-        if (error) throw error;
+        if (error) throw new Error(error.message || 'Failed to add partner');
         setPartners([...(data as Partner[]), ...partners]);
         toast({ title: 'Partner added', status: 'success', duration: 2000, isClosable: true });
       }
@@ -504,7 +506,8 @@ const PartnerPortalTab = () => {
       });
       onPartnerClose();
     } catch (e: any) {
-      toast({ title: 'Error', description: e?.message, status: 'error', duration: 4000, isClosable: true });
+      const errorMsg = e instanceof Error ? e.message : String(e);
+      toast({ title: 'Error', description: errorMsg, status: 'error', duration: 4000, isClosable: true });
     } finally {
       setLoading(false);
     }
@@ -531,7 +534,7 @@ const PartnerPortalTab = () => {
           .from('bulk_orders')
           .insert([orderFormData])
           .select('*');
-        if (error) throw error;
+        if (error) throw new Error(error.message || 'Failed to create order');
         setBulkOrders([...(data as BulkOrder[]), ...bulkOrders]);
         toast({ title: 'Order created', status: 'success', duration: 2000, isClosable: true });
       }
@@ -549,7 +552,8 @@ const PartnerPortalTab = () => {
       });
       onOrderClose();
     } catch (e: any) {
-      toast({ title: 'Error', description: e?.message, status: 'error', duration: 4000, isClosable: true });
+      const errorMsg = e instanceof Error ? e.message : String(e);
+      toast({ title: 'Error', description: errorMsg, status: 'error', duration: 4000, isClosable: true });
     } finally {
       setLoading(false);
     }
@@ -558,29 +562,31 @@ const PartnerPortalTab = () => {
   const deletePartner = async (id: string) => {
     try {
       const { error } = await supabase.from('partners').delete().eq('id', id);
-      if (error) throw error;
+      if (error) throw new Error(error.message || 'Failed to delete partner');
       setPartners(partners.filter(p => p.id !== id));
       toast({ title: 'Partner deleted', status: 'success', duration: 2000, isClosable: true });
     } catch (e: any) {
-      toast({ title: 'Error', description: e?.message, status: 'error', duration: 4000, isClosable: true });
+      const errorMsg = e instanceof Error ? e.message : String(e);
+      toast({ title: 'Error', description: errorMsg, status: 'error', duration: 4000, isClosable: true });
     }
   };
 
   const deleteOrder = async (id: string) => {
     try {
       const { error } = await supabase.from('bulk_orders').delete().eq('id', id);
-      if (error) throw error;
+      if (error) throw new Error(error.message || 'Failed to delete order');
       setBulkOrders(bulkOrders.filter(o => o.id !== id));
       toast({ title: 'Order deleted', status: 'success', duration: 2000, isClosable: true });
     } catch (e: any) {
-      toast({ title: 'Error', description: e?.message, status: 'error', duration: 4000, isClosable: true });
+      const errorMsg = e instanceof Error ? e.message : String(e);
+      toast({ title: 'Error', description: errorMsg, status: 'error', duration: 4000, isClosable: true });
     }
   };
 
   useEffect(() => {
     fetchPartners();
     fetchBulkOrders();
-  }, []);
+  }, [toast]);
 
   if (tableMissing) {
     return (
@@ -923,11 +929,12 @@ const DealerRegistrationTab = () => {
           setTableMissing(true);
           return;
         }
-        throw error;
+        throw new Error(error.message || 'Failed to fetch dealers');
       }
       setDealers((data as Dealer[]) || []);
     } catch (e: any) {
-      toast({ title: 'Failed to load dealers', description: e?.message, status: 'error', duration: 4000, isClosable: true });
+      const errorMsg = e instanceof Error ? e.message : String(e);
+      toast({ title: 'Failed to load dealers', description: errorMsg, status: 'error', duration: 4000, isClosable: true });
     }
   };
 
@@ -944,7 +951,7 @@ const DealerRegistrationTab = () => {
           .from('dealers')
           .update(formData)
           .eq('id', formData.id);
-        if (error) throw error;
+        if (error) throw new Error(error.message || 'Failed to update dealer');
         setDealers(dealers.map(d => (d.id === formData.id ? (formData as Dealer) : d)));
         toast({ title: 'Dealer updated', status: 'success', duration: 2000, isClosable: true });
       } else {
@@ -952,7 +959,7 @@ const DealerRegistrationTab = () => {
           .from('dealers')
           .insert([formData])
           .select('*');
-        if (error) throw error;
+        if (error) throw new Error(error.message || 'Failed to register dealer');
         setDealers([...(data as Dealer[]), ...dealers]);
         toast({ title: 'Dealer registered', status: 'success', duration: 2000, isClosable: true });
       }
@@ -973,7 +980,8 @@ const DealerRegistrationTab = () => {
       });
       onClose();
     } catch (e: any) {
-      toast({ title: 'Error', description: e?.message, status: 'error', duration: 4000, isClosable: true });
+      const errorMsg = e instanceof Error ? e.message : String(e);
+      toast({ title: 'Error', description: errorMsg, status: 'error', duration: 4000, isClosable: true });
     } finally {
       setLoading(false);
     }
@@ -982,17 +990,18 @@ const DealerRegistrationTab = () => {
   const deleteDealer = async (id: string) => {
     try {
       const { error } = await supabase.from('dealers').delete().eq('id', id);
-      if (error) throw error;
+      if (error) throw new Error(error.message || 'Failed to delete dealer');
       setDealers(dealers.filter(d => d.id !== id));
       toast({ title: 'Dealer deleted', status: 'success', duration: 2000, isClosable: true });
     } catch (e: any) {
-      toast({ title: 'Error', description: e?.message, status: 'error', duration: 4000, isClosable: true });
+      const errorMsg = e instanceof Error ? e.message : String(e);
+      toast({ title: 'Error', description: errorMsg, status: 'error', duration: 4000, isClosable: true });
     }
   };
 
   useEffect(() => {
     fetchDealers();
-  }, []);
+  }, [toast]);
 
   if (tableMissing) {
     return (
