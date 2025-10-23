@@ -480,7 +480,7 @@ const PartnerPortalTab = () => {
           .from('partners')
           .update(formData)
           .eq('id', formData.id);
-        if (error) throw error;
+        if (error) throw new Error(error.message || 'Failed to update partner');
         setPartners(partners.map(p => (p.id === formData.id ? (formData as Partner) : p)));
         toast({ title: 'Partner updated', status: 'success', duration: 2000, isClosable: true });
       } else {
@@ -526,7 +526,7 @@ const PartnerPortalTab = () => {
           .from('bulk_orders')
           .update(orderFormData)
           .eq('id', orderFormData.id);
-        if (error) throw error;
+        if (error) throw new Error(error.message || 'Failed to update order');
         setBulkOrders(bulkOrders.map(o => (o.id === orderFormData.id ? (orderFormData as BulkOrder) : o)));
         toast({ title: 'Order updated', status: 'success', duration: 2000, isClosable: true });
       } else {
