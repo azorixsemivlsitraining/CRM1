@@ -1334,7 +1334,8 @@ const LogisticsShipmentsTab = () => {
       setNotes('');
       toast({ title: 'Updated', status: 'success', duration: 2000, isClosable: true });
     } catch (e: any) {
-      toast({ title: 'Failed to update', description: e?.message || String(e), status: 'error', duration: 4000, isClosable: true });
+      const errorMsg = e instanceof Error ? e.message : String(e);
+      toast({ title: 'Failed to update', description: errorMsg, status: 'error', duration: 4000, isClosable: true });
     } finally {
       setLoading(false);
     }
@@ -1343,7 +1344,7 @@ const LogisticsShipmentsTab = () => {
   const deleteRow = async (id: string) => {
     try {
       const { error } = await supabase.from('logistics').delete().eq('id', id);
-      if (error) throw error as any;
+      if (error) throw new Error(error.message || 'Failed to delete shipment');
       setRows(rows.filter(r => r.id !== id));
       toast({ title: 'Deleted', status: 'success', duration: 2000, isClosable: true });
     } catch (e: any) {
