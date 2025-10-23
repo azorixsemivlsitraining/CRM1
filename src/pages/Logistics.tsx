@@ -1266,7 +1266,7 @@ const LogisticsShipmentsTab = () => {
         tracking_no: tracking || null,
       } as any;
       const { data, error } = await supabase.from('logistics').insert([payload]).select('*');
-      if (error) throw error as any;
+      if (error) throw new Error(error.message || 'Failed to add shipment');
       setRows([...(rows || []), ...(data as any)]);
       setDateVal(new Date().toISOString().slice(0, 10));
       setItem('');
