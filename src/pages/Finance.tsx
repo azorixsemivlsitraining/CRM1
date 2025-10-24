@@ -2414,20 +2414,6 @@ const Finance: React.FC = () => {
                               </CardBody>
                             </Card>
                           ))}
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            colorScheme="green"
-                            width="full"
-                            onClick={() => {
-                              setTaxInvoiceForm({
-                                ...taxInvoiceForm,
-                                items: [...taxInvoiceForm.items, { description: '', hsn: '', quantity: 1, rate: 0, cgst_percent: 9, sgst_percent: 9 }],
-                              });
-                            }}
-                          >
-                            + Add Another Item
-                          </Button>
                         </Box>
 
                         <Button
