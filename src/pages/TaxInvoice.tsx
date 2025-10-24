@@ -59,6 +59,9 @@ interface InvoiceItem {
 
 interface TaxInvoiceData {
   id?: string;
+  customer_name: string;
+  state: string;
+  place_of_supply: string;
   gst_number: string;
   invoice_number: string;
   invoice_date: string;
@@ -67,7 +70,6 @@ interface TaxInvoiceData {
   bill_to_gst: string;
   ship_to_name: string;
   ship_to_address: string;
-  place_of_supply: string;
   items: InvoiceItem[];
   notes: string;
   terms_and_conditions: string;
@@ -468,6 +470,9 @@ const TaxInvoice: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [formData, setFormData] = useState<TaxInvoiceData>({
+    customer_name: '',
+    state: 'Telangana',
+    place_of_supply: 'Telangana (36)',
     gst_number: '',
     invoice_number: '',
     invoice_date: new Date().toISOString().split('T')[0],
@@ -476,7 +481,6 @@ const TaxInvoice: React.FC = () => {
     bill_to_gst: '',
     ship_to_name: '',
     ship_to_address: '',
-    place_of_supply: 'Telangana (36)',
     items: [{ id: '1', hsn_code: '708541', quantity: 1, rate: 0, cgst_rate: 9, sgst_rate: 9 }],
     notes: '',
     terms_and_conditions: 'Warranty: 3 Years against Manufacturing Defects. 25 Years linear Power Warranty on Solar Modules.',
@@ -525,6 +529,9 @@ const TaxInvoice: React.FC = () => {
     const gstNumber = await getNextGSTNumber();
     const invoiceNumber = await getNextInvoiceNumber();
     setFormData({
+      customer_name: '',
+      state: 'Telangana',
+      place_of_supply: 'Telangana (36)',
       gst_number: gstNumber,
       invoice_number: invoiceNumber,
       invoice_date: new Date().toISOString().split('T')[0],
@@ -533,7 +540,6 @@ const TaxInvoice: React.FC = () => {
       bill_to_gst: '',
       ship_to_name: '',
       ship_to_address: '',
-      place_of_supply: 'Telangana (36)',
       items: [{ id: '1', hsn_code: '708541', quantity: 1, rate: 0, cgst_rate: 9, sgst_rate: 9 }],
       notes: '',
       terms_and_conditions: 'Warranty: 3 Years against Manufacturing Defects. 25 Years linear Power Warranty on Solar Modules.',
