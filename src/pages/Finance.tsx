@@ -1050,6 +1050,9 @@ const Finance: React.FC = () => {
           expensesData = [];
         }
         setExpenses(expensesData);
+
+        await fetchEstimations();
+        await fetchTaxInvoices();
       } catch (error) {
         console.error('Error fetching finance data:', error);
         toast({ title: 'Error', description: 'Failed to fetch financial data', status: 'error', duration: 5000, isClosable: true });
