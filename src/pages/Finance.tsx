@@ -319,6 +319,524 @@ const Finance: React.FC = () => {
 
   const authorized = isAuthenticated && (isFinance || isAdmin);
 
+  const getNextGstNo = async (): Promise<string> => {
+    try {
+      const { data } = await supabase
+        .from('tax_invoices')
+        .select('gst_no')
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (data && data.length > 0) {
+        const lastGstNo = data[0].gst_no;
+        const match = lastGstNo.match(/IN-(\d+)/);
+        if (match) {
+          const nextNum = parseInt(match[1]) + 1;
+          return `IN-${String(nextNum).padStart(6, '0')}`;
+        }
+      }
+      return 'IN-000001';
+    } catch {
+      return 'IN-000001';
+    }
+  };
+
+  const handleAddEstimation = async () => {
+    if (!estimationForm.customerName || !estimationForm.description || !estimationForm.serviceNo || !estimationForm.estimatedCost) {
+      toast({
+        title: 'Missing Fields',
+        description: 'Please fill all estimation fields.',
+        status: 'warning',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    try {
+      setEstimationLoading(true);
+      const { error } = await supabase.from('estimation_costs').insert([{
+        customer_name: estimationForm.customerName,
+        description: estimationForm.description,
+        service_no: estimationForm.serviceNo,
+        estimated_cost: parseFloat(estimationForm.estimatedCost),
+      }]);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Success',
+        description: 'Estimation cost added successfully.',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+
+      setEstimationForm({ customerName: '', description: '', serviceNo: '', estimatedCost: '' });
+      await fetchEstimations();
+    } catch (error) {
+      console.error('Error adding estimation:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to add estimation cost.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setEstimationLoading(false);
+    }
+  };
+
+  const fetchEstimations = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('estimation_costs')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setEstimations((data || []) as EstimationCost[]);
+    } catch (error) {
+      console.error('Error fetching estimations:', error);
+    }
+  };
+
+  const downloadEstimationPDF = async (estimation: EstimationCost) => {
+    try {
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const BRAND_PRIMARY = { r: 72, g: 187, b: 120 };
+      const TEXT_PRIMARY = { r: 45, g: 55, b: 72 };
+      const TEXT_MUTED = { r: 99, g: 110, b: 114 };
+
+      const margin = 18;
+      const pageWidth = doc.internal.pageSize.width;
+
+      doc.setFillColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
+      doc.rect(0, 0, pageWidth, 9, 'F');
+
+      try {
+        const { dataUrl: logoData, aspectRatio: logoRatio } = await fetchImageAsset(LOGO_URL);
+        const logoWidth = 68;
+        const logoHeight = logoWidth * logoRatio;
+        doc.addImage(logoData, 'PNG', pageWidth - margin - logoWidth, margin - 8, logoWidth, logoHeight, undefined, 'FAST');
+      } catch (err) {
+        console.error('Logo image error:', err);
+      }
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
+      doc.text('AXISO GREEN ENERGIES PRIVATE LIMITED', margin, 21);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9.5);
+      doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
+      doc.text('Sustainable Energy Solutions for a Greener Tomorrow', margin, 26);
+
+      const companyLines = [
+        'Address: PLOT NO-102,103, TEMPLE LANE MYTHRI NAGAR',
+        'Shri Ambika Vidya Mandir, MATHRUSRINAGAR, SERLINGAMPALLY',
+        'Hyderabad, Rangareddy, Telangana, 500049',
+        'Email: contact@axisogreen.in | Website: www.axisogreen.in',
+        'GSTIN: 36ABBCA4478M1Z9',
+      ];
+      doc.setFontSize(8.5);
+      companyLines.forEach((line, index) => {
+        doc.text(line, margin, 32 + index * 4);
+      });
+
+      doc.setDrawColor(230, 230, 230);
+      doc.line(margin, 55, pageWidth - margin, 55);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(16);
+      doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
+      doc.text('ESTIMATION COST', pageWidth / 2, 68, { align: 'center' });
+
+      let y = 80;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
+
+      doc.text('Customer Name:', margin, y);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+      doc.text(estimation.customer_name, margin + 50, y);
+
+      y += 8;
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
+      doc.text('Service No:', margin, y);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+      doc.text(estimation.service_no, margin + 50, y);
+
+      y += 8;
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
+      doc.text('Date:', margin, y);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+      const estDate = estimation.created_at ? new Date(estimation.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' }) : new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
+      doc.text(estDate, margin + 50, y);
+
+      y += 16;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+      doc.text('Description:', margin, y);
+
+      y += 6;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+      const wrappedDescription = doc.splitTextToSize(estimation.description, pageWidth - margin * 2);
+      doc.text(wrappedDescription, margin, y);
+
+      y += wrappedDescription.length * 5 + 10;
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
+      doc.text('Estimated Cost: ₹' + estimation.estimated_cost.toLocaleString('en-IN'), margin, y);
+
+      const words = convertNumberToWords(estimation.estimated_cost);
+      y += 10;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
+      doc.text('Amount in Words:', margin, y);
+      y += 5;
+      const amountText = `Indian Rupee ${words} Only`;
+      doc.setFont('helvetica', 'bold');
+      const wrappedAmount = doc.splitTextToSize(amountText, pageWidth - margin * 2);
+      doc.text(wrappedAmount, margin, y);
+
+      doc.save(`Estimation_${estimation.id}.pdf`);
+    } catch (error) {
+      console.error('Error generating estimation PDF:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to generate estimation PDF',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const handleAddTaxInvoice = async () => {
+    if (!taxInvoiceForm.customer_name || !taxInvoiceForm.place_of_supply || !taxInvoiceForm.state || !taxInvoiceForm.items.length) {
+      toast({
+        title: 'Missing Fields',
+        description: 'Please fill all tax invoice fields.',
+        status: 'warning',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    try {
+      setTaxInvoiceLoading(true);
+      const nextGstNo = await getNextGstNo();
+
+      const { error } = await supabase.from('tax_invoices').insert([{
+        customer_name: taxInvoiceForm.customer_name,
+        place_of_supply: taxInvoiceForm.place_of_supply,
+        state: taxInvoiceForm.state,
+        gst_no: nextGstNo,
+        items: taxInvoiceForm.items,
+      }]);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Success',
+        description: 'Tax invoice created successfully.',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+
+      setTaxInvoiceForm({
+        customer_name: '',
+        place_of_supply: '',
+        state: '',
+        gst_no: '',
+        items: [{ description: '', hsn: '', quantity: 1, rate: 0, cgst_percent: 9, sgst_percent: 9 }],
+      });
+      await fetchTaxInvoices();
+    } catch (error) {
+      console.error('Error adding tax invoice:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to add tax invoice.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setTaxInvoiceLoading(false);
+    }
+  };
+
+  const fetchTaxInvoices = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('tax_invoices')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setTaxInvoices((data || []) as TaxInvoice[]);
+    } catch (error) {
+      console.error('Error fetching tax invoices:', error);
+    }
+  };
+
+  const downloadTaxInvoicePDF = async (invoice: TaxInvoice) => {
+    try {
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const BRAND_PRIMARY = { r: 72, g: 187, b: 120 };
+      const TEXT_PRIMARY = { r: 45, g: 55, b: 72 };
+      const TEXT_MUTED = { r: 99, g: 110, b: 114 };
+      const BOX_BG = { r: 244, g: 252, b: 247 };
+
+      const margin = 18;
+      const pageWidth = doc.internal.pageSize.width;
+      const pageHeight = doc.internal.pageSize.height;
+
+      doc.setFillColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
+      doc.rect(0, 0, pageWidth, 9, 'F');
+
+      try {
+        const { dataUrl: logoData, aspectRatio: logoRatio } = await fetchImageAsset(LOGO_URL);
+        const logoWidth = 68;
+        const logoHeight = logoWidth * logoRatio;
+        doc.addImage(logoData, 'PNG', pageWidth - margin - logoWidth, margin - 8, logoWidth, logoHeight, undefined, 'FAST');
+      } catch (err) {
+        console.error('Logo image error:', err);
+      }
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
+      doc.text('AXISO GREEN ENERGIES PRIVATE LIMITED', margin, 21);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9.5);
+      doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
+      doc.text('Sustainable Energy Solutions for a Greener Tomorrow', margin, 26);
+
+      const companyLines = [
+        'Address: PLOT NO-102,103, TEMPLE LANE MYTHRI NAGAR',
+        'Shri Ambika Vidya Mandir, MATHRUSRINAGAR, SERLINGAMPALLY',
+        'Hyderabad, Rangareddy, Telangana, 500049',
+        'Email: contact@axisogreen.in | Website: www.axisogreen.in',
+        'GSTIN: 36ABBCA4478M1Z9',
+      ];
+      doc.setFontSize(8.5);
+      companyLines.forEach((line, index) => {
+        doc.text(line, margin, 32 + index * 4);
+      });
+
+      doc.setDrawColor(BOX_BG.r, BOX_BG.g, BOX_BG.b);
+      doc.line(margin, 55, pageWidth - margin, 55);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(16);
+      doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
+      doc.text('TAX INVOICE', pageWidth / 2, 68, { align: 'center' });
+
+      let y = 76;
+      const tableMarginLeft = margin;
+      const tableMarginRight = pageWidth - margin;
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
+
+      doc.text('GST No:', margin, y);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+      doc.text(invoice.gst_no || '', margin + 50, y);
+
+      y += 6;
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
+      doc.text('Bill To:', margin, y);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+      doc.text(invoice.customer_name, margin + 50, y);
+
+      y += 6;
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
+      doc.text('Place of Supply:', margin, y);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+      doc.text(invoice.place_of_supply, margin + 50, y);
+
+      y += 6;
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
+      doc.text('State:', margin, y);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+      doc.text(invoice.state, margin + 50, y);
+
+      y += 10;
+
+      const colWidths = [60, 15, 15, 18, 15, 15, 18];
+      const tableTop = y;
+
+      doc.setFillColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
+      doc.rect(tableMarginLeft, tableTop, tableMarginRight - tableMarginLeft, 7, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(255, 255, 255);
+
+      let xPos = tableMarginLeft + 2;
+      doc.text('Item & Description', xPos, tableTop + 5);
+      xPos += colWidths[0];
+      doc.text('HSN', xPos, tableTop + 5);
+      xPos += colWidths[1];
+      doc.text('Qty', xPos, tableTop + 5);
+      xPos += colWidths[2];
+      doc.text('Rate (₹)', xPos, tableTop + 5);
+      xPos += colWidths[3];
+      doc.text('CGST %', xPos, tableTop + 5);
+      xPos += colWidths[4];
+      doc.text('SGST %', xPos, tableTop + 5);
+      xPos += colWidths[5];
+      doc.text('Amount (₹)', xPos, tableTop + 5);
+
+      y = tableTop + 10;
+      let totalAmount = 0;
+      let totalCGST = 0;
+      let totalSGST = 0;
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+
+      (invoice.items || []).forEach((item) => {
+        if (y > 260) {
+          doc.addPage();
+          y = margin;
+        }
+
+        const amount = item.quantity * item.rate;
+        const cgst = amount * (item.cgst_percent / 100);
+        const sgst = amount * (item.sgst_percent / 100);
+
+        totalAmount += amount;
+        totalCGST += cgst;
+        totalSGST += sgst;
+
+        xPos = tableMarginLeft + 2;
+        const wrappedDesc = doc.splitTextToSize(item.description, colWidths[0] - 2);
+        doc.text(wrappedDesc, xPos, y);
+        const descHeight = wrappedDesc.length * 3;
+        y += descHeight;
+
+        xPos = tableMarginLeft + 2 + colWidths[0];
+        doc.text(item.hsn, xPos, y - (descHeight - 3.5));
+        xPos += colWidths[1];
+        doc.text(item.quantity.toString(), xPos, y - (descHeight - 3.5));
+        xPos += colWidths[2];
+        doc.text(item.rate.toFixed(2), xPos, y - (descHeight - 3.5));
+        xPos += colWidths[3];
+        doc.text(item.cgst_percent.toString(), xPos, y - (descHeight - 3.5));
+        xPos += colWidths[4];
+        doc.text(item.sgst_percent.toString(), xPos, y - (descHeight - 3.5));
+        xPos += colWidths[5];
+        doc.text(amount.toFixed(2), xPos, y - (descHeight - 3.5));
+
+        y += 2;
+      });
+
+      y += 3;
+      doc.setLineWidth(0.5);
+      doc.line(tableMarginLeft, y, tableMarginRight, y);
+
+      y += 4;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+
+      xPos = pageWidth - margin - 40;
+      doc.text('Sub Total:', xPos, y);
+      doc.text(totalAmount.toFixed(2), pageWidth - margin - 12, y, { align: 'right' });
+
+      y += 6;
+      doc.text('CGST (%):', xPos, y);
+      doc.text(totalCGST.toFixed(2), pageWidth - margin - 12, y, { align: 'right' });
+
+      y += 6;
+      doc.text('SGST (%):', xPos, y);
+      doc.text(totalSGST.toFixed(2), pageWidth - margin - 12, y, { align: 'right' });
+
+      const grandTotal = totalAmount + totalCGST + totalSGST;
+      y += 8;
+      doc.setFillColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
+      doc.rect(xPos - 2, y - 4, 72, 8, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.text('TOTAL:', xPos, y);
+      doc.text('₹' + grandTotal.toFixed(2), pageWidth - margin - 12, y, { align: 'right' });
+
+      y += 15;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+      doc.text('Amount in Words:', margin, y);
+
+      y += 5;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      const words = convertNumberToWords(Math.floor(grandTotal));
+      const wrappedWords = doc.splitTextToSize(`Indian Rupee ${words} Only`, pageWidth - margin * 2);
+      doc.text(wrappedWords, margin, y);
+
+      y = pageHeight - 30;
+      try {
+        const { dataUrl: signatureData, aspectRatio: signatureRatio } = await fetchImageAsset(FOOTER_SIGN_STAMP_URL);
+        const signatureWidth = 42;
+        const signatureHeight = signatureWidth * (signatureRatio || 0.45);
+        const signatureX = pageWidth - margin - signatureWidth - 5;
+
+        doc.addImage(signatureData, 'PNG', signatureX, y, signatureWidth, signatureHeight, undefined, 'FAST');
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
+        doc.text('For AXISO GREEN ENERGIES PVT. LTD.', signatureX, y + signatureHeight + 3, { align: 'right' });
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.text('Manager', signatureX, y + signatureHeight + 8, { align: 'right' });
+      } catch (err) {
+        console.error('Signature image error:', err);
+      }
+
+      doc.setFillColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
+      doc.rect(0, pageHeight - 8, pageWidth, 8, 'F');
+
+      doc.save(`Tax_Invoice_${invoice.gst_no}.pdf`);
+    } catch (error) {
+      console.error('Error generating tax invoice PDF:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to generate tax invoice PDF',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
   const openPaymentModal = async (project: Project) => {
     setSelectedProject(project);
     setPaymentAmount('');
