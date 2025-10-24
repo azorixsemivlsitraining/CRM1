@@ -1930,6 +1930,351 @@ const Finance: React.FC = () => {
           <TabPanel p={0} pt={4}>
             <Card>
               <CardHeader>
+                <Heading size="md">Estimation Cost</Heading>
+              </CardHeader>
+              <CardBody>
+                <VStack align="stretch" spacing={6}>
+                  <Card bg="gray.50">
+                    <CardHeader>
+                      <Heading size="sm">Create New Estimation</Heading>
+                    </CardHeader>
+                    <CardBody>
+                      <VStack spacing={4}>
+                        <FormControl isRequired>
+                          <FormLabel>Customer Name</FormLabel>
+                          <Input
+                            placeholder="Enter customer name"
+                            value={estimationForm.customerName}
+                            onChange={(e) => setEstimationForm({ ...estimationForm, customerName: e.target.value })}
+                          />
+                        </FormControl>
+                        <FormControl isRequired>
+                          <FormLabel>Estimation Service No.</FormLabel>
+                          <Input
+                            placeholder="Enter service number"
+                            value={estimationForm.serviceNo}
+                            onChange={(e) => setEstimationForm({ ...estimationForm, serviceNo: e.target.value })}
+                          />
+                        </FormControl>
+                        <FormControl isRequired>
+                          <FormLabel>Description</FormLabel>
+                          <Input
+                            as="textarea"
+                            placeholder="Enter detailed description"
+                            value={estimationForm.description}
+                            onChange={(e) => setEstimationForm({ ...estimationForm, description: e.target.value })}
+                            minH="100px"
+                          />
+                        </FormControl>
+                        <FormControl isRequired>
+                          <FormLabel>Estimated Cost (₹)</FormLabel>
+                          <Input
+                            type="number"
+                            placeholder="Enter estimated cost"
+                            value={estimationForm.estimatedCost}
+                            onChange={(e) => setEstimationForm({ ...estimationForm, estimatedCost: e.target.value })}
+                            min="0"
+                            step="0.01"
+                          />
+                        </FormControl>
+                        <Button
+                          colorScheme="green"
+                          width="full"
+                          onClick={handleAddEstimation}
+                          isLoading={estimationLoading}
+                          loadingText="Creating"
+                        >
+                          Create Estimation & Download PDF
+                        </Button>
+                      </VStack>
+                    </CardBody>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <Heading size="sm">Estimation History</Heading>
+                    </CardHeader>
+                    <CardBody>
+                      {estimations.length > 0 ? (
+                        <TableContainer>
+                          <Table variant="simple" size="sm">
+                            <Thead>
+                              <Tr>
+                                <Th>Customer Name</Th>
+                                <Th>Service No.</Th>
+                                <Th>Description</Th>
+                                <Th isNumeric>Estimated Cost (₹)</Th>
+                                <Th>Date</Th>
+                                <Th>Action</Th>
+                              </Tr>
+                            </Thead>
+                            <Tbody>
+                              {estimations.map((est) => (
+                                <Tr key={est.id}>
+                                  <Td>{est.customer_name}</Td>
+                                  <Td>{est.service_no}</Td>
+                                  <Td>{est.description.substring(0, 50)}...</Td>
+                                  <Td isNumeric>{est.estimated_cost.toLocaleString('en-IN')}</Td>
+                                  <Td>{est.created_at ? new Date(est.created_at).toLocaleDateString() : '-'}</Td>
+                                  <Td>
+                                    <Button
+                                      size="sm"
+                                      colorScheme="blue"
+                                      onClick={() => downloadEstimationPDF(est)}
+                                    >
+                                      Download PDF
+                                    </Button>
+                                  </Td>
+                                </Tr>
+                              ))}
+                            </Tbody>
+                          </Table>
+                        </TableContainer>
+                      ) : (
+                        <Text textAlign="center" color="gray.500">No estimations found.</Text>
+                      )}
+                    </CardBody>
+                  </Card>
+                </VStack>
+              </CardBody>
+            </Card>
+          </TabPanel>
+
+          <TabPanel p={0} pt={4}>
+            <Card>
+              <CardHeader>
+                <Heading size="md">Tax Invoice</Heading>
+              </CardHeader>
+              <CardBody>
+                <VStack align="stretch" spacing={6}>
+                  <Card bg="gray.50">
+                    <CardHeader>
+                      <Heading size="sm">Create New Tax Invoice</Heading>
+                    </CardHeader>
+                    <CardBody>
+                      <VStack spacing={4}>
+                        <FormControl isRequired>
+                          <FormLabel>Customer Name</FormLabel>
+                          <Input
+                            placeholder="Enter customer name"
+                            value={taxInvoiceForm.customer_name}
+                            onChange={(e) => setTaxInvoiceForm({ ...taxInvoiceForm, customer_name: e.target.value })}
+                          />
+                        </FormControl>
+                        <FormControl isRequired>
+                          <FormLabel>Place of Supply</FormLabel>
+                          <Input
+                            placeholder="Enter place of supply"
+                            value={taxInvoiceForm.place_of_supply}
+                            onChange={(e) => setTaxInvoiceForm({ ...taxInvoiceForm, place_of_supply: e.target.value })}
+                          />
+                        </FormControl>
+                        <FormControl isRequired>
+                          <FormLabel>State</FormLabel>
+                          <Input
+                            placeholder="Enter state"
+                            value={taxInvoiceForm.state}
+                            onChange={(e) => setTaxInvoiceForm({ ...taxInvoiceForm, state: e.target.value })}
+                          />
+                        </FormControl>
+
+                        <Box width="full" borderTop="2px solid" borderColor="gray.200" pt={4}>
+                          <Heading size="sm" mb={4}>Invoice Items</Heading>
+                          {taxInvoiceForm.items.map((item, index) => (
+                            <Card key={index} mb={4} bg="white" border="1px solid" borderColor="gray.200">
+                              <CardBody>
+                                <VStack spacing={3}>
+                                  <FormControl isRequired>
+                                    <FormLabel>Item Description</FormLabel>
+                                    <Input
+                                      placeholder="Enter item description"
+                                      value={item.description}
+                                      onChange={(e) => {
+                                        const newItems = [...taxInvoiceForm.items];
+                                        newItems[index].description = e.target.value;
+                                        setTaxInvoiceForm({ ...taxInvoiceForm, items: newItems });
+                                      }}
+                                    />
+                                  </FormControl>
+                                  <FormControl isRequired>
+                                    <FormLabel>HSN Code</FormLabel>
+                                    <Input
+                                      placeholder="Enter HSN code"
+                                      value={item.hsn}
+                                      onChange={(e) => {
+                                        const newItems = [...taxInvoiceForm.items];
+                                        newItems[index].hsn = e.target.value;
+                                        setTaxInvoiceForm({ ...taxInvoiceForm, items: newItems });
+                                      }}
+                                    />
+                                  </FormControl>
+                                  <SimpleGrid columns={4} spacing={3} width="full">
+                                    <FormControl isRequired>
+                                      <FormLabel fontSize="sm">Quantity</FormLabel>
+                                      <Input
+                                        type="number"
+                                        placeholder="Qty"
+                                        value={item.quantity}
+                                        onChange={(e) => {
+                                          const newItems = [...taxInvoiceForm.items];
+                                          newItems[index].quantity = parseFloat(e.target.value) || 0;
+                                          setTaxInvoiceForm({ ...taxInvoiceForm, items: newItems });
+                                        }}
+                                        min="0"
+                                        step="0.01"
+                                      />
+                                    </FormControl>
+                                    <FormControl isRequired>
+                                      <FormLabel fontSize="sm">Rate (₹)</FormLabel>
+                                      <Input
+                                        type="number"
+                                        placeholder="Rate"
+                                        value={item.rate}
+                                        onChange={(e) => {
+                                          const newItems = [...taxInvoiceForm.items];
+                                          newItems[index].rate = parseFloat(e.target.value) || 0;
+                                          setTaxInvoiceForm({ ...taxInvoiceForm, items: newItems });
+                                        }}
+                                        min="0"
+                                        step="0.01"
+                                      />
+                                    </FormControl>
+                                    <FormControl isRequired>
+                                      <FormLabel fontSize="sm">CGST %</FormLabel>
+                                      <Input
+                                        type="number"
+                                        placeholder="CGST %"
+                                        value={item.cgst_percent}
+                                        onChange={(e) => {
+                                          const newItems = [...taxInvoiceForm.items];
+                                          newItems[index].cgst_percent = parseFloat(e.target.value) || 0;
+                                          setTaxInvoiceForm({ ...taxInvoiceForm, items: newItems });
+                                        }}
+                                        min="0"
+                                        step="0.01"
+                                      />
+                                    </FormControl>
+                                    <FormControl isRequired>
+                                      <FormLabel fontSize="sm">SGST %</FormLabel>
+                                      <Input
+                                        type="number"
+                                        placeholder="SGST %"
+                                        value={item.sgst_percent}
+                                        onChange={(e) => {
+                                          const newItems = [...taxInvoiceForm.items];
+                                          newItems[index].sgst_percent = parseFloat(e.target.value) || 0;
+                                          setTaxInvoiceForm({ ...taxInvoiceForm, items: newItems });
+                                        }}
+                                        min="0"
+                                        step="0.01"
+                                      />
+                                    </FormControl>
+                                  </SimpleGrid>
+                                  <Box width="full" p={2} bg="gray.100" borderRadius="md">
+                                    <Text fontSize="sm" color="gray.700">
+                                      Amount: ₹{(item.quantity * item.rate).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </Text>
+                                  </Box>
+                                  {taxInvoiceForm.items.length > 1 && (
+                                    <Button
+                                      size="sm"
+                                      colorScheme="red"
+                                      width="full"
+                                      onClick={() => {
+                                        const newItems = taxInvoiceForm.items.filter((_, i) => i !== index);
+                                        setTaxInvoiceForm({ ...taxInvoiceForm, items: newItems });
+                                      }}
+                                    >
+                                      Remove Item
+                                    </Button>
+                                  )}
+                                </VStack>
+                              </CardBody>
+                            </Card>
+                          ))}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            colorScheme="green"
+                            width="full"
+                            onClick={() => {
+                              setTaxInvoiceForm({
+                                ...taxInvoiceForm,
+                                items: [...taxInvoiceForm.items, { description: '', hsn: '', quantity: 1, rate: 0, cgst_percent: 9, sgst_percent: 9 }],
+                              });
+                            }}
+                          >
+                            + Add Another Item
+                          </Button>
+                        </Box>
+
+                        <Button
+                          colorScheme="green"
+                          width="full"
+                          onClick={handleAddTaxInvoice}
+                          isLoading={taxInvoiceLoading}
+                          loadingText="Creating"
+                          size="lg"
+                        >
+                          Create Invoice & Download PDF
+                        </Button>
+                      </VStack>
+                    </CardBody>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <Heading size="sm">Tax Invoices History</Heading>
+                    </CardHeader>
+                    <CardBody>
+                      {taxInvoices.length > 0 ? (
+                        <TableContainer>
+                          <Table variant="simple" size="sm">
+                            <Thead>
+                              <Tr>
+                                <Th>GST No.</Th>
+                                <Th>Customer Name</Th>
+                                <Th>Place of Supply</Th>
+                                <Th>State</Th>
+                                <Th>Date</Th>
+                                <Th>Action</Th>
+                              </Tr>
+                            </Thead>
+                            <Tbody>
+                              {taxInvoices.map((invoice) => (
+                                <Tr key={invoice.id}>
+                                  <Td fontWeight="bold">{invoice.gst_no}</Td>
+                                  <Td>{invoice.customer_name}</Td>
+                                  <Td>{invoice.place_of_supply}</Td>
+                                  <Td>{invoice.state}</Td>
+                                  <Td>{invoice.created_at ? new Date(invoice.created_at).toLocaleDateString() : '-'}</Td>
+                                  <Td>
+                                    <Button
+                                      size="sm"
+                                      colorScheme="blue"
+                                      onClick={() => downloadTaxInvoicePDF(invoice)}
+                                    >
+                                      Download PDF
+                                    </Button>
+                                  </Td>
+                                </Tr>
+                              ))}
+                            </Tbody>
+                          </Table>
+                        </TableContainer>
+                      ) : (
+                        <Text textAlign="center" color="gray.500">No tax invoices found.</Text>
+                      )}
+                    </CardBody>
+                  </Card>
+                </VStack>
+              </CardBody>
+            </Card>
+          </TabPanel>
+
+          <TabPanel p={0} pt={4}>
+            <Card>
+              <CardHeader>
                 <Heading size="md">Reports & Export</Heading>
               </CardHeader>
               <CardBody>
