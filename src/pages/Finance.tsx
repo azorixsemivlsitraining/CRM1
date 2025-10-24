@@ -2158,17 +2158,53 @@ const Finance: React.FC = () => {
                       <VStack spacing={4}>
                         <FormControl isRequired>
                           <FormLabel>Select Customer/Project</FormLabel>
-                          <Select
-                            placeholder="Select a customer"
-                            value={taxInvoiceForm.project_id || ''}
-                            onChange={(e) => handleSelectProjectForInvoice(e.target.value)}
+                          <Input
+                            placeholder="Search customer name or project..."
+                            value={projectSearchTerm}
+                            onChange={(e) => setProjectSearchTerm(e.target.value)}
+                            mb={2}
+                          />
+                          <Box
+                            border="1px solid"
+                            borderColor="gray.300"
+                            borderRadius="md"
+                            maxH="200px"
+                            overflowY="auto"
+                            bg="white"
                           >
-                            {projects.map((project) => (
-                              <option key={project.id} value={project.id}>
-                                {project.customer_name} - {project.name}
-                              </option>
-                            ))}
-                          </Select>
+                            {projects
+                              .filter((p) =>
+                                p.customer_name.toLowerCase().includes(projectSearchTerm.toLowerCase()) ||
+                                p.name.toLowerCase().includes(projectSearchTerm.toLowerCase())
+                              )
+                              .map((project) => (
+                                <Box
+                                  key={project.id}
+                                  p={3}
+                                  borderBottom="1px solid"
+                                  borderColor="gray.200"
+                                  cursor="pointer"
+                                  _hover={{ bg: 'gray.100' }}
+                                  onClick={() => {
+                                    handleSelectProjectForInvoice(project.id);
+                                    setProjectSearchTerm('');
+                                  }}
+                                >
+                                  <Text fontWeight="bold">{project.customer_name}</Text>
+                                  <Text fontSize="sm" color="gray.600">
+                                    {project.name}
+                                  </Text>
+                                </Box>
+                              ))}
+                            {projects.filter((p) =>
+                              p.customer_name.toLowerCase().includes(projectSearchTerm.toLowerCase()) ||
+                              p.name.toLowerCase().includes(projectSearchTerm.toLowerCase())
+                            ).length === 0 && projectSearchTerm && (
+                              <Box p={3} textAlign="center" color="gray.500">
+                                No projects found
+                              </Box>
+                            )}
+                          </Box>
                         </FormControl>
 
                         {taxInvoiceForm.project_id && (
