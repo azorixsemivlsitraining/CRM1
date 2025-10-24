@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Button,
@@ -492,12 +492,7 @@ const TaxInvoice: React.FC = () => {
 
   const authorized = isFinance || isAdmin;
 
-  useEffect(() => {
-    if (!authorized) return;
-    fetchInvoices();
-  }, [authorized, fetchInvoices]);
-
-  const fetchInvoices = async () => {
+  const fetchInvoices = useCallback(async () => {
     try {
       setLoading(true);
       const { data, error } = await supabase
@@ -519,7 +514,12 @@ const TaxInvoice: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    if (!authorized) return;
+    fetchInvoices();
+  }, [authorized, fetchInvoices]);
 
   const openCreateForm = async () => {
     const gstNumber = await getNextGSTNumber();
