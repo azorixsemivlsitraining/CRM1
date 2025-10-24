@@ -300,6 +300,20 @@ const Finance: React.FC = () => {
   const [paymentLoading, setPaymentLoading] = useState(false);
   const { isOpen: isPaymentModalOpen, onOpen: onPaymentModalOpen, onClose: onPaymentModalClose } = useDisclosure();
 
+  const [estimations, setEstimations] = useState<EstimationCost[]>([]);
+  const [estimationForm, setEstimationForm] = useState({ customerName: '', description: '', serviceNo: '', estimatedCost: '' });
+  const [estimationLoading, setEstimationLoading] = useState(false);
+
+  const [taxInvoices, setTaxInvoices] = useState<TaxInvoice[]>([]);
+  const [taxInvoiceForm, setTaxInvoiceForm] = useState<TaxInvoice>({
+    customer_name: '',
+    place_of_supply: '',
+    state: '',
+    gst_no: '',
+    items: [{ description: '', hsn: '', quantity: 1, rate: 0, cgst_percent: 9, sgst_percent: 9 }],
+  });
+  const [taxInvoiceLoading, setTaxInvoiceLoading] = useState(false);
+
   const { isFinance, isAuthenticated, isAdmin } = useAuth();
   const toast = useToast();
 
