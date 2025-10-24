@@ -593,7 +593,7 @@ const Finance: React.FC = () => {
     if (!taxInvoiceForm.customer_name || !taxInvoiceForm.place_of_supply || !taxInvoiceForm.state || !taxInvoiceForm.items.length) {
       toast({
         title: 'Missing Fields',
-        description: 'Please fill all tax invoice fields.',
+        description: 'Please fill all tax invoice fields and add items.',
         status: 'warning',
         duration: 3000,
         isClosable: true,
@@ -604,30 +604,59 @@ const Finance: React.FC = () => {
     try {
       setTaxInvoiceLoading(true);
       const nextGstNo = await getNextGstNo();
+      const nextInvoiceNo = await getNextInvoiceNo();
 
-      const { error } = await supabase.from('tax_invoices').insert([{
-        customer_name: taxInvoiceForm.customer_name,
-        place_of_supply: taxInvoiceForm.place_of_supply,
-        state: taxInvoiceForm.state,
-        gst_no: nextGstNo,
-        items: taxInvoiceForm.items,
-      }]);
+      if (editingInvoiceId) {
+        const { error } = await supabase
+          .from('tax_invoices')
+          .update({
+            customer_name: taxInvoiceForm.customer_name,
+            place_of_supply: taxInvoiceForm.place_of_supply,
+            state: taxInvoiceForm.state,
+            items: taxInvoiceForm.items,
+          })
+          .eq('id', editingInvoiceId);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      toast({
-        title: 'Success',
-        description: 'Tax invoice created successfully.',
-        status: 'success',
-        duration: 3000,
-        isClosable: true,
-      });
+        toast({
+          title: 'Success',
+          description: 'Tax invoice updated successfully.',
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        });
+
+        setEditingInvoiceId(null);
+      } else {
+        const { error } = await supabase.from('tax_invoices').insert([{
+          customer_name: taxInvoiceForm.customer_name,
+          place_of_supply: taxInvoiceForm.place_of_supply,
+          state: taxInvoiceForm.state,
+          gst_no: nextGstNo,
+          invoice_no: nextInvoiceNo,
+          invoice_date: taxInvoiceForm.invoice_date,
+          items: taxInvoiceForm.items,
+        }]);
+
+        if (error) throw error;
+
+        toast({
+          title: 'Success',
+          description: 'Tax invoice created successfully.',
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        });
+      }
 
       setTaxInvoiceForm({
         customer_name: '',
         place_of_supply: '',
         state: '',
         gst_no: '',
+        invoice_no: '',
+        invoice_date: new Date().toISOString().split('T')[0],
         items: [],
         project_id: '',
         capacity: '',
@@ -635,10 +664,10 @@ const Finance: React.FC = () => {
       });
       await fetchTaxInvoices();
     } catch (error) {
-      console.error('Error adding tax invoice:', error);
+      console.error('Error saving tax invoice:', error);
       toast({
         title: 'Error',
-        description: 'Failed to add tax invoice.',
+        description: 'Failed to save tax invoice.',
         status: 'error',
         duration: 3000,
         isClosable: true,
@@ -646,6 +675,44 @@ const Finance: React.FC = () => {
     } finally {
       setTaxInvoiceLoading(false);
     }
+  };
+
+  const handleDeleteInvoice = async (invoiceId: string) => {
+    if (!window.confirm('Are you sure you want to delete this invoice?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('tax_invoices')
+        .delete()
+        .eq('id', invoiceId);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Success',
+        description: 'Invoice deleted successfully.',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+
+      await fetchTaxInvoices();
+    } catch (error) {
+      console.error('Error deleting invoice:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to delete invoice.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const handleEditInvoice = (invoice: TaxInvoice) => {
+    setEditingInvoiceId(invoice.id || null);
+    setTaxInvoiceForm(invoice);
+    window.scrollTo(0, 0);
   };
 
   const fetchTaxInvoices = async () => {
