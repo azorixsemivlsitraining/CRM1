@@ -2252,33 +2252,45 @@ const Finance: React.FC = () => {
                         <Box width="full" borderTop="2px solid" borderColor="gray.200" pt={4}>
                           <Heading size="sm" mb={4}>Invoice Items</Heading>
                           <FormControl mb={4}>
-                            <FormLabel>Add Item from Template</FormLabel>
-                            <Select
-                              placeholder="Select a predefined item"
-                              onChange={(e) => {
-                                const selectedIndex = parseInt(e.target.value);
-                                if (selectedIndex >= 0) {
-                                  const selectedItem = PREDEFINED_INVOICE_ITEMS[selectedIndex];
-                                  const newItems = [...taxInvoiceForm.items];
-                                  newItems[taxInvoiceForm.items.length - 1] = {
-                                    description: selectedItem.name,
-                                    hsn: selectedItem.hsn,
-                                    quantity: 1,
-                                    rate: 0,
-                                    cgst_percent: 9,
-                                    sgst_percent: 9,
-                                  };
-                                  setTaxInvoiceForm({ ...taxInvoiceForm, items: newItems });
-                                  e.target.value = '';
-                                }
-                              }}
-                            >
-                              {PREDEFINED_INVOICE_ITEMS.map((item, idx) => (
-                                <option key={idx} value={idx}>
-                                  {item.name.substring(0, 80)}...
-                                </option>
-                              ))}
-                            </Select>
+                            <FormLabel>Select Item to Add</FormLabel>
+                            <HStack width="full" spacing={2}>
+                              <Select
+                                placeholder="Choose an item"
+                                id="itemSelect"
+                              >
+                                <option value="">-- Select Item --</option>
+                                {PREDEFINED_INVOICE_ITEMS.map((item, idx) => (
+                                  <option key={idx} value={idx}>
+                                    {item.name}
+                                  </option>
+                                ))}
+                              </Select>
+                              <Button
+                                colorScheme="blue"
+                                onClick={() => {
+                                  const select = document.getElementById('itemSelect') as HTMLSelectElement;
+                                  const selectedIndex = parseInt(select.value);
+                                  if (selectedIndex >= 0) {
+                                    const selectedItem = PREDEFINED_INVOICE_ITEMS[selectedIndex];
+                                    const newItems = [
+                                      ...taxInvoiceForm.items,
+                                      {
+                                        description: selectedItem.name,
+                                        hsn: '',
+                                        quantity: 1,
+                                        rate: 0,
+                                        cgst_percent: 9,
+                                        sgst_percent: 9,
+                                      },
+                                    ];
+                                    setTaxInvoiceForm({ ...taxInvoiceForm, items: newItems });
+                                    select.value = '';
+                                  }
+                                }}
+                              >
+                                Add Item
+                              </Button>
+                            </HStack>
                           </FormControl>
                           {taxInvoiceForm.items.map((item, index) => (
                             <Card key={index} mb={4} bg="white" border="1px solid" borderColor="gray.200">
