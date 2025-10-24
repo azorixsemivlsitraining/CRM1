@@ -62,6 +62,7 @@ interface Project {
   state?: string;
   email?: string;
   address?: string;
+  created_at?: string;
   tax_amount?: number;
   discount_amount?: number;
   delivery_fee?: number;
