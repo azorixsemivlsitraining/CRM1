@@ -229,6 +229,14 @@ const Finance: React.FC = () => {
   const [period, setPeriod] = useState<'all' | 'daily' | 'weekly' | 'monthly'>('all');
   const [taxPeriodType, setTaxPeriodType] = useState<'monthly' | 'quarterly'>('monthly');
 
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [paymentHistory, setPaymentHistory] = useState<PaymentHistory[]>([]);
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentDate, setPaymentDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [paymentMode, setPaymentMode] = useState('Cash');
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const { isOpen: isPaymentModalOpen, onOpen: onPaymentModalOpen, onClose: onPaymentModalClose } = useDisclosure();
+
   const { isFinance, isAuthenticated, isAdmin } = useAuth();
   const toast = useToast();
 
