@@ -2080,6 +2080,38 @@ const Finance: React.FC = () => {
                     <CardBody>
                       <VStack spacing={4}>
                         <FormControl isRequired>
+                          <FormLabel>Select Customer/Project</FormLabel>
+                          <Select
+                            placeholder="Select a customer"
+                            value={taxInvoiceForm.project_id || ''}
+                            onChange={(e) => handleSelectProjectForInvoice(e.target.value)}
+                          >
+                            {projects.map((project) => (
+                              <option key={project.id} value={project.id}>
+                                {project.customer_name} - {project.name}
+                              </option>
+                            ))}
+                          </Select>
+                        </FormControl>
+
+                        {taxInvoiceForm.project_id && (
+                          <Card bg="blue.50" width="full">
+                            <CardBody>
+                              <SimpleGrid columns={2} spacing={4}>
+                                <Box>
+                                  <Text fontSize="sm" color="gray.600">Capacity</Text>
+                                  <Text fontWeight="bold">{taxInvoiceForm.capacity || 'N/A'}</Text>
+                                </Box>
+                                <Box>
+                                  <Text fontSize="sm" color="gray.600">Amount Paid</Text>
+                                  <Text fontWeight="bold">₹{(taxInvoiceForm.amount_paid || 0).toLocaleString('en-IN')}</Text>
+                                </Box>
+                              </SimpleGrid>
+                            </CardBody>
+                          </Card>
+                        )}
+
+                        <FormControl isRequired>
                           <FormLabel>Customer Name</FormLabel>
                           <Input
                             placeholder="Enter customer name"
@@ -2106,6 +2138,35 @@ const Finance: React.FC = () => {
 
                         <Box width="full" borderTop="2px solid" borderColor="gray.200" pt={4}>
                           <Heading size="sm" mb={4}>Invoice Items</Heading>
+                          <FormControl mb={4}>
+                            <FormLabel>Add Item from Template</FormLabel>
+                            <Select
+                              placeholder="Select a predefined item"
+                              onChange={(e) => {
+                                const selectedIndex = parseInt(e.target.value);
+                                if (selectedIndex >= 0) {
+                                  const selectedItem = PREDEFINED_INVOICE_ITEMS[selectedIndex];
+                                  const newItems = [...taxInvoiceForm.items];
+                                  newItems[taxInvoiceForm.items.length - 1] = {
+                                    description: selectedItem.name,
+                                    hsn: selectedItem.hsn,
+                                    quantity: 1,
+                                    rate: 0,
+                                    cgst_percent: 9,
+                                    sgst_percent: 9,
+                                  };
+                                  setTaxInvoiceForm({ ...taxInvoiceForm, items: newItems });
+                                  e.target.value = '';
+                                }
+                              }}
+                            >
+                              {PREDEFINED_INVOICE_ITEMS.map((item, idx) => (
+                                <option key={idx} value={idx}>
+                                  {item.name.substring(0, 80)}...
+                                </option>
+                              ))}
+                            </Select>
+                          </FormControl>
                           {taxInvoiceForm.items.map((item, index) => (
                             <Card key={index} mb={4} bg="white" border="1px solid" borderColor="gray.200">
                               <CardBody>
