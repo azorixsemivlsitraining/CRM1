@@ -19,6 +19,7 @@ import {
   Flex,
   Select,
   FormControl,
+  FormLabel,
   Input,
   Button,
   useToast,
@@ -31,10 +32,20 @@ import {
   TabPanel,
   Tooltip,
   VStack,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  ModalCloseButton,
+  useDisclosure,
+  TableContainer,
 } from '@chakra-ui/react';
 import jsPDF from 'jspdf';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import { generatePaymentReceiptPDF } from '../components/PaymentReceipt';
 
 interface Project {
   id: string;
