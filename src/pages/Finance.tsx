@@ -492,11 +492,11 @@ const Finance: React.FC = () => {
   }, [projects]);
   const activeProjectsCount = useMemo(() => projects.filter(p => p.status === 'active').length, [projects]);
 
-  const periodPayments = useMemo(() => payments.filter((p) => dateInPeriod(p.created_at)), [payments, periodStart, period]);
+  const periodPayments = useMemo(() => payments.filter((p) => dateInPeriod(p.created_at)), [payments, dateInPeriod]);
   const totalRevenueAll = useMemo(() => payments.reduce((s, r) => s + (r.amount || 0), 0), [payments]);
   const totalRevenuePeriod = useMemo(() => periodPayments.reduce((s, r) => s + (r.amount || 0), 0), [periodPayments]);
 
-  const periodExpenses = useMemo(() => expenses.filter((e) => dateInPeriod(e.date || e.created_at || '')), [expenses, periodStart, period]);
+  const periodExpenses = useMemo(() => expenses.filter((e) => dateInPeriod(e.date || e.created_at || '')), [expenses, dateInPeriod]);
   const totalExpensesAll = useMemo(() => expenses.reduce((s, r) => s + (r.amount || 0), 0), [expenses]);
   const totalExpensesPeriod = useMemo(() => periodExpenses.reduce((s, r) => s + (r.amount || 0), 0), [periodExpenses]);
 
