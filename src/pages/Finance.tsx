@@ -601,7 +601,7 @@ const Finance: React.FC = () => {
         place_of_supply: '',
         state: '',
         gst_no: '',
-        items: [{ description: '', hsn: '', quantity: 1, rate: 0, cgst_percent: 9, sgst_percent: 9 }],
+        items: [],
         project_id: '',
         capacity: '',
         amount_paid: 0,
