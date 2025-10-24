@@ -636,13 +636,14 @@ const TaxInvoice: React.FC = () => {
 
       onClose();
       await fetchInvoices();
-    } catch (error) {
-      console.error('Error saving invoice:', error);
+    } catch (error: any) {
+      const errorMsg = error?.message || error?.details || JSON.stringify(error);
+      console.error('Error saving invoice:', errorMsg);
       toast({
         title: 'Error',
-        description: 'Failed to save invoice',
+        description: `Failed to save invoice: ${errorMsg}`,
         status: 'error',
-        duration: 3000,
+        duration: 5000,
         isClosable: true,
       });
     } finally {
@@ -665,13 +666,14 @@ const TaxInvoice: React.FC = () => {
       setDeleteId(null);
       onDeleteClose();
       await fetchInvoices();
-    } catch (error) {
-      console.error('Error deleting invoice:', error);
+    } catch (error: any) {
+      const errorMsg = error?.message || error?.details || JSON.stringify(error);
+      console.error('Error deleting invoice:', errorMsg);
       toast({
         title: 'Error',
-        description: 'Failed to delete invoice',
+        description: `Failed to delete invoice: ${errorMsg}`,
         status: 'error',
-        duration: 3000,
+        duration: 5000,
         isClosable: true,
       });
     }
