@@ -832,7 +832,27 @@ const TaxInvoice: React.FC = () => {
                 />
               </FormControl>
 
-              <FormControl>
+              <SimpleGrid columns={2} spacing={4}>
+                <FormControl isRequired>
+                  <FormLabel>Customer Name</FormLabel>
+                  <Input
+                    value={formData.customer_name}
+                    onChange={(e) => handleInputChange('customer_name', e.target.value)}
+                    placeholder="Enter customer name"
+                  />
+                </FormControl>
+                <FormControl isRequired>
+                  <FormLabel>State</FormLabel>
+                  <Select value={formData.state} onChange={(e) => handleInputChange('state', e.target.value)}>
+                    <option value="Telangana">Telangana</option>
+                    <option value="Andhra Pradesh">Andhra Pradesh</option>
+                    <option value="Karnataka">Karnataka</option>
+                    <option value="Tamil Nadu">Tamil Nadu</option>
+                  </Select>
+                </FormControl>
+              </SimpleGrid>
+
+              <FormControl isRequired>
                 <FormLabel>Place of Supply</FormLabel>
                 <Select value={formData.place_of_supply} onChange={(e) => handleInputChange('place_of_supply', e.target.value)}>
                   <option value="Telangana (36)">Telangana (36)</option>
