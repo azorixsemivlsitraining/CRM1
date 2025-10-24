@@ -1075,8 +1075,15 @@ const Finance: React.FC = () => {
                     </VStack>
                   )}
                 </ModalBody>
-                <ModalFooter>
+                <ModalFooter spacing={3}>
                   <Button onClick={onPaymentModalClose}>Close</Button>
+                  <Button
+                    colorScheme="blue"
+                    onClick={() => selectedProject && paymentHistory.length > 0 && generatePaymentInvoice(selectedProject, paymentHistory)}
+                    isDisabled={!selectedProject || paymentHistory.length === 0}
+                  >
+                    Download Invoice
+                  </Button>
                 </ModalFooter>
               </ModalContent>
             </Modal>
