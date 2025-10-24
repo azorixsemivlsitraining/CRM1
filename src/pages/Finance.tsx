@@ -97,6 +97,34 @@ interface ExpenseRec {
   tax_amount?: number;
 }
 
+interface EstimationCost {
+  id: string;
+  customer_name: string;
+  description: string;
+  service_no: string;
+  estimated_cost: number;
+  created_at?: string;
+}
+
+interface TaxInvoiceItem {
+  description: string;
+  hsn: string;
+  quantity: number;
+  rate: number;
+  cgst_percent: number;
+  sgst_percent: number;
+}
+
+interface TaxInvoice {
+  id?: string;
+  customer_name: string;
+  place_of_supply: string;
+  state: string;
+  gst_no: string;
+  items: TaxInvoiceItem[];
+  created_at?: string;
+}
+
 const inr = (v: number) => `₹${(v || 0).toLocaleString('en-IN')}`;
 
 const makeCsv = (rows: any[]) => {
