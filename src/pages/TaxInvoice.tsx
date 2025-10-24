@@ -504,17 +504,41 @@ const TaxInvoice: React.FC = () => {
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
       setInvoices((data || []) as TaxInvoiceData[]);
-    } catch (error) {
-      console.error('Error fetching invoices:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load invoices',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
+    } catch (error: any) {
+      const errorMsg = error?.message || error?.details || JSON.stringify(error);
+      console.error('Error fetching invoices:', errorMsg);
+
+      // Check if table doesn't exist
+      if (errorMsg.includes('relation') || errorMsg.includes('does not exist') || errorMsg.includes('404')) {
+        toast({
+          title: 'Setup Required',
+          description: 'Tax invoices table not found. Please create it in Supabase first. Check TAX_INVOICE_SETUP.md for instructions.',
+          status: 'warning',
+          duration: 5000,
+          isClosable: true,
+        });
+      } else if (errorMsg.includes('permission') || errorMsg.includes('policy')) {
+        toast({
+          title: 'Permission Error',
+          description: `You don't have permission to access tax invoices. Error: ${errorMsg}`,
+          status: 'error',
+          duration: 5000,
+          isClosable: true,
+        });
+      } else {
+        toast({
+          title: 'Error',
+          description: `Failed to load invoices: ${errorMsg}`,
+          status: 'error',
+          duration: 5000,
+          isClosable: true,
+        });
+      }
     } finally {
       setLoading(false);
     }
