@@ -60,9 +60,19 @@ interface Project {
   payment_mode: 'Loan' | 'Cash' | string;
   start_date: string;
   state?: string;
+  email?: string;
+  address?: string;
   tax_amount?: number;
   discount_amount?: number;
   delivery_fee?: number;
+}
+
+interface PaymentHistory {
+  id: string;
+  amount: number;
+  created_at: string;
+  payment_mode?: string;
+  payment_date?: string;
 }
 
 interface PaymentRec {
