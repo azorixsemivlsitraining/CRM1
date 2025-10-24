@@ -466,11 +466,11 @@ const Finance: React.FC = () => {
     fetchAll();
   }, [authorized, filter, toast]);
 
-  const dateInPeriod = (iso: string | undefined) => {
+  const dateInPeriod = useCallback((iso: string | undefined) => {
     if (!periodStart || !iso) return period === 'all';
     const d = new Date(iso);
     return d >= periodStart;
-  };
+  }, [periodStart, period]);
 
   const totalOutstanding = useMemo(() => projects.reduce((sum, p) => sum + (p.balance_amount || 0), 0), [projects]);
   const expectedThisMonth = useMemo(() => {
