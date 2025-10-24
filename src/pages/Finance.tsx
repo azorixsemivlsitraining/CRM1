@@ -66,6 +66,7 @@ interface Project {
   tax_amount?: number;
   discount_amount?: number;
   delivery_fee?: number;
+  kwh?: number;
 }
 
 interface PaymentHistory {
