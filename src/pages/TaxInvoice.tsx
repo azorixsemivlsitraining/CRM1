@@ -589,10 +589,10 @@ const TaxInvoice: React.FC = () => {
   };
 
   const handleSaveInvoice = async () => {
-    if (!formData.bill_to_name || !formData.ship_to_name || formData.items.length === 0) {
+    if (!formData.customer_name || !formData.place_of_supply || !formData.state || formData.items.length === 0) {
       toast({
         title: 'Missing Fields',
-        description: 'Please fill in all required fields',
+        description: 'Please fill in all required fields (Customer name, Place of supply, State, and Items)',
         status: 'warning',
         duration: 3000,
         isClosable: true,
@@ -602,20 +602,17 @@ const TaxInvoice: React.FC = () => {
 
     try {
       setSubmitLoading(true);
+
+      // Prepare invoice data to match table structure
       const invoiceToSave = {
-        gst_number: formData.gst_number,
-        invoice_number: formData.invoice_number,
-        invoice_date: formData.invoice_date,
-        bill_to_name: formData.bill_to_name,
-        bill_to_address: formData.bill_to_address,
-        bill_to_gst: formData.bill_to_gst,
-        ship_to_name: formData.ship_to_name,
-        ship_to_address: formData.ship_to_address,
+        customer_name: formData.customer_name,
         place_of_supply: formData.place_of_supply,
+        state: formData.state,
+        gst_no: formData.gst_number,
         items: formData.items,
-        notes: formData.notes,
-        terms_and_conditions: formData.terms_and_conditions,
       };
+
+      console.log('Saving invoice:', invoiceToSave);
 
       if (editingId) {
         const { error } = await supabase
