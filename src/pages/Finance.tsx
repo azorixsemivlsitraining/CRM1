@@ -122,8 +122,16 @@ interface TaxInvoice {
   state: string;
   gst_no: string;
   items: TaxInvoiceItem[];
+  project_id?: string;
+  capacity?: string;
+  amount_paid?: number;
   created_at?: string;
 }
+
+const PREDEFINED_INVOICE_ITEMS = [
+  { name: 'Renewable Energy Devices and its Spare Parts Design, Engineering, Supply of Solar PV Modules (Wp Bifacial), Solar Grid Tied Inverter, Module Mounting, DC Distribution box IP65, AC Distribution Box IP65, Copper cables, Earthing, Lightning Arrestor, Hardware SS304 and other required accessories', hsn: '608541' },
+  { name: 'Installation & Commissioning of Rooftop Solar Power Plant', hsn: '609954' },
+];
 
 const inr = (v: number) => `₹${(v || 0).toLocaleString('en-IN')}`;
 
