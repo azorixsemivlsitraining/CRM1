@@ -935,6 +935,151 @@ const Finance: React.FC = () => {
                 </Table>
               </CardBody>
             </Card>
+
+            <Modal isOpen={isPaymentModalOpen} onClose={onPaymentModalClose} size="4xl">
+              <ModalOverlay />
+              <ModalContent maxH="90vh" overflowY="auto">
+                <ModalHeader>{selectedProject?.name} - Payment Management</ModalHeader>
+                <ModalCloseButton />
+                <ModalBody pb={6}>
+                  {selectedProject && (
+                    <VStack spacing={6} align="stretch">
+                      <Card>
+                        <CardHeader>
+                          <Heading size="md">Project Information</Heading>
+                        </CardHeader>
+                        <CardBody>
+                          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                            <Box>
+                              <Text fontSize="sm" color="gray.600">Customer Name</Text>
+                              <Text fontWeight="bold">{selectedProject.customer_name}</Text>
+                            </Box>
+                            <Box>
+                              <Text fontSize="sm" color="gray.600">Total Amount</Text>
+                              <Text fontWeight="bold">{inr(selectedProject.proposal_amount || 0)}</Text>
+                            </Box>
+                            <Box>
+                              <Text fontSize="sm" color="gray.600">Paid Amount</Text>
+                              <Text fontWeight="bold">{inr((selectedProject.advance_payment || 0) + (selectedProject.paid_amount || 0))}</Text>
+                            </Box>
+                            <Box>
+                              <Text fontSize="sm" color="gray.600">Outstanding</Text>
+                              <Text fontWeight="bold" color={(selectedProject.balance_amount || 0) > 0 ? 'red.500' : 'green.500'}>{inr(selectedProject.balance_amount || 0)}</Text>
+                            </Box>
+                          </SimpleGrid>
+                        </CardBody>
+                      </Card>
+
+                      <Card>
+                        <CardHeader>
+                          <Heading size="md">Add Payment</Heading>
+                        </CardHeader>
+                        <CardBody>
+                          <VStack align="start" spacing={4}>
+                            <FormControl isRequired>
+                              <FormLabel>Payment Amount</FormLabel>
+                              <Input
+                                type="number"
+                                value={paymentAmount}
+                                onChange={(e) => setPaymentAmount(e.target.value)}
+                                placeholder="Enter payment amount"
+                                max={selectedProject.proposal_amount - ((selectedProject.advance_payment || 0) + (selectedProject.paid_amount || 0))}
+                                min={0}
+                                step="0.01"
+                                isDisabled={paymentLoading}
+                              />
+                              <Text fontSize="sm" color="gray.500">
+                                Maximum payment amount: {inr(selectedProject.proposal_amount - ((selectedProject.advance_payment || 0) + (selectedProject.paid_amount || 0)))}
+                              </Text>
+                            </FormControl>
+                            <FormControl isRequired>
+                              <FormLabel>Payment Date</FormLabel>
+                              <Input
+                                type="date"
+                                value={paymentDate}
+                                onChange={(e) => setPaymentDate(e.target.value)}
+                                isDisabled={paymentLoading}
+                              />
+                            </FormControl>
+                            <FormControl isRequired>
+                              <FormLabel>Payment Mode</FormLabel>
+                              <Select
+                                value={paymentMode}
+                                onChange={(e) => setPaymentMode(e.target.value)}
+                                isDisabled={paymentLoading}
+                              >
+                                <option value="Cash">Cash</option>
+                                <option value="UPI">UPI</option>
+                                <option value="Cheque">Cheque</option>
+                                <option value="Subsidy">Subsidy</option>
+                              </Select>
+                            </FormControl>
+                            <Button
+                              colorScheme="green"
+                              width="full"
+                              onClick={handleAddPayment}
+                              isLoading={paymentLoading}
+                              loadingText="Adding"
+                              isDisabled={!paymentAmount || parseFloat(paymentAmount) <= 0 || paymentLoading}
+                            >
+                              Add Payment
+                            </Button>
+                          </VStack>
+                        </CardBody>
+                      </Card>
+
+                      <Card>
+                        <CardHeader>
+                          <Heading size="md">Payment History</Heading>
+                        </CardHeader>
+                        <CardBody>
+                          {paymentHistory && paymentHistory.length > 0 ? (
+                            <TableContainer>
+                              <Table variant="simple" size="md">
+                                <Thead>
+                                  <Tr>
+                                    <Th>Date</Th>
+                                    <Th>Amount (₹)</Th>
+                                    <Th>Mode</Th>
+                                    <Th>Receipt</Th>
+                                  </Tr>
+                                </Thead>
+                                <Tbody>
+                                  {paymentHistory.map((p) => (
+                                    <Tr key={p.id}>
+                                      <Td>{p.payment_date ? new Date(p.payment_date).toLocaleDateString() : (p.created_at ? new Date(p.created_at).toLocaleDateString() : '')}</Td>
+                                      <Td>{p.amount != null ? p.amount.toLocaleString() : ''}</Td>
+                                      <Td>{p.payment_mode || '-'}</Td>
+                                      <Td>
+                                        <HStack spacing={2}>
+                                          <Button size="sm" colorScheme="blue" onClick={() => handleDownloadReceipt(p)}>
+                                            Download Receipt
+                                          </Button>
+                                          {p.id !== 'advance' && (
+                                            <Button size="sm" colorScheme="red" onClick={() => handleDeletePayment(p.id)}>
+                                              Delete
+                                            </Button>
+                                          )}
+                                        </HStack>
+                                      </Td>
+                                    </Tr>
+                                  ))}
+                                </Tbody>
+                              </Table>
+                            </TableContainer>
+                          ) : (
+                            <Text textAlign="center" color="gray.500">No payment history found.</Text>
+                          )}
+                        </CardBody>
+                      </Card>
+                    </VStack>
+                  )}
+                </ModalBody>
+                <ModalFooter>
+                  <Button onClick={onPaymentModalClose}>Close</Button>
+                </ModalFooter>
+              </ModalContent>
+            </Modal>
           </TabPanel>
 
           <TabPanel p={0} pt={4}>
