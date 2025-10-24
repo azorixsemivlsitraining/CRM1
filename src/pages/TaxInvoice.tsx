@@ -256,7 +256,7 @@ async function generateTaxInvoicePDF(invoice: TaxInvoiceData) {
     doc.setFont('helvetica', 'normal');
     doc.text('Invoice Date:', infoLabelX, infoY);
     doc.setFont('helvetica', 'bold');
-    doc.text(new Date(invoice.invoice_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '4-digit' }), infoLabelX + 25, infoY);
+    doc.text(new Date(invoice.invoice_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }), infoLabelX + 25, infoY);
 
     infoY += 6;
     doc.setFont('helvetica', 'normal');
@@ -495,7 +495,7 @@ const TaxInvoice: React.FC = () => {
   useEffect(() => {
     if (!authorized) return;
     fetchInvoices();
-  }, [authorized]);
+  }, [authorized, fetchInvoices]);
 
   const fetchInvoices = async () => {
     try {

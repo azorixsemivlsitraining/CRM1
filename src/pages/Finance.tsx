@@ -849,7 +849,7 @@ const Finance: React.FC = () => {
       doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
       const billLines = doc.splitTextToSize(invoice.place_of_supply, 50);
       let billY = y + 11;
-      billLines.forEach((line) => {
+      billLines.forEach((line: string) => {
         doc.text(line, margin + 2, billY);
         billY += 3;
       });
@@ -861,7 +861,7 @@ const Finance: React.FC = () => {
       doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
       const shipLines = doc.splitTextToSize(invoice.place_of_supply, 50);
       let shipY = y + 11;
-      shipLines.forEach((line) => {
+      shipLines.forEach((line: string) => {
         doc.text(line, pageWidth / 2 + 2, shipY);
         shipY += 3;
       });
