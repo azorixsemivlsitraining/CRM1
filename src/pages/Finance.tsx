@@ -2293,25 +2293,48 @@ const Finance: React.FC = () => {
                             </HStack>
                           </FormControl>
                           {taxInvoiceForm.items.map((item, index) => (
-                            <Card key={index} mb={4} bg="white" border="1px solid" borderColor="gray.200">
+                            <Card key={index} mb={4} bg="white" border="2px solid" borderColor="green.200">
+                              <CardHeader bg="green.50" pb={2}>
+                                <HStack justify="space-between">
+                                  <Box>
+                                    <Text fontSize="sm" color="gray.600">Item {index + 1}</Text>
+                                    <Text fontWeight="bold">{item.description}</Text>
+                                  </Box>
+                                  {taxInvoiceForm.items.length > 1 && (
+                                    <Button
+                                      size="sm"
+                                      colorScheme="red"
+                                      variant="outline"
+                                      onClick={() => {
+                                        const newItems = taxInvoiceForm.items.filter((_, i) => i !== index);
+                                        setTaxInvoiceForm({ ...taxInvoiceForm, items: newItems });
+                                      }}
+                                    >
+                                      Remove
+                                    </Button>
+                                  )}
+                                </HStack>
+                              </CardHeader>
                               <CardBody>
                                 <VStack spacing={3}>
                                   <FormControl isRequired>
-                                    <FormLabel>Item Description</FormLabel>
+                                    <FormLabel>Item Description (Optional)</FormLabel>
                                     <Input
-                                      placeholder="Enter item description"
+                                      as="textarea"
+                                      placeholder="Add additional description or specifications for this item"
                                       value={item.description}
                                       onChange={(e) => {
                                         const newItems = [...taxInvoiceForm.items];
                                         newItems[index].description = e.target.value;
                                         setTaxInvoiceForm({ ...taxInvoiceForm, items: newItems });
                                       }}
+                                      minH="80px"
                                     />
                                   </FormControl>
                                   <FormControl isRequired>
                                     <FormLabel>HSN Code</FormLabel>
                                     <Input
-                                      placeholder="Enter HSN code"
+                                      placeholder="Enter HSN/SAC code"
                                       value={item.hsn}
                                       onChange={(e) => {
                                         const newItems = [...taxInvoiceForm.items];
