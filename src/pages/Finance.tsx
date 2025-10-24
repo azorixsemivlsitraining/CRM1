@@ -66,6 +66,7 @@ interface Project {
   tax_amount?: number;
   discount_amount?: number;
   delivery_fee?: number;
+  kwh?: number;
 }
 
 interface PaymentHistory {
@@ -96,6 +97,52 @@ interface ExpenseRec {
   amount: number;
   tax_amount?: number;
 }
+
+interface EstimationCost {
+  id: string;
+  customer_name: string;
+  description: string;
+  service_no: string;
+  estimated_cost: number;
+  created_at?: string;
+}
+
+interface TaxInvoiceItem {
+  description: string;
+  hsn: string;
+  quantity: number;
+  rate: number;
+  cgst_percent: number;
+  sgst_percent: number;
+}
+
+interface TaxInvoice {
+  id?: string;
+  customer_name: string;
+  place_of_supply: string;
+  state: string;
+  gst_no: string;
+  invoice_no: string;
+  invoice_date: string;
+  items: TaxInvoiceItem[];
+  project_id?: string;
+  capacity?: string;
+  amount_paid?: number;
+  created_at?: string;
+}
+
+const PREDEFINED_INVOICE_ITEMS = [
+  { name: 'Solar PV Modules Wp_Bifical_' },
+  { name: 'Solar Grid Tied Inverter' },
+  { name: 'Module Mounting' },
+  { name: 'DC Distribution box IP65' },
+  { name: 'AC Distribution Box IP65' },
+  { name: 'Copper cables' },
+  { name: 'Earthing' },
+  { name: 'Lightning Arrestor' },
+  { name: 'Hardware SS304 and other required accessories' },
+  { name: 'Installation & Commissioning of Rooftop Solar Power Plant' },
+];
 
 const inr = (v: number) => `₹${(v || 0).toLocaleString('en-IN')}`;
 
@@ -272,10 +319,721 @@ const Finance: React.FC = () => {
   const [paymentLoading, setPaymentLoading] = useState(false);
   const { isOpen: isPaymentModalOpen, onOpen: onPaymentModalOpen, onClose: onPaymentModalClose } = useDisclosure();
 
+  const [estimations, setEstimations] = useState<EstimationCost[]>([]);
+  const [estimationForm, setEstimationForm] = useState({ customerName: '', description: '', serviceNo: '', estimatedCost: '' });
+  const [estimationLoading, setEstimationLoading] = useState(false);
+
+  const [taxInvoices, setTaxInvoices] = useState<TaxInvoice[]>([]);
+  const [taxInvoiceForm, setTaxInvoiceForm] = useState<TaxInvoice>({
+    customer_name: '',
+    place_of_supply: '',
+    state: '',
+    gst_no: '',
+    invoice_no: '',
+    invoice_date: new Date().toISOString().split('T')[0],
+    items: [],
+    project_id: '',
+    capacity: '',
+    amount_paid: 0,
+  });
+  const [taxInvoiceLoading, setTaxInvoiceLoading] = useState(false);
+  const [projectSearchTerm, setProjectSearchTerm] = useState('');
+  const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
+
   const { isFinance, isAuthenticated, isAdmin } = useAuth();
   const toast = useToast();
 
   const authorized = isAuthenticated && (isFinance || isAdmin);
+
+  const getNextGstNo = async (): Promise<string> => {
+    try {
+      const { data } = await supabase
+        .from('tax_invoices')
+        .select('gst_no')
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (data && data.length > 0) {
+        const lastGstNo = data[0].gst_no;
+        const match = lastGstNo.match(/IN-(\d+)/);
+        if (match) {
+          const nextNum = parseInt(match[1]) + 1;
+          return `IN-${String(nextNum).padStart(6, '0')}`;
+        }
+      }
+      return 'IN-000001';
+    } catch {
+      return 'IN-000001';
+    }
+  };
+
+  const getNextInvoiceNo = async (): Promise<string> => {
+    try {
+      const { data } = await supabase
+        .from('tax_invoices')
+        .select('invoice_no')
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (data && data.length > 0) {
+        const lastInvoiceNo = data[0].invoice_no;
+        const match = lastInvoiceNo.match(/INV-(\d+)/);
+        if (match) {
+          const nextNum = parseInt(match[1]) + 1;
+          return `INV-${String(nextNum).padStart(6, '0')}`;
+        }
+      }
+      return 'INV-000001';
+    } catch {
+      return 'INV-000001';
+    }
+  };
+
+  const handleAddEstimation = async () => {
+    if (!estimationForm.customerName || !estimationForm.description || !estimationForm.serviceNo || !estimationForm.estimatedCost) {
+      toast({
+        title: 'Missing Fields',
+        description: 'Please fill all estimation fields.',
+        status: 'warning',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    try {
+      setEstimationLoading(true);
+      const { error } = await supabase.from('estimation_costs').insert([{
+        customer_name: estimationForm.customerName,
+        description: estimationForm.description,
+        service_no: estimationForm.serviceNo,
+        estimated_cost: parseFloat(estimationForm.estimatedCost),
+      }]);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Success',
+        description: 'Estimation cost added successfully.',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+
+      setEstimationForm({ customerName: '', description: '', serviceNo: '', estimatedCost: '' });
+      await fetchEstimations();
+    } catch (error) {
+      console.error('Error adding estimation:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to add estimation cost.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setEstimationLoading(false);
+    }
+  };
+
+  const fetchEstimations = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('estimation_costs')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setEstimations((data || []) as EstimationCost[]);
+    } catch (error) {
+      console.error('Error fetching estimations:', error);
+    }
+  };
+
+  const downloadEstimationPDF = async (estimation: EstimationCost) => {
+    try {
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const BRAND_PRIMARY = { r: 72, g: 187, b: 120 };
+      const TEXT_PRIMARY = { r: 45, g: 55, b: 72 };
+      const TEXT_MUTED = { r: 99, g: 110, b: 114 };
+
+      const margin = 18;
+      const pageWidth = doc.internal.pageSize.width;
+
+      doc.setFillColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
+      doc.rect(0, 0, pageWidth, 9, 'F');
+
+      try {
+        const { dataUrl: logoData, aspectRatio: logoRatio } = await fetchImageAsset(LOGO_URL);
+        const logoWidth = 68;
+        const logoHeight = logoWidth * logoRatio;
+        doc.addImage(logoData, 'PNG', pageWidth - margin - logoWidth, margin - 8, logoWidth, logoHeight, undefined, 'FAST');
+      } catch (err) {
+        console.error('Logo image error:', err);
+      }
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
+      doc.text('AXISO GREEN ENERGIES PRIVATE LIMITED', margin, 21);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9.5);
+      doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
+      doc.text('Sustainable Energy Solutions for a Greener Tomorrow', margin, 26);
+
+      const companyLines = [
+        'Address: PLOT NO-102,103, TEMPLE LANE MYTHRI NAGAR',
+        'Shri Ambika Vidya Mandir, MATHRUSRINAGAR, SERLINGAMPALLY',
+        'Hyderabad, Rangareddy, Telangana, 500049',
+        'Email: contact@axisogreen.in | Website: www.axisogreen.in',
+        'GSTIN: 36ABBCA4478M1Z9',
+      ];
+      doc.setFontSize(8.5);
+      companyLines.forEach((line, index) => {
+        doc.text(line, margin, 32 + index * 4);
+      });
+
+      doc.setDrawColor(230, 230, 230);
+      doc.line(margin, 55, pageWidth - margin, 55);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(16);
+      doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
+      doc.text('ESTIMATION COST', pageWidth / 2, 68, { align: 'center' });
+
+      let y = 80;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
+
+      doc.text('Customer Name:', margin, y);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+      doc.text(estimation.customer_name, margin + 50, y);
+
+      y += 8;
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
+      doc.text('Service No:', margin, y);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+      doc.text(estimation.service_no, margin + 50, y);
+
+      y += 8;
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
+      doc.text('Date:', margin, y);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+      const estDate = estimation.created_at ? new Date(estimation.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' }) : new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
+      doc.text(estDate, margin + 50, y);
+
+      y += 16;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+      doc.text('Description:', margin, y);
+
+      y += 6;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+      const wrappedDescription = doc.splitTextToSize(estimation.description, pageWidth - margin * 2);
+      doc.text(wrappedDescription, margin, y);
+
+      y += wrappedDescription.length * 5 + 10;
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
+      doc.text('Estimated Cost: ₹' + estimation.estimated_cost.toLocaleString('en-IN'), margin, y);
+
+      const words = convertNumberToWords(estimation.estimated_cost);
+      y += 10;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
+      doc.text('Amount in Words:', margin, y);
+      y += 5;
+      const amountText = `Indian Rupee ${words} Only`;
+      doc.setFont('helvetica', 'bold');
+      const wrappedAmount = doc.splitTextToSize(amountText, pageWidth - margin * 2);
+      doc.text(wrappedAmount, margin, y);
+
+      doc.save(`Estimation_${estimation.id}.pdf`);
+    } catch (error) {
+      console.error('Error generating estimation PDF:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to generate estimation PDF',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const handleSelectProjectForInvoice = (projectId: string) => {
+    const selectedProject = projects.find(p => p.id === projectId);
+    if (selectedProject) {
+      setTaxInvoiceForm({
+        ...taxInvoiceForm,
+        project_id: projectId,
+        customer_name: selectedProject.customer_name,
+        place_of_supply: selectedProject.address || '',
+        state: selectedProject.state || '',
+        capacity: selectedProject.kwh ? `${selectedProject.kwh} kW` : '',
+        amount_paid: selectedProject.paid_amount || 0,
+      });
+    }
+  };
+
+  const handleAddTaxInvoice = async () => {
+    if (!taxInvoiceForm.customer_name || !taxInvoiceForm.place_of_supply || !taxInvoiceForm.state || !taxInvoiceForm.items.length) {
+      toast({
+        title: 'Missing Fields',
+        description: 'Please fill all tax invoice fields and add items.',
+        status: 'warning',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    try {
+      setTaxInvoiceLoading(true);
+      const nextGstNo = await getNextGstNo();
+      const nextInvoiceNo = await getNextInvoiceNo();
+
+      if (editingInvoiceId) {
+        const { error } = await supabase
+          .from('tax_invoices')
+          .update({
+            customer_name: taxInvoiceForm.customer_name,
+            place_of_supply: taxInvoiceForm.place_of_supply,
+            state: taxInvoiceForm.state,
+            items: taxInvoiceForm.items,
+          })
+          .eq('id', editingInvoiceId);
+
+        if (error) throw error;
+
+        toast({
+          title: 'Success',
+          description: 'Tax invoice updated successfully.',
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        });
+
+        setEditingInvoiceId(null);
+      } else {
+        const { error } = await supabase.from('tax_invoices').insert([{
+          customer_name: taxInvoiceForm.customer_name,
+          place_of_supply: taxInvoiceForm.place_of_supply,
+          state: taxInvoiceForm.state,
+          gst_no: nextGstNo,
+          invoice_no: nextInvoiceNo,
+          invoice_date: taxInvoiceForm.invoice_date,
+          items: taxInvoiceForm.items,
+        }]);
+
+        if (error) throw error;
+
+        toast({
+          title: 'Success',
+          description: 'Tax invoice created successfully.',
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+
+      setTaxInvoiceForm({
+        customer_name: '',
+        place_of_supply: '',
+        state: '',
+        gst_no: '',
+        invoice_no: '',
+        invoice_date: new Date().toISOString().split('T')[0],
+        items: [],
+        project_id: '',
+        capacity: '',
+        amount_paid: 0,
+      });
+      await fetchTaxInvoices();
+    } catch (error) {
+      console.error('Error saving tax invoice:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to save tax invoice.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setTaxInvoiceLoading(false);
+    }
+  };
+
+  const handleDeleteInvoice = async (invoiceId: string) => {
+    if (!window.confirm('Are you sure you want to delete this invoice?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('tax_invoices')
+        .delete()
+        .eq('id', invoiceId);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Success',
+        description: 'Invoice deleted successfully.',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+
+      await fetchTaxInvoices();
+    } catch (error) {
+      console.error('Error deleting invoice:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to delete invoice.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const handleEditInvoice = (invoice: TaxInvoice) => {
+    setEditingInvoiceId(invoice.id || null);
+    setTaxInvoiceForm(invoice);
+    window.scrollTo(0, 0);
+  };
+
+  const fetchTaxInvoices = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('tax_invoices')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setTaxInvoices((data || []) as TaxInvoice[]);
+    } catch (error) {
+      console.error('Error fetching tax invoices:', error);
+    }
+  };
+
+  const downloadTaxInvoicePDF = async (invoice: TaxInvoice) => {
+    try {
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const TEXT_PRIMARY = { r: 45, g: 55, b: 72 };
+      const TEXT_MUTED = { r: 99, g: 110, b: 114 };
+      const BORDER_COLOR = { r: 180, g: 180, b: 180 };
+
+      const margin = 12;
+      const pageWidth = doc.internal.pageSize.width;
+      const pageHeight = doc.internal.pageSize.height;
+
+      doc.setDrawColor(BORDER_COLOR.r, BORDER_COLOR.g, BORDER_COLOR.b);
+      doc.setLineWidth(1);
+      doc.rect(margin, margin, pageWidth - margin * 2, pageHeight - margin * 2);
+
+      const LOGO_URL = 'https://cdn.builder.io/api/v1/image/assets%2F8bf52f20c3654880b140d224131cfa2e%2Ffa1e04c2340e47698e33419042fa128a?format=webp&width=800';
+      const SIGNATURE_URL = 'https://cdn.builder.io/api/v1/image/assets%2F8bf52f20c3654880b140d224131cfa2e%2Fd31cd52135f84c5db35418d5a42dc0a8?format=webp&width=800';
+
+      try {
+        const logoImg = new Image();
+        logoImg.src = LOGO_URL;
+        const canvas = document.createElement('canvas');
+        const img = await new Promise<HTMLImageElement>((resolve) => {
+          const tempImg = new Image();
+          tempImg.crossOrigin = 'anonymous';
+          tempImg.onload = () => resolve(tempImg);
+          tempImg.src = LOGO_URL;
+        });
+        const logoWidth = 25;
+        const logoHeight = 20;
+        doc.addImage(LOGO_URL, 'PNG', margin + 2, margin + 2, logoWidth, logoHeight);
+      } catch (err) {
+        console.error('Error loading logo:', err);
+      }
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+      doc.text('Axiso Green Energies Private', margin + 30, margin + 5);
+      doc.text('Limited', margin + 30, margin + 11);
+
+      doc.setFontSize(7);
+      doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Telangana', margin + 30, margin + 16);
+      doc.text('India', margin + 30, margin + 19.5);
+      doc.text('GSTIN:36ABBCA4478M1Z9', margin + 30, margin + 23);
+      doc.text('admin@axisogreen.in', margin + 30, margin + 26.5);
+      doc.text('www.axisogreen.in', margin + 30, margin + 30);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(16);
+      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+      doc.text('TAX INVOICE', pageWidth / 2, margin + 12, { align: 'center' });
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
+
+      let invoiceDetailsY = margin + 5;
+      const invoiceDetailsX = pageWidth - margin - 55;
+
+      doc.text('#', invoiceDetailsX, invoiceDetailsY);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+      doc.text(invoice.invoice_no, invoiceDetailsX + 20, invoiceDetailsY);
+
+      invoiceDetailsY += 5;
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
+      doc.text('Invoice Date', invoiceDetailsX, invoiceDetailsY);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+      const invDate = invoice.invoice_date ? new Date(invoice.invoice_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
+      doc.text(invDate, invoiceDetailsX + 20, invoiceDetailsY);
+
+      invoiceDetailsY += 5;
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
+      doc.text('Terms', invoiceDetailsX, invoiceDetailsY);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+      doc.text('PIA', invoiceDetailsX + 20, invoiceDetailsY);
+
+      invoiceDetailsY += 5;
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
+      doc.text('Due Date', invoiceDetailsX, invoiceDetailsY);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+      const dueDate = invoice.invoice_date ? new Date(new Date(invoice.invoice_date).getTime() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
+      doc.text(dueDate, invoiceDetailsX + 20, invoiceDetailsY);
+
+      invoiceDetailsY += 5;
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
+      doc.text('Place of Supply', invoiceDetailsX, invoiceDetailsY);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+      doc.text(invoice.state + ' (36)', invoiceDetailsX + 20, invoiceDetailsY);
+
+      let y = margin + 45;
+
+      doc.setDrawColor(BORDER_COLOR.r, BORDER_COLOR.g, BORDER_COLOR.b);
+      doc.setLineWidth(0.5);
+      doc.line(margin, y - 3, pageWidth - margin, y - 3);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+      doc.text('Bill To', margin + 2, y + 2);
+      doc.text('Ship To', pageWidth / 2 + 2, y + 2);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+      doc.text(invoice.customer_name, margin + 2, y + 7);
+      doc.setFontSize(7);
+      doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
+      const billLines = doc.splitTextToSize(invoice.place_of_supply, 50);
+      let billY = y + 11;
+      billLines.forEach((line: string) => {
+        doc.text(line, margin + 2, billY);
+        billY += 3;
+      });
+
+      doc.setFontSize(8);
+      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+      doc.text(invoice.customer_name, pageWidth / 2 + 2, y + 7);
+      doc.setFontSize(7);
+      doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
+      const shipLines = doc.splitTextToSize(invoice.place_of_supply, 50);
+      let shipY = y + 11;
+      shipLines.forEach((line: string) => {
+        doc.text(line, pageWidth / 2 + 2, shipY);
+        shipY += 3;
+      });
+
+      y += 22;
+
+      const tableTop = y;
+      doc.setFillColor(220, 220, 220);
+      doc.rect(margin, tableTop, pageWidth - margin * 2, 6, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+
+      doc.text('#', margin + 2, tableTop + 4.5);
+      doc.text('Item & Description', margin + 7, tableTop + 4.5);
+      doc.text('HSN /SAC', margin + 90, tableTop + 4.5);
+      doc.text('Qty', margin + 115, tableTop + 4.5);
+      doc.text('Rate', margin + 130, tableTop + 4.5);
+      doc.text('CGST %', margin + 150, tableTop + 4.5);
+      doc.text('Amt', margin + 165, tableTop + 4.5);
+      doc.text('SGST %', margin + 175, tableTop + 4.5);
+      doc.text('Amt', margin + 190, tableTop + 4.5);
+      doc.text('Amount', margin + 200, tableTop + 4.5);
+
+      y = tableTop + 7;
+
+      let totalQty = 0;
+      let totalAmount = 0;
+      let totalCGST = 0;
+      let totalSGST = 0;
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+
+      let allItemsDesc = '';
+      (invoice.items || []).forEach((item, idx) => {
+        if (idx > 0) allItemsDesc += '\n';
+        allItemsDesc += item.description;
+        totalQty += item.quantity;
+        const amount = item.quantity * item.rate;
+        totalAmount += amount;
+        totalCGST += amount * (item.cgst_percent / 100);
+        totalSGST += amount * (item.sgst_percent / 100);
+      });
+
+      doc.text('1', margin + 2, y);
+      const wrappedDesc = doc.splitTextToSize(allItemsDesc, 80);
+      doc.text(wrappedDesc, margin + 7, y);
+      const descHeight = wrappedDesc.length * 4;
+      y += Math.max(descHeight, 4);
+
+      doc.text((invoice.items[0]?.hsn || ''), margin + 90, y - (descHeight > 4 ? descHeight : 4));
+      doc.text(totalQty.toFixed(2), margin + 115, y - (descHeight > 4 ? descHeight : 4));
+      doc.text(totalAmount.toFixed(2), margin + 130, y - (descHeight > 4 ? descHeight : 4));
+      doc.text((invoice.items[0]?.cgst_percent || 0).toFixed(0), margin + 150, y - (descHeight > 4 ? descHeight : 4));
+      doc.text(totalCGST.toFixed(2), margin + 165, y - (descHeight > 4 ? descHeight : 4));
+      doc.text((invoice.items[0]?.sgst_percent || 0).toFixed(0), margin + 175, y - (descHeight > 4 ? descHeight : 4));
+      doc.text(totalSGST.toFixed(2), margin + 190, y - (descHeight > 4 ? descHeight : 4));
+      doc.text((totalAmount + totalCGST + totalSGST).toFixed(2), margin + 200, y - (descHeight > 4 ? descHeight : 4));
+
+      y += 2;
+      doc.setLineWidth(0.5);
+      doc.line(margin, y, pageWidth - margin, y);
+
+      y += 5;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+
+      const totalsX = pageWidth - margin - 50;
+      doc.text('Sub Total', totalsX, y);
+      doc.setFont('helvetica', 'normal');
+      doc.text('₹' + totalAmount.toFixed(2), pageWidth - margin - 8, y, { align: 'right' });
+
+      y += 5;
+      doc.setFont('helvetica', 'bold');
+      doc.text('CGST (6%)', totalsX, y);
+      doc.setFont('helvetica', 'normal');
+      doc.text('₹' + totalCGST.toFixed(2), pageWidth - margin - 8, y, { align: 'right' });
+
+      y += 5;
+      doc.setFont('helvetica', 'bold');
+      doc.text('SGST (6%)', totalsX, y);
+      doc.setFont('helvetica', 'normal');
+      doc.text('₹' + totalSGST.toFixed(2), pageWidth - margin - 8, y, { align: 'right' });
+
+      const grandTotal = totalAmount + totalCGST + totalSGST;
+      y += 8;
+      doc.setFillColor(0, 0, 0);
+      doc.rect(totalsX - 2, y - 4, 50, 6, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(255, 255, 255);
+      doc.text('Total', totalsX, y);
+      doc.text('₹' + grandTotal.toFixed(2), pageWidth - margin - 8, y, { align: 'right' });
+
+      y += 12;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+      doc.text('Total in Words:', margin, y);
+
+      y += 4;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      const words = convertNumberToWords(Math.floor(grandTotal));
+      const wrappedWords = doc.splitTextToSize(`Indian Rupee ${words} Only`, pageWidth - margin * 2 - 10);
+      doc.text(wrappedWords, margin, y);
+
+      y += wrappedWords.length * 3 + 6;
+      doc.setFontSize(8);
+      doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Notes:', margin, y);
+      y += 3;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7);
+      const notesText = doc.splitTextToSize('IT IS A COMPUTER GENERATED INVOICE AND WILL NOT REQUIRE ANY SIGNATURES', pageWidth - margin * 2 - 10);
+      doc.text(notesText, margin, y);
+
+      y = pageHeight - 38;
+      doc.setFontSize(7);
+      doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Terms & Conditions:', margin, y);
+      y += 3;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(6);
+      const tcLines = [
+        'Warranty: 5 Years against Manufacturing Defects, 25 Years linear Power',
+        'Warranty on Solar Modules, Warranty as per manufacturers warranty',
+        'terms, void if Physical Damages and unauthorized usage of tampering of',
+        'units. Warranty starts from the date of Plant commissioning 17-09-2025',
+      ];
+      tcLines.forEach((line) => {
+        doc.text(line, margin, y);
+        y += 2.5;
+      });
+
+      try {
+        doc.addImage(SIGNATURE_URL, 'PNG', pageWidth - margin - 35, pageHeight - 22, 30, 12);
+      } catch (err) {
+        console.error('Error loading signature:', err);
+      }
+
+      doc.setFontSize(7);
+      doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
+      doc.text('Authorized Signature', pageWidth - margin - 35, pageHeight - 8, { align: 'center' });
+
+      doc.setFontSize(8);
+      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+      doc.setFont('helvetica', 'bold');
+      doc.text('For AXISO GREEN ENERGIES PVT. LTD.', pageWidth - margin - 5, pageHeight - 12, { align: 'right' });
+
+      doc.setFontSize(7);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
+      doc.text('Manager', pageWidth - margin - 5, pageHeight - 8, { align: 'right' });
+
+      doc.save(`Tax_Invoice_${invoice.invoice_no}.pdf`);
+    } catch (error) {
+      console.error('Error generating tax invoice PDF:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to generate tax invoice PDF',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
 
   const openPaymentModal = async (project: Project) => {
     setSelectedProject(project);
@@ -490,6 +1248,9 @@ const Finance: React.FC = () => {
           expensesData = [];
         }
         setExpenses(expensesData);
+
+        await fetchEstimations();
+        await fetchTaxInvoices();
       } catch (error) {
         console.error('Error fetching finance data:', error);
         toast({ title: 'Error', description: 'Failed to fetch financial data', status: 'error', duration: 5000, isClosable: true });
@@ -882,7 +1643,7 @@ const Finance: React.FC = () => {
       doc.setTextColor(255, 255, 255);
       doc.text('Date', margin + 3, tableTop + 5);
       doc.text('Payment Mode', margin + colWidth + 3, tableTop + 5);
-      doc.text('Amount (₹)', margin + colWidth * 2 + 3, tableTop + 5);
+      doc.text('Amount (��)', margin + colWidth * 2 + 3, tableTop + 5);
       doc.text('Reference', margin + colWidth * 3 + 3, tableTop + 5);
 
       y = tableTop + 10;
@@ -1066,6 +1827,8 @@ const Finance: React.FC = () => {
         <TabList>
           <Tab>Sales & Revenue</Tab>
           <Tab>Projects Receivables</Tab>
+          <Tab>Estimation Cost</Tab>
+          <Tab>Tax Invoice</Tab>
           <Tab>Reports & Export</Tab>
         </TabList>
         <TabPanels>
@@ -1360,6 +2123,456 @@ const Finance: React.FC = () => {
                 </ModalFooter>
               </ModalContent>
             </Modal>
+          </TabPanel>
+
+          <TabPanel p={0} pt={4}>
+            <Card>
+              <CardHeader>
+                <Heading size="md">Estimation Cost</Heading>
+              </CardHeader>
+              <CardBody>
+                <VStack align="stretch" spacing={6}>
+                  <Card bg="gray.50">
+                    <CardHeader>
+                      <Heading size="sm">Create New Estimation</Heading>
+                    </CardHeader>
+                    <CardBody>
+                      <VStack spacing={4}>
+                        <FormControl isRequired>
+                          <FormLabel>Customer Name</FormLabel>
+                          <Input
+                            placeholder="Enter customer name"
+                            value={estimationForm.customerName}
+                            onChange={(e) => setEstimationForm({ ...estimationForm, customerName: e.target.value })}
+                          />
+                        </FormControl>
+                        <FormControl isRequired>
+                          <FormLabel>Estimation Service No.</FormLabel>
+                          <Input
+                            placeholder="Enter service number"
+                            value={estimationForm.serviceNo}
+                            onChange={(e) => setEstimationForm({ ...estimationForm, serviceNo: e.target.value })}
+                          />
+                        </FormControl>
+                        <FormControl isRequired>
+                          <FormLabel>Description</FormLabel>
+                          <Input
+                            as="textarea"
+                            placeholder="Enter detailed description"
+                            value={estimationForm.description}
+                            onChange={(e) => setEstimationForm({ ...estimationForm, description: e.target.value })}
+                            minH="100px"
+                          />
+                        </FormControl>
+                        <FormControl isRequired>
+                          <FormLabel>Estimated Cost (₹)</FormLabel>
+                          <Input
+                            type="number"
+                            placeholder="Enter estimated cost"
+                            value={estimationForm.estimatedCost}
+                            onChange={(e) => setEstimationForm({ ...estimationForm, estimatedCost: e.target.value })}
+                            min="0"
+                            step="0.01"
+                          />
+                        </FormControl>
+                        <Button
+                          colorScheme="green"
+                          width="full"
+                          onClick={handleAddEstimation}
+                          isLoading={estimationLoading}
+                          loadingText="Creating"
+                        >
+                          Create Estimation & Download PDF
+                        </Button>
+                      </VStack>
+                    </CardBody>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <Heading size="sm">Estimation History</Heading>
+                    </CardHeader>
+                    <CardBody>
+                      {estimations.length > 0 ? (
+                        <TableContainer>
+                          <Table variant="simple" size="sm">
+                            <Thead>
+                              <Tr>
+                                <Th>Customer Name</Th>
+                                <Th>Service No.</Th>
+                                <Th>Description</Th>
+                                <Th isNumeric>Estimated Cost (₹)</Th>
+                                <Th>Date</Th>
+                                <Th>Action</Th>
+                              </Tr>
+                            </Thead>
+                            <Tbody>
+                              {estimations.map((est) => (
+                                <Tr key={est.id}>
+                                  <Td>{est.customer_name}</Td>
+                                  <Td>{est.service_no}</Td>
+                                  <Td>{est.description.substring(0, 50)}...</Td>
+                                  <Td isNumeric>{est.estimated_cost.toLocaleString('en-IN')}</Td>
+                                  <Td>{est.created_at ? new Date(est.created_at).toLocaleDateString() : '-'}</Td>
+                                  <Td>
+                                    <Button
+                                      size="sm"
+                                      colorScheme="blue"
+                                      onClick={() => downloadEstimationPDF(est)}
+                                    >
+                                      Download PDF
+                                    </Button>
+                                  </Td>
+                                </Tr>
+                              ))}
+                            </Tbody>
+                          </Table>
+                        </TableContainer>
+                      ) : (
+                        <Text textAlign="center" color="gray.500">No estimations found.</Text>
+                      )}
+                    </CardBody>
+                  </Card>
+                </VStack>
+              </CardBody>
+            </Card>
+          </TabPanel>
+
+          <TabPanel p={0} pt={4}>
+            <Card>
+              <CardHeader>
+                <Heading size="md">Tax Invoice</Heading>
+              </CardHeader>
+              <CardBody>
+                <VStack align="stretch" spacing={6}>
+                  <Card bg="gray.50">
+                    <CardHeader>
+                      <Heading size="sm">Create New Tax Invoice</Heading>
+                    </CardHeader>
+                    <CardBody>
+                      <VStack spacing={4}>
+                        <FormControl isRequired>
+                          <FormLabel>Select Customer/Project</FormLabel>
+                          <Input
+                            placeholder="Search customer name or project..."
+                            value={projectSearchTerm}
+                            onChange={(e) => setProjectSearchTerm(e.target.value)}
+                            mb={2}
+                          />
+                          <Box
+                            border="1px solid"
+                            borderColor="gray.300"
+                            borderRadius="md"
+                            maxH="200px"
+                            overflowY="auto"
+                            bg="white"
+                          >
+                            {projects
+                              .filter((p) =>
+                                p.customer_name.toLowerCase().includes(projectSearchTerm.toLowerCase()) ||
+                                p.name.toLowerCase().includes(projectSearchTerm.toLowerCase())
+                              )
+                              .map((project) => (
+                                <Box
+                                  key={project.id}
+                                  p={3}
+                                  borderBottom="1px solid"
+                                  borderColor="gray.200"
+                                  cursor="pointer"
+                                  _hover={{ bg: 'gray.100' }}
+                                  onClick={() => {
+                                    handleSelectProjectForInvoice(project.id);
+                                    setProjectSearchTerm('');
+                                  }}
+                                >
+                                  <Text fontWeight="bold">{project.customer_name}</Text>
+                                  <Text fontSize="sm" color="gray.600">
+                                    {project.name}
+                                  </Text>
+                                </Box>
+                              ))}
+                            {projects.filter((p) =>
+                              p.customer_name.toLowerCase().includes(projectSearchTerm.toLowerCase()) ||
+                              p.name.toLowerCase().includes(projectSearchTerm.toLowerCase())
+                            ).length === 0 && projectSearchTerm && (
+                              <Box p={3} textAlign="center" color="gray.500">
+                                No projects found
+                              </Box>
+                            )}
+                          </Box>
+                        </FormControl>
+
+                        {taxInvoiceForm.project_id && (
+                          <Card bg="blue.50" width="full">
+                            <CardBody>
+                              <SimpleGrid columns={2} spacing={4}>
+                                <Box>
+                                  <Text fontSize="sm" color="gray.600">Capacity</Text>
+                                  <Text fontWeight="bold">{taxInvoiceForm.capacity || 'N/A'}</Text>
+                                </Box>
+                                <Box>
+                                  <Text fontSize="sm" color="gray.600">Amount Paid</Text>
+                                  <Text fontWeight="bold">₹{(taxInvoiceForm.amount_paid || 0).toLocaleString('en-IN')}</Text>
+                                </Box>
+                              </SimpleGrid>
+                            </CardBody>
+                          </Card>
+                        )}
+
+                        <FormControl isRequired>
+                          <FormLabel>Customer Name</FormLabel>
+                          <Input
+                            placeholder="Enter customer name"
+                            value={taxInvoiceForm.customer_name}
+                            onChange={(e) => setTaxInvoiceForm({ ...taxInvoiceForm, customer_name: e.target.value })}
+                          />
+                        </FormControl>
+                        <FormControl isRequired>
+                          <FormLabel>Place of Supply</FormLabel>
+                          <Input
+                            placeholder="Enter place of supply"
+                            value={taxInvoiceForm.place_of_supply}
+                            onChange={(e) => setTaxInvoiceForm({ ...taxInvoiceForm, place_of_supply: e.target.value })}
+                          />
+                        </FormControl>
+                        <FormControl isRequired>
+                          <FormLabel>State</FormLabel>
+                          <Input
+                            placeholder="Enter state"
+                            value={taxInvoiceForm.state}
+                            onChange={(e) => setTaxInvoiceForm({ ...taxInvoiceForm, state: e.target.value })}
+                          />
+                        </FormControl>
+
+                        <Box width="full" borderTop="2px solid" borderColor="gray.200" pt={4}>
+                          <Heading size="sm" mb={4}>Invoice Items</Heading>
+                          <FormControl mb={4}>
+                            <FormLabel>Select Item to Add</FormLabel>
+                            <HStack width="full" spacing={2}>
+                              <Select
+                                placeholder="Choose an item"
+                                id="itemSelect"
+                              >
+                                <option value="">-- Select Item --</option>
+                                {PREDEFINED_INVOICE_ITEMS.map((item, idx) => (
+                                  <option key={idx} value={idx}>
+                                    {item.name}
+                                  </option>
+                                ))}
+                              </Select>
+                              <Button
+                                colorScheme="blue"
+                                onClick={() => {
+                                  const select = document.getElementById('itemSelect') as HTMLSelectElement;
+                                  const selectedIndex = parseInt(select.value);
+                                  if (selectedIndex >= 0) {
+                                    const selectedItem = PREDEFINED_INVOICE_ITEMS[selectedIndex];
+                                    const newItems = [
+                                      ...taxInvoiceForm.items,
+                                      {
+                                        description: selectedItem.name,
+                                        hsn: '',
+                                        quantity: 1,
+                                        rate: 0,
+                                        cgst_percent: 9,
+                                        sgst_percent: 9,
+                                      },
+                                    ];
+                                    setTaxInvoiceForm({ ...taxInvoiceForm, items: newItems });
+                                    select.value = '';
+                                  }
+                                }}
+                              >
+                                Add Item
+                              </Button>
+                            </HStack>
+                          </FormControl>
+                          {taxInvoiceForm.items.map((item, index) => (
+                            <Card key={index} mb={4} bg="white" border="2px solid" borderColor="green.200">
+                              <CardHeader bg="green.50" pb={2}>
+                                <HStack justify="space-between">
+                                  <Box>
+                                    <Text fontSize="sm" color="gray.600">Item {index + 1}</Text>
+                                    <Text fontWeight="bold">{item.description}</Text>
+                                  </Box>
+                                  {taxInvoiceForm.items.length > 1 && (
+                                    <Button
+                                      size="sm"
+                                      colorScheme="red"
+                                      variant="outline"
+                                      onClick={() => {
+                                        const newItems = taxInvoiceForm.items.filter((_, i) => i !== index);
+                                        setTaxInvoiceForm({ ...taxInvoiceForm, items: newItems });
+                                      }}
+                                    >
+                                      Remove
+                                    </Button>
+                                  )}
+                                </HStack>
+                              </CardHeader>
+                              <CardBody>
+                                <VStack spacing={3}>
+                                  <FormControl isRequired>
+                                    <FormLabel>Item Description (Optional)</FormLabel>
+                                    <Input
+                                      as="textarea"
+                                      placeholder="Add additional description or specifications for this item"
+                                      value={item.description}
+                                      onChange={(e) => {
+                                        const newItems = [...taxInvoiceForm.items];
+                                        newItems[index].description = e.target.value;
+                                        setTaxInvoiceForm({ ...taxInvoiceForm, items: newItems });
+                                      }}
+                                      minH="80px"
+                                    />
+                                  </FormControl>
+                                  <FormControl isRequired>
+                                    <FormLabel>HSN Code</FormLabel>
+                                    <Input
+                                      placeholder="Enter HSN/SAC code"
+                                      value={item.hsn}
+                                      onChange={(e) => {
+                                        const newItems = [...taxInvoiceForm.items];
+                                        newItems[index].hsn = e.target.value;
+                                        setTaxInvoiceForm({ ...taxInvoiceForm, items: newItems });
+                                      }}
+                                    />
+                                  </FormControl>
+                                  <SimpleGrid columns={4} spacing={3} width="full">
+                                    <FormControl isRequired>
+                                      <FormLabel fontSize="sm">Quantity</FormLabel>
+                                      <Input
+                                        type="number"
+                                        placeholder="Qty"
+                                        value={item.quantity}
+                                        onChange={(e) => {
+                                          const newItems = [...taxInvoiceForm.items];
+                                          newItems[index].quantity = parseFloat(e.target.value) || 0;
+                                          setTaxInvoiceForm({ ...taxInvoiceForm, items: newItems });
+                                        }}
+                                        min="0"
+                                        step="0.01"
+                                      />
+                                    </FormControl>
+                                    <FormControl isRequired>
+                                      <FormLabel fontSize="sm">Rate (₹)</FormLabel>
+                                      <Input
+                                        type="number"
+                                        placeholder="Rate"
+                                        value={item.rate}
+                                        onChange={(e) => {
+                                          const newItems = [...taxInvoiceForm.items];
+                                          newItems[index].rate = parseFloat(e.target.value) || 0;
+                                          setTaxInvoiceForm({ ...taxInvoiceForm, items: newItems });
+                                        }}
+                                        min="0"
+                                        step="0.01"
+                                      />
+                                    </FormControl>
+                                    <FormControl isRequired>
+                                      <FormLabel fontSize="sm">CGST %</FormLabel>
+                                      <Input
+                                        type="number"
+                                        placeholder="CGST %"
+                                        value={item.cgst_percent}
+                                        onChange={(e) => {
+                                          const newItems = [...taxInvoiceForm.items];
+                                          newItems[index].cgst_percent = parseFloat(e.target.value) || 0;
+                                          setTaxInvoiceForm({ ...taxInvoiceForm, items: newItems });
+                                        }}
+                                        min="0"
+                                        step="0.01"
+                                      />
+                                    </FormControl>
+                                    <FormControl isRequired>
+                                      <FormLabel fontSize="sm">SGST %</FormLabel>
+                                      <Input
+                                        type="number"
+                                        placeholder="SGST %"
+                                        value={item.sgst_percent}
+                                        onChange={(e) => {
+                                          const newItems = [...taxInvoiceForm.items];
+                                          newItems[index].sgst_percent = parseFloat(e.target.value) || 0;
+                                          setTaxInvoiceForm({ ...taxInvoiceForm, items: newItems });
+                                        }}
+                                        min="0"
+                                        step="0.01"
+                                      />
+                                    </FormControl>
+                                  </SimpleGrid>
+                                  <Box width="full" p={2} bg="gray.100" borderRadius="md">
+                                    <Text fontSize="sm" color="gray.700" fontWeight="bold">
+                                      Item Total: ₹{(item.quantity * item.rate).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </Text>
+                                  </Box>
+                                </VStack>
+                              </CardBody>
+                            </Card>
+                          ))}
+                        </Box>
+
+                        <Button
+                          colorScheme="green"
+                          width="full"
+                          onClick={handleAddTaxInvoice}
+                          isLoading={taxInvoiceLoading}
+                          loadingText="Creating"
+                          size="lg"
+                        >
+                          Create Invoice & Download PDF
+                        </Button>
+                      </VStack>
+                    </CardBody>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <Heading size="sm">Tax Invoices History</Heading>
+                    </CardHeader>
+                    <CardBody>
+                      {taxInvoices.length > 0 ? (
+                        <TableContainer>
+                          <Table variant="simple" size="sm">
+                            <Thead>
+                              <Tr>
+                                <Th>GST No.</Th>
+                                <Th>Customer Name</Th>
+                                <Th>Place of Supply</Th>
+                                <Th>State</Th>
+                                <Th>Date</Th>
+                                <Th>Action</Th>
+                              </Tr>
+                            </Thead>
+                            <Tbody>
+                              {taxInvoices.map((invoice) => (
+                                <Tr key={invoice.id}>
+                                  <Td fontWeight="bold">{invoice.gst_no}</Td>
+                                  <Td>{invoice.customer_name}</Td>
+                                  <Td>{invoice.place_of_supply}</Td>
+                                  <Td>{invoice.state}</Td>
+                                  <Td>{invoice.created_at ? new Date(invoice.created_at).toLocaleDateString() : '-'}</Td>
+                                  <Td>
+                                    <Button
+                                      size="sm"
+                                      colorScheme="blue"
+                                      onClick={() => downloadTaxInvoicePDF(invoice)}
+                                    >
+                                      Download PDF
+                                    </Button>
+                                  </Td>
+                                </Tr>
+                              ))}
+                            </Tbody>
+                          </Table>
+                        </TableContainer>
+                      ) : (
+                        <Text textAlign="center" color="gray.500">No tax invoices found.</Text>
+                      )}
+                    </CardBody>
+                  </Card>
+                </VStack>
+              </CardBody>
+            </Card>
           </TabPanel>
 
           <TabPanel p={0} pt={4}>
