@@ -242,6 +242,156 @@ const Finance: React.FC = () => {
 
   const authorized = isAuthenticated && (isFinance || isAdmin);
 
+  const openPaymentModal = async (project: Project) => {
+    setSelectedProject(project);
+    setPaymentAmount('');
+    setPaymentDate(new Date().toISOString().split('T')[0]);
+    setPaymentMode('Cash');
+    await fetchProjectPaymentHistory(project.id);
+    onPaymentModalOpen();
+  };
+
+  const fetchProjectPaymentHistory = async (projectId: string) => {
+    try {
+      const { data: paymentData, error: paymentError } = await supabase
+        .from('payment_history')
+        .select('*')
+        .eq('project_id', projectId)
+        .order('created_at', { ascending: true });
+
+      if (paymentError) throw paymentError;
+
+      let history = paymentData || [];
+      const project = projects.find(p => p.id === projectId);
+
+      if (project && project.advance_payment && project.advance_payment > 0) {
+        const advanceRow = {
+          id: 'advance',
+          amount: project.advance_payment,
+          created_at: project.start_date || project.created_at || new Date().toISOString(),
+          payment_mode: project.payment_mode || 'Cash',
+          payment_date: project.start_date || project.created_at || new Date().toISOString(),
+        };
+        if (!history.some((p: any) => p.amount === advanceRow.amount && p.payment_date === advanceRow.payment_date)) {
+          history = [advanceRow, ...history];
+        }
+      }
+
+      setPaymentHistory(history);
+    } catch (error) {
+      console.error('Error fetching payment history:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to fetch payment history',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const handleAddPayment = async () => {
+    if (!selectedProject || !paymentAmount || !paymentDate || !paymentMode) {
+      toast({
+        title: 'Missing Fields',
+        description: 'Please fill all payment details.',
+        status: 'warning',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    try {
+      setPaymentLoading(true);
+      const { error } = await supabase
+        .from('payment_history')
+        .insert([{
+          project_id: selectedProject.id,
+          amount: parseFloat(paymentAmount),
+          payment_mode: paymentMode,
+          payment_date: paymentDate,
+        }]);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Payment Added',
+        description: 'Payment added successfully.',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+
+      setPaymentAmount('');
+      setPaymentDate(new Date().toISOString().split('T')[0]);
+      setPaymentMode('Cash');
+      await fetchProjectPaymentHistory(selectedProject.id);
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to add payment.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
+
+  const handleDownloadReceipt = async (payment: PaymentHistory) => {
+    if (!selectedProject) return;
+
+    try {
+      const receiptData = {
+        date: payment.payment_date || payment.created_at,
+        amount: payment.amount,
+        receivedFrom: selectedProject.customer_name,
+        paymentMode: payment.payment_mode || '-',
+        placeOfSupply: selectedProject.state || '',
+        customerAddress: selectedProject.address || '',
+      };
+
+      await generatePaymentReceiptPDF(receiptData);
+    } catch (error) {
+      console.error('Error generating receipt:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to generate receipt',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const handleDeletePayment = async (paymentId: string) => {
+    if (!paymentId || paymentId === 'advance') return;
+    try {
+      const { error } = await supabase
+        .from('payment_history')
+        .delete()
+        .eq('id', paymentId);
+      if (error) throw error;
+      setPaymentHistory(prev => prev.filter(p => p.id !== paymentId));
+      toast({
+        title: 'Payment deleted',
+        status: 'success',
+        duration: 2000,
+        isClosable: true,
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to delete payment',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
   const periodStart = useMemo(() => {
     const now = new Date();
     if (period === 'daily') return new Date(now.getFullYear(), now.getMonth(), now.getDate());
