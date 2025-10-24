@@ -531,12 +531,6 @@ const Finance: React.FC = () => {
     return Array.from(m.entries()).sort((a, b) => b[1] - a[1]);
   }, [payments]);
 
-  const taxSummary = useMemo(() => {
-    const taxFromProjects = projects.reduce((s, p) => s + (p.tax_amount || 0), 0);
-    const taxFromExpenses = expenses.reduce((s, e) => s + (e.tax_amount || 0), 0);
-    return { outputTax: taxFromProjects, inputTax: taxFromExpenses, netTax: taxFromProjects - taxFromExpenses };
-  }, [projects, expenses]);
-
   const paymentsByProject = useMemo(() => {
     const m = new Map<string, number>();
     payments.forEach((p) => m.set(p.project_id, (m.get(p.project_id) || 0) + (p.amount || 0)));
