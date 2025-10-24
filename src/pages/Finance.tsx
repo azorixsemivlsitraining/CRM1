@@ -736,50 +736,49 @@ const Finance: React.FC = () => {
     doc.save('pnl.pdf');
   };
 
-  const generateInvoice = (project: Project) => {
+  const generatePaymentInvoice = (project: Project, payments: PaymentHistory[]) => {
     const doc = new jsPDF();
     const left = 14; const right = 196 - 14; let y = 16;
-    doc.setFontSize(18); doc.text('Tax Invoice', left, y); y += 8;
+    doc.setFontSize(18); doc.text('Payment Invoice', left, y); y += 8;
     doc.setFontSize(12);
     doc.text('Axiso Green Energy', left, y); y += 6;
     doc.text(`Invoice #: INV-${project.id.slice(0, 8).toUpperCase()}`, left, y); y += 6;
     doc.text(`Date: ${new Date().toLocaleDateString()}`, left, y); y += 10;
     doc.setFontSize(12); doc.text('Bill To:', left, y); y += 6;
     doc.text(`${project.customer_name || ''}`, left, y); y += 8;
-    doc.setFontSize(12);
-    doc.text('Description', left, y);
+    doc.setFontSize(10);
+    doc.text('Project Information:', left, y); y += 6;
+    doc.text(`Project: ${project.name}`, left + 4, y); y += 5;
+    doc.text(`Total Amount: ${inr(project.proposal_amount || 0)}`, left + 4, y); y += 5;
+    doc.text(`Outstanding: ${inr(project.balance_amount || 0)}`, left + 4, y); y += 8;
+
+    doc.setFontSize(11);
+    doc.text('Payment History', left, y); y += 6;
+    doc.setFontSize(9);
+    doc.text('Date', left, y);
+    doc.text('Mode', left + 40, y);
     doc.text('Amount (INR)', right, y, { align: 'right' }); y += 4;
     doc.setLineWidth(0.3); doc.line(left, y, 196, y); y += 6;
 
-    const base = project.proposal_amount || 0;
-    const discount = project.discount_amount || 0;
-    const delivery = project.delivery_fee || 0;
-    const tax = project.tax_amount || 0;
-    const taxable = Math.max(base - discount + delivery, 0);
-    const taxRate = taxable ? (tax / taxable) * 100 : 0;
-
-    const lines: { label: string; amount: number }[] = [
-      { label: `Solar Project - ${project.name}`, amount: base },
-    ];
-    if (discount) lines.push({ label: 'Discount', amount: -discount });
-    if (delivery) lines.push({ label: 'Delivery Charges', amount: delivery });
-    if (tax) lines.push({ label: `GST (${taxRate.toFixed(2)}%)`, amount: tax });
-
-    lines.forEach((l) => {
-      doc.text(l.label, left, y);
-      doc.text((l.amount || 0).toLocaleString('en-IN'), right, y, { align: 'right' }); y += 6;
+    let totalPaid = 0;
+    payments.forEach((p) => {
+      const paymentDate = p.payment_date ? new Date(p.payment_date).toLocaleDateString() : (p.created_at ? new Date(p.created_at).toLocaleDateString() : '');
+      doc.text(paymentDate, left, y);
+      doc.text(p.payment_mode || '-', left + 40, y);
+      doc.text((p.amount || 0).toLocaleString('en-IN'), right, y, { align: 'right' });
+      y += 5;
+      totalPaid += p.amount || 0;
     });
 
     doc.setLineWidth(0.3); doc.line(left, y, 196, y); y += 6;
-    const total = lines.reduce((s, l) => s + (l.amount || 0), 0);
-    doc.setFontSize(13);
-    doc.text('Total', left, y);
-    doc.text(total.toLocaleString('en-IN'), right, y, { align: 'right' }); y += 10;
+    doc.setFontSize(11);
+    doc.text('Total Paid', left, y);
+    doc.text(totalPaid.toLocaleString('en-IN'), right, y, { align: 'right' }); y += 8;
 
     doc.setFontSize(10);
-    doc.text('Terms: Due on receipt. Thank you for your business.', left, y);
+    doc.text('Terms: Thank you for your business.', left, y);
 
-    doc.save(`invoice_${project.id}.pdf`);
+    doc.save(`payment_invoice_${project.id}.pdf`);
   };
 
   return (
