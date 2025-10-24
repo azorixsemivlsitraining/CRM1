@@ -780,6 +780,22 @@ const Finance: React.FC = () => {
       doc.setFillColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
       doc.rect(0, 0, pageWidth, 9, 'F');
 
+      // Add logo
+      try {
+        const { dataUrl: logoData, aspectRatio: logoRatio } = await fetchImageAsset(LOGO_URL);
+        const maxLogoWidth = 68;
+        const maxLogoHeight = 34;
+        let logoWidth = maxLogoWidth;
+        let logoHeight = logoWidth * logoRatio;
+        if (logoHeight > maxLogoHeight) {
+          logoHeight = maxLogoHeight;
+          logoWidth = logoHeight / logoRatio;
+        }
+        doc.addImage(logoData, 'PNG', pageWidth - margin - logoWidth, margin - 8, logoWidth, logoHeight, undefined, 'FAST');
+      } catch (err) {
+        console.error('Logo image error:', err);
+      }
+
       // Company name and subtitle
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(14);
