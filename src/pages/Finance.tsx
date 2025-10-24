@@ -130,8 +130,16 @@ interface TaxInvoice {
 }
 
 const PREDEFINED_INVOICE_ITEMS = [
-  { name: 'Renewable Energy Devices and its Spare Parts Design, Engineering, Supply of Solar PV Modules (Wp Bifacial), Solar Grid Tied Inverter, Module Mounting, DC Distribution box IP65, AC Distribution Box IP65, Copper cables, Earthing, Lightning Arrestor, Hardware SS304 and other required accessories', hsn: '608541' },
-  { name: 'Installation & Commissioning of Rooftop Solar Power Plant', hsn: '609954' },
+  { name: 'Solar PV Modules Wp_Bifical_' },
+  { name: 'Solar Grid Tied Inverter' },
+  { name: 'Module Mounting' },
+  { name: 'DC Distribution box IP65' },
+  { name: 'AC Distribution Box IP65' },
+  { name: 'Copper cables' },
+  { name: 'Earthing' },
+  { name: 'Lightning Arrestor' },
+  { name: 'Hardware SS304 and other required accessories' },
+  { name: 'Installation & Commissioning of Rooftop Solar Power Plant' },
 ];
 
 const inr = (v: number) => `₹${(v || 0).toLocaleString('en-IN')}`;
@@ -1539,7 +1547,7 @@ const Finance: React.FC = () => {
       doc.setTextColor(255, 255, 255);
       doc.text('Date', margin + 3, tableTop + 5);
       doc.text('Payment Mode', margin + colWidth + 3, tableTop + 5);
-      doc.text('Amount (₹)', margin + colWidth * 2 + 3, tableTop + 5);
+      doc.text('Amount (��)', margin + colWidth * 2 + 3, tableTop + 5);
       doc.text('Reference', margin + colWidth * 3 + 3, tableTop + 5);
 
       y = tableTop + 10;
