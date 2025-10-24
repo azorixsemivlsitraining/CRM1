@@ -633,13 +633,22 @@ const TaxInvoice: React.FC = () => {
     try {
       setSubmitLoading(true);
 
-      // Prepare invoice data to match table structure
+      // Clean items - only include required fields
+      const cleanItems = formData.items.map(item => ({
+        hsn_code: item.hsn_code,
+        quantity: Number(item.quantity) || 0,
+        rate: Number(item.rate) || 0,
+        cgst_rate: Number(item.cgst_rate) || 0,
+        sgst_rate: Number(item.sgst_rate) || 0,
+      }));
+
+      // Prepare invoice data to match table structure exactly
       const invoiceToSave = {
-        customer_name: formData.customer_name,
-        place_of_supply: formData.place_of_supply,
-        state: formData.state,
-        gst_no: formData.gst_number,
-        items: formData.items,
+        customer_name: formData.customer_name.trim(),
+        place_of_supply: formData.place_of_supply.trim(),
+        state: formData.state.trim(),
+        gst_no: formData.gst_number.trim(),
+        items: cleanItems,
       };
 
       console.log('Saving invoice:', invoiceToSave);
@@ -650,14 +659,20 @@ const TaxInvoice: React.FC = () => {
           .update(invoiceToSave)
           .eq('id', editingId);
 
-        if (error) throw error;
+        if (error) {
+          console.error('Update error:', error);
+          throw error;
+        }
         toast({ title: 'Success', description: 'Invoice updated', status: 'success', duration: 2000, isClosable: true });
       } else {
         const { error } = await supabase
           .from('tax_invoices')
           .insert([invoiceToSave]);
 
-        if (error) throw error;
+        if (error) {
+          console.error('Insert error:', error);
+          throw error;
+        }
         toast({ title: 'Success', description: 'Invoice created', status: 'success', duration: 2000, isClosable: true });
       }
 
