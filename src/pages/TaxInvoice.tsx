@@ -709,13 +709,21 @@ const TaxInvoice: React.FC = () => {
   const handleDownloadPDF = async (invoice: TaxInvoiceData) => {
     try {
       await generateTaxInvoicePDF(invoice);
-    } catch (error) {
-      console.error('Error generating PDF:', error);
+      toast({
+        title: 'Success',
+        description: 'PDF downloaded successfully',
+        status: 'success',
+        duration: 2000,
+        isClosable: true,
+      });
+    } catch (error: any) {
+      const errorMsg = error?.message || error?.details || JSON.stringify(error);
+      console.error('Error generating PDF:', errorMsg);
       toast({
         title: 'Error',
-        description: 'Failed to generate PDF',
+        description: `Failed to generate PDF: ${errorMsg}`,
         status: 'error',
-        duration: 3000,
+        duration: 5000,
         isClosable: true,
       });
     }
