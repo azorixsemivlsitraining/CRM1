@@ -730,49 +730,247 @@ const Finance: React.FC = () => {
     doc.save('pnl.pdf');
   };
 
-  const generatePaymentInvoice = (project: Project, payments: PaymentHistory[]) => {
-    const doc = new jsPDF();
-    const left = 14; const right = 196 - 14; let y = 16;
-    doc.setFontSize(18); doc.text('Payment Invoice', left, y); y += 8;
-    doc.setFontSize(12);
-    doc.text('Axiso Green Energy', left, y); y += 6;
-    doc.text(`Invoice #: INV-${project.id.slice(0, 8).toUpperCase()}`, left, y); y += 6;
-    doc.text(`Date: ${new Date().toLocaleDateString()}`, left, y); y += 10;
-    doc.setFontSize(12); doc.text('Bill To:', left, y); y += 6;
-    doc.text(`${project.customer_name || ''}`, left, y); y += 8;
-    doc.setFontSize(10);
-    doc.text('Project Information:', left, y); y += 6;
-    doc.text(`Project: ${project.name}`, left + 4, y); y += 5;
-    doc.text(`Total Amount: ${inr(project.proposal_amount || 0)}`, left + 4, y); y += 5;
-    doc.text(`Outstanding: ${inr(project.balance_amount || 0)}`, left + 4, y); y += 8;
+  const generatePaymentInvoice = async (project: Project, payments: PaymentHistory[]) => {
+    try {
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const BRAND_PRIMARY = { r: 72, g: 187, b: 120 };
+      const TEXT_PRIMARY = { r: 45, g: 55, b: 72 };
+      const TEXT_MUTED = { r: 99, g: 110, b: 114 };
+      const BOX_BG = { r: 244, g: 252, b: 247 };
 
-    doc.setFontSize(11);
-    doc.text('Payment History', left, y); y += 6;
-    doc.setFontSize(9);
-    doc.text('Date', left, y);
-    doc.text('Mode', left + 40, y);
-    doc.text('Amount (INR)', right, y, { align: 'right' }); y += 4;
-    doc.setLineWidth(0.3); doc.line(left, y, 196, y); y += 6;
+      const margin = 18;
+      const pageWidth = doc.internal.pageSize.width;
+      const pageHeight = doc.internal.pageSize.height;
 
-    let totalPaid = 0;
-    payments.forEach((p) => {
-      const paymentDate = p.payment_date ? new Date(p.payment_date).toLocaleDateString() : (p.created_at ? new Date(p.created_at).toLocaleDateString() : '');
-      doc.text(paymentDate, left, y);
-      doc.text(p.payment_mode || '-', left + 40, y);
-      doc.text((p.amount || 0).toLocaleString('en-IN'), right, y, { align: 'right' });
-      y += 5;
-      totalPaid += p.amount || 0;
-    });
+      // Header background
+      doc.setFillColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
+      doc.rect(0, 0, pageWidth, 9, 'F');
 
-    doc.setLineWidth(0.3); doc.line(left, y, 196, y); y += 6;
-    doc.setFontSize(11);
-    doc.text('Total Paid', left, y);
-    doc.text(totalPaid.toLocaleString('en-IN'), right, y, { align: 'right' }); y += 8;
+      // Company name and subtitle
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
+      doc.text('AXISO GREEN ENERGIES PRIVATE LIMITED', margin, 21);
 
-    doc.setFontSize(10);
-    doc.text('Terms: Thank you for your business.', left, y);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9.5);
+      doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
+      doc.text('Sustainable Energy Solutions for a Greener Tomorrow', margin, 26);
 
-    doc.save(`payment_invoice_${project.id}.pdf`);
+      const companyLines = [
+        'Address: PLOT NO-102,103, TEMPLE LANE MYTHRI NAGAR',
+        'Shri Ambika Vidya Mandir, MATHRUSRINAGAR, SERLINGAMPALLY',
+        'Hyderabad, Rangareddy, Telangana, 500049',
+        'Email: contact@axisogreen.in | Website: www.axisogreen.in',
+        'GSTIN: 36ABBCA4478M1Z9',
+      ];
+      doc.setFontSize(8.5);
+      companyLines.forEach((line, index) => {
+        doc.text(line, margin, 32 + index * 4);
+      });
+
+      doc.setDrawColor(BOX_BG.r, BOX_BG.g, BOX_BG.b);
+      doc.line(margin, 55, pageWidth - margin, 55);
+
+      // Title
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(17);
+      doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
+      doc.text('PAYMENT INVOICE', pageWidth / 2, 68, { align: 'center' });
+
+      // Project and Customer Info
+      let y = 78;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
+      doc.text('Customer:', margin, y);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+      doc.text(project.customer_name || '', margin + 50, y);
+
+      y += 7;
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
+      doc.text('Project:', margin, y);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+      doc.text(project.name || '', margin + 50, y);
+
+      y += 7;
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
+      doc.text('Invoice No:', margin, y);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+      doc.text(`INV-${project.id.slice(0, 8).toUpperCase()}`, margin + 50, y);
+
+      y += 7;
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
+      doc.text('Date:', margin, y);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+      doc.text(new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' }), margin + 50, y);
+
+      y += 12;
+
+      // Payment Table
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+      doc.text('Payment Details', margin, y);
+
+      y += 8;
+      const tableTop = y;
+      const colWidth = (pageWidth - margin * 2) / 4;
+
+      // Table header
+      doc.setFillColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
+      doc.rect(margin, tableTop, pageWidth - margin * 2, 7, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(255, 255, 255);
+      doc.text('Date', margin + 3, tableTop + 5);
+      doc.text('Payment Mode', margin + colWidth + 3, tableTop + 5);
+      doc.text('Amount (₹)', margin + colWidth * 2 + 3, tableTop + 5);
+      doc.text('Reference', margin + colWidth * 3 + 3, tableTop + 5);
+
+      y = tableTop + 10;
+      let totalPaid = 0;
+      const paymentRefNo = `AGE${Date.now().toString().slice(-6)}`;
+
+      payments.forEach((p, idx) => {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+
+        const paymentDate = p.payment_date ? new Date(p.payment_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }) : (p.created_at ? new Date(p.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }) : '-');
+        doc.text(paymentDate, margin + 3, y);
+        doc.text(p.payment_mode || '-', margin + colWidth + 3, y);
+        doc.text((p.amount || 0).toLocaleString('en-IN'), margin + colWidth * 2 + 3, y);
+        doc.text(`AGE-${paymentRefNo}-${idx + 1}`, margin + colWidth * 3 + 3, y);
+
+        totalPaid += p.amount || 0;
+        y += 6;
+      });
+
+      // Total row
+      doc.setLineWidth(0.5);
+      doc.line(margin, y - 2, pageWidth - margin, y - 2);
+      y += 2;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+      doc.text('TOTAL PAID:', margin + 3, y);
+      doc.text(totalPaid.toLocaleString('en-IN'), margin + colWidth * 2 + 3, y);
+
+      y += 10;
+
+      // Amount Box
+      const amountBoxWidth = 70;
+      const amountBoxHeight = 28;
+      doc.setFillColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
+      doc.roundedRect(pageWidth - margin - amountBoxWidth - 5, y, amountBoxWidth, amountBoxHeight, 3, 3, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(255, 255, 255);
+      doc.text('TOTAL PAID', pageWidth - margin - amountBoxWidth / 2 - 5, y + 8, { align: 'center' });
+      doc.setFontSize(14);
+      doc.text(`Rs. ${totalPaid.toLocaleString('en-IN')}`, pageWidth - margin - amountBoxWidth / 2 - 5, y + 20, { align: 'center' });
+
+      y += 35;
+
+      // Amount in words box
+      doc.setFillColor(BOX_BG.r, BOX_BG.g, BOX_BG.b);
+      doc.roundedRect(margin, y, pageWidth - margin * 2, 18, 3, 3, 'FD');
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9.5);
+      doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
+      doc.text('Amount in Words', margin + 8, y + 7);
+
+      const words = convertNumberToWords(totalPaid);
+      const amountText = `Indian Rupee ${words} Only`;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9.5);
+      doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
+      const wrappedText = doc.splitTextToSize(amountText, pageWidth - margin * 2 - 16);
+      doc.text(wrappedText, margin + 8, y + 13);
+
+      y += 25;
+
+      // Outstanding section
+      doc.setFillColor(BOX_BG.r, BOX_BG.g, BOX_BG.b);
+      doc.roundedRect(margin, y, pageWidth - margin * 2, 18, 3, 3, 'FD');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
+      doc.text('Outstanding Balance', margin + 8, y + 9);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+      doc.text(`Rs. ${(project.balance_amount || 0).toLocaleString('en-IN')}`, margin + 8, y + 16);
+
+      y += 25;
+
+      // Thank you text
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(9.5);
+      doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
+      doc.text('Thank you for choosing sustainable energy solutions!', pageWidth / 2, y, { align: 'center' });
+
+      // Footer bar
+      doc.setFillColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
+      doc.rect(0, pageHeight - 8, pageWidth, 8, 'F');
+
+      doc.save(`Payment_Invoice_${project.id}.pdf`);
+    } catch (error) {
+      console.error('Error generating payment invoice:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to generate invoice',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const convertNumberToWords = (num: number): string => {
+    const single = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
+    const double = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+    const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+
+    const formatTens = (value: number): string => {
+      if (value < 10) return single[value];
+      if (value < 20) return double[value - 10];
+      return tens[Math.floor(value / 10)] + (value % 10 !== 0 ? ` ${single[value % 10]}` : '');
+    };
+
+    if (num === 0) return 'Zero';
+    let workingValue = num;
+    let words = '';
+
+    if (workingValue >= 10000000) {
+      words += `${convertNumberToWords(Math.floor(workingValue / 10000000))} Crore `;
+      workingValue %= 10000000;
+    }
+    if (workingValue >= 100000) {
+      words += `${convertNumberToWords(Math.floor(workingValue / 100000))} Lakh `;
+      workingValue %= 100000;
+    }
+    if (workingValue >= 1000) {
+      words += `${convertNumberToWords(Math.floor(workingValue / 1000))} Thousand `;
+      workingValue %= 1000;
+    }
+    if (workingValue >= 100) {
+      words += `${convertNumberToWords(Math.floor(workingValue / 100))} Hundred `;
+      workingValue %= 100;
+    }
+    if (workingValue > 0) {
+      words += formatTens(workingValue);
+    }
+
+    return words.trim();
   };
 
   return (
