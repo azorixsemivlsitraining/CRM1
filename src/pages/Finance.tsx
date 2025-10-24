@@ -329,6 +329,8 @@ const Finance: React.FC = () => {
     place_of_supply: '',
     state: '',
     gst_no: '',
+    invoice_no: '',
+    invoice_date: new Date().toISOString().split('T')[0],
     items: [],
     project_id: '',
     capacity: '',
@@ -336,6 +338,7 @@ const Finance: React.FC = () => {
   });
   const [taxInvoiceLoading, setTaxInvoiceLoading] = useState(false);
   const [projectSearchTerm, setProjectSearchTerm] = useState('');
+  const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
 
   const { isFinance, isAuthenticated, isAdmin } = useAuth();
   const toast = useToast();
