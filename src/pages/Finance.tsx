@@ -1272,7 +1272,11 @@ const Finance: React.FC = () => {
                     <Button onClick={onPaymentModalClose}>Close</Button>
                     <Button
                       colorScheme="blue"
-                      onClick={() => selectedProject && paymentHistory.length > 0 && generatePaymentInvoice(selectedProject, paymentHistory)}
+                      onClick={async () => {
+                        if (selectedProject && paymentHistory.length > 0) {
+                          await generatePaymentInvoice(selectedProject, paymentHistory);
+                        }
+                      }}
                       isDisabled={!selectedProject || paymentHistory.length === 0}
                     >
                       Download Invoice
