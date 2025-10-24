@@ -2406,23 +2406,10 @@ const Finance: React.FC = () => {
                                     </FormControl>
                                   </SimpleGrid>
                                   <Box width="full" p={2} bg="gray.100" borderRadius="md">
-                                    <Text fontSize="sm" color="gray.700">
-                                      Amount: ₹{(item.quantity * item.rate).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    <Text fontSize="sm" color="gray.700" fontWeight="bold">
+                                      Item Total: ₹{(item.quantity * item.rate).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </Text>
                                   </Box>
-                                  {taxInvoiceForm.items.length > 1 && (
-                                    <Button
-                                      size="sm"
-                                      colorScheme="red"
-                                      width="full"
-                                      onClick={() => {
-                                        const newItems = taxInvoiceForm.items.filter((_, i) => i !== index);
-                                        setTaxInvoiceForm({ ...taxInvoiceForm, items: newItems });
-                                      }}
-                                    >
-                                      Remove Item
-                                    </Button>
-                                  )}
                                 </VStack>
                               </CardBody>
                             </Card>
