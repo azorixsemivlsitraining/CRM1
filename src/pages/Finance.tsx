@@ -205,7 +205,7 @@ const BarCompareChart: React.FC<{ labels: string[]; seriesA: number[]; seriesB: 
           const a = seriesA[idx] || 0; const b = seriesB[idx] || 0;
           const ah = (a / maxV) * 200; const bh = (b / maxV) * 200;
           return (
-            <Tooltip key={lab} label={`${seriesLabels[0]}: ${inr(a)} · ${seriesLabels[1]}: ${inr(b)}`} hasArrow>
+            <Tooltip key={lab} label={`${seriesLabels[0]}: ${inr(a)} �� ${seriesLabels[1]}: ${inr(b)}`} hasArrow>
               <VStack spacing={2} align="center">
                 <HStack align="end" spacing={2}>
                   <Box w="14px" bg={colors[0]} borderRadius="sm" height={`${ah}px`} />
@@ -969,21 +969,26 @@ const Finance: React.FC = () => {
       doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
       doc.text(thankYouText, pageWidth / 2, y, { align: 'center' });
 
-      // Add signature stamp
+      // Add signature stamp at bottom
       try {
         const { dataUrl: signatureData, aspectRatio: signatureRatio } = await fetchImageAsset(FOOTER_SIGN_STAMP_URL);
         const signatureWidth = 42;
         const signatureHeight = signatureWidth * (signatureRatio || 0.45);
 
-        const thankYouWidth = doc.getTextWidth(thankYouText);
-        const thankYouEndX = pageWidth / 2 + thankYouWidth / 2;
-
-        const maxX = pageWidth - margin - signatureWidth;
-        const preferredX = thankYouEndX + 6;
-        const signatureX = Math.min(maxX, preferredX);
-        const signatureY = y - signatureHeight + 4;
+        const signatureX = pageWidth - margin - signatureWidth - 5;
+        const signatureY = pageHeight - 30;
 
         doc.addImage(signatureData, 'PNG', signatureX, signatureY, signatureWidth, signatureHeight, undefined, 'FAST');
+
+        // Add company and manager text below signature
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
+        doc.text('For AXISO GREEN ENERGIES PVT. LTD.', signatureX, signatureY + signatureHeight + 3, { align: 'right' });
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.text('Manager', signatureX, signatureY + signatureHeight + 8, { align: 'right' });
       } catch (err) {
         console.error('Signature image error:', err);
       }
