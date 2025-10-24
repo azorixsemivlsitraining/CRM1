@@ -537,6 +537,21 @@ const Finance: React.FC = () => {
     }
   };
 
+  const handleSelectProjectForInvoice = (projectId: string) => {
+    const selectedProject = projects.find(p => p.id === projectId);
+    if (selectedProject) {
+      setTaxInvoiceForm({
+        ...taxInvoiceForm,
+        project_id: projectId,
+        customer_name: selectedProject.customer_name,
+        place_of_supply: selectedProject.address || '',
+        state: selectedProject.state || '',
+        capacity: selectedProject.kwh ? `${selectedProject.kwh} kW` : '',
+        amount_paid: selectedProject.paid_amount || 0,
+      });
+    }
+  };
+
   const handleAddTaxInvoice = async () => {
     if (!taxInvoiceForm.customer_name || !taxInvoiceForm.place_of_supply || !taxInvoiceForm.state || !taxInvoiceForm.items.length) {
       toast({
