@@ -12,6 +12,7 @@ import ProjectDetails from './components/ProjectDetails';
 import Reports from './components/Reports';
 import Finance from './pages/Finance';
 import Payments from './pages/Payments';
+import TaxInvoice from './pages/TaxInvoice';
 import ServiceTickets from './pages/ServiceTickets';
 import TelanganaProjects from './pages/TelanganaProjects';
 import APProjects from './pages/APProjects';
@@ -162,6 +163,18 @@ const App: React.FC = () => {
                     <ModuleGuard moduleKey="finance">
                       <Layout>
                         <Payments />
+                      </Layout>
+                    </ModuleGuard>
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/tax-invoices"
+                element={
+                  <PrivateRoute>
+                    <ModuleGuard moduleKey="finance">
+                      <Layout>
+                        <TaxInvoice />
                       </Layout>
                     </ModuleGuard>
                   </PrivateRoute>
