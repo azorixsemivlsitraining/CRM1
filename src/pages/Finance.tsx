@@ -962,11 +962,31 @@ const Finance: React.FC = () => {
 
       y += 25;
 
-      // Thank you text
+      // Thank you text and signature
+      const thankYouText = 'Thank you for choosing sustainable energy solutions!';
       doc.setFont('helvetica', 'italic');
       doc.setFontSize(9.5);
       doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
-      doc.text('Thank you for choosing sustainable energy solutions!', pageWidth / 2, y, { align: 'center' });
+      doc.text(thankYouText, pageWidth / 2, y, { align: 'center' });
+
+      // Add signature stamp
+      try {
+        const { dataUrl: signatureData, aspectRatio: signatureRatio } = await fetchImageAsset(FOOTER_SIGN_STAMP_URL);
+        const signatureWidth = 42;
+        const signatureHeight = signatureWidth * (signatureRatio || 0.45);
+
+        const thankYouWidth = doc.getTextWidth(thankYouText);
+        const thankYouEndX = pageWidth / 2 + thankYouWidth / 2;
+
+        const maxX = pageWidth - margin - signatureWidth;
+        const preferredX = thankYouEndX + 6;
+        const signatureX = Math.min(maxX, preferredX);
+        const signatureY = y - signatureHeight + 4;
+
+        doc.addImage(signatureData, 'PNG', signatureX, signatureY, signatureWidth, signatureHeight, undefined, 'FAST');
+      } catch (err) {
+        console.error('Signature image error:', err);
+      }
 
       // Footer bar
       doc.setFillColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
