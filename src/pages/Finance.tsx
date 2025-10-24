@@ -592,6 +592,9 @@ const Finance: React.FC = () => {
         state: '',
         gst_no: '',
         items: [{ description: '', hsn: '', quantity: 1, rate: 0, cgst_percent: 9, sgst_percent: 9 }],
+        project_id: '',
+        capacity: '',
+        amount_paid: 0,
       });
       await fetchTaxInvoices();
     } catch (error) {
