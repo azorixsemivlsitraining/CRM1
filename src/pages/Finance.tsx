@@ -333,6 +333,7 @@ const Finance: React.FC = () => {
     amount_paid: 0,
   });
   const [taxInvoiceLoading, setTaxInvoiceLoading] = useState(false);
+  const [projectSearchTerm, setProjectSearchTerm] = useState('');
 
   const { isFinance, isAuthenticated, isAdmin } = useAuth();
   const toast = useToast();
