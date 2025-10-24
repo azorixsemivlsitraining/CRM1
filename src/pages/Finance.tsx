@@ -139,6 +139,40 @@ const downloadExcel = (columns: string[], rows: (string | number)[][], filename:
   download(html, filename.endsWith('.xls') ? filename : `${filename}.xls`, 'application/vnd.ms-excel');
 };
 
+// Logo and image handling
+const LOGO_URL = 'https://cdn.builder.io/api/v1/image/assets%2F379fc6e4730f4c788d839578cbf44f7f%2F80c7e07df9c94e6aa14ced8f1edbf799?format=webp&width=800';
+const FOOTER_SIGN_STAMP_URL = 'https://cdn.builder.io/api/v1/image/assets%2Fd6ed3a58ddbf4178909cabbd3ef86178%2F0237e5d9ea084a6abe20e0bc958c4e2c?format=webp&width=800';
+
+async function fetchImageAsDataURL(url: string): Promise<string> {
+  const res = await fetch(url, { mode: 'cors' });
+  const blob = await res.blob();
+  return await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function loadImageDimensions(dataUrl: string): Promise<{ width: number; height: number }> {
+  return await new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve({ width: image.naturalWidth, height: image.naturalHeight });
+    image.onerror = reject;
+    image.src = dataUrl;
+  });
+}
+
+async function fetchImageAsset(url: string): Promise<{ dataUrl: string; aspectRatio: number }> {
+  const dataUrl = await fetchImageAsDataURL(url);
+  try {
+    const { width, height } = await loadImageDimensions(dataUrl);
+    return { dataUrl, aspectRatio: height / width };
+  } catch {
+    return { dataUrl, aspectRatio: 1 };
+  }
+}
+
 // Simple bar chart (pure Chakra UI)
 const BarChart: React.FC<{ labels: string[]; values: number[]; color?: string; maxBars?: number }> = ({ labels, values, color = 'green.500', maxBars = 12 }) => {
   const items = labels.map((l, i) => ({ l, v: values[i] || 0 }));
