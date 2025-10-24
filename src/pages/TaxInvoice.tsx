@@ -550,26 +550,37 @@ const TaxInvoice: React.FC = () => {
   }, [authorized, fetchInvoices]);
 
   const openCreateForm = async () => {
-    const gstNumber = await getNextGSTNumber();
-    const invoiceNumber = await getNextInvoiceNumber();
-    setFormData({
-      customer_name: '',
-      state: 'Telangana',
-      place_of_supply: 'Telangana (36)',
-      gst_number: gstNumber,
-      invoice_number: invoiceNumber,
-      invoice_date: new Date().toISOString().split('T')[0],
-      bill_to_name: '',
-      bill_to_address: '',
-      bill_to_gst: '',
-      ship_to_name: '',
-      ship_to_address: '',
-      items: [{ id: '1', hsn_code: '708541', quantity: 1, rate: 0, cgst_rate: 9, sgst_rate: 9 }],
-      notes: '',
-      terms_and_conditions: 'Warranty: 3 Years against Manufacturing Defects. 25 Years linear Power Warranty on Solar Modules.',
-    });
-    setEditingId(null);
-    onOpen();
+    try {
+      const gstNumber = await getNextGSTNumber();
+      const invoiceNumber = await getNextInvoiceNumber();
+      setFormData({
+        customer_name: '',
+        state: 'Telangana',
+        place_of_supply: 'Telangana (36)',
+        gst_number: gstNumber,
+        invoice_number: invoiceNumber,
+        invoice_date: new Date().toISOString().split('T')[0],
+        bill_to_name: '',
+        bill_to_address: '',
+        bill_to_gst: '',
+        ship_to_name: '',
+        ship_to_address: '',
+        items: [{ id: '1', hsn_code: '708541', quantity: 1, rate: 0, cgst_rate: 9, sgst_rate: 9 }],
+        notes: '',
+        terms_and_conditions: 'Warranty: 3 Years against Manufacturing Defects. 25 Years linear Power Warranty on Solar Modules.',
+      });
+      setEditingId(null);
+      onOpen();
+    } catch (error: any) {
+      console.error('Error generating numbers:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to generate invoice/GST numbers. Make sure the table exists in Supabase.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    }
   };
 
   const openEditForm = (invoice: TaxInvoiceData) => {
