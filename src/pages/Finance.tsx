@@ -923,7 +923,7 @@ const Finance: React.FC = () => {
                         <Td><Badge colorScheme={project.payment_mode === 'Loan' ? 'purple' : 'blue'}>{project.payment_mode}</Badge></Td>
                         <Td>{project.current_stage}</Td>
                         <Td><Badge colorScheme={project.status === 'active' ? 'green' : 'gray'}>{project.status}</Badge></Td>
-                        <Td><Button size="xs" variant="outline" onClick={() => generateInvoice(project)}>Invoice</Button></Td>
+                        <Td><Button size="xs" variant="outline" onClick={() => openPaymentModal(project)}>Payment</Button></Td>
                       </Tr>
                     ))}
                     {filteredProjects.length === 0 && (
