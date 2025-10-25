@@ -666,6 +666,7 @@ const Finance: React.FC = () => {
     }
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleDeleteInvoice = async (invoiceId: string) => {
     if (!window.confirm('Are you sure you want to delete this invoice?')) return;
 
