@@ -505,14 +505,14 @@ async function generateTaxInvoicePDF(invoice: TaxInvoiceData) {
     yPos += 35;
 
     // Amount in words section
-    const amountWords = convertNumberToWords(Math.floor(totalAmount));
+    const amountWords = convertNumberToWords(Math.floor(grandTotalAmount));
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
     doc.setTextColor(colors.text.r, colors.text.g, colors.text.b);
     doc.text('Total in Words', margin, yPos);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
-    const wrappedWords = doc.splitTextToSize(`Indian Rupee One Lakh Ninety-Eight Thousand Only`, contentWidth - 40);
+    const wrappedWords = doc.splitTextToSize(`Indian Rupee ${amountWords} Only`, contentWidth - 40);
     doc.text(wrappedWords, margin, yPos + 5);
 
     yPos += 12;
