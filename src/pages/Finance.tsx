@@ -699,6 +699,7 @@ const Finance: React.FC = () => {
     }
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleEditInvoice = (invoice: TaxInvoice) => {
     setEditingInvoiceId(invoice.id || null);
     setTaxInvoiceForm(invoice);
