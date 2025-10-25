@@ -662,14 +662,15 @@ const TaxInvoice: React.FC = () => {
 
       // Clean items - only include required fields
       const cleanItems = formData.items.map(item => ({
-        hsn_code: item.hsn_code,
+        hsn_code: item.hsn_code || '',
         quantity: Number(item.quantity) || 0,
         rate: Number(item.rate) || 0,
         cgst_rate: Number(item.cgst_rate) || 0,
         sgst_rate: Number(item.sgst_rate) || 0,
       }));
 
-      // Prepare invoice data to match table structure exactly
+      // Prepare invoice data - only save columns that exist in the database table
+      // The table has: id, customer_name, place_of_supply, state, gst_no, items, created_at, updated_at
       const invoiceToSave = {
         customer_name: formData.customer_name.trim(),
         place_of_supply: formData.place_of_supply.trim(),
