@@ -740,6 +740,7 @@ const Finance: React.FC = () => {
       doc.rect(margin, margin, pageWidth - margin * 2, pageHeight - margin * 2);
 
       const LOGO_URL = 'https://cdn.builder.io/api/v1/image/assets%2F8bf52f20c3654880b140d224131cfa2e%2Ffa1e04c2340e47698e33419042fa128a?format=webp&width=800';
+      const SIGNATURE_URL = 'https://cdn.builder.io/api/v1/image/assets%2F8bf52f20c3654880b140d224131cfa2e%2Fd31cd52135f84c5db35418d5a42dc0a8?format=webp&width=800';
 
       try {
         const logoWidth = 25;
