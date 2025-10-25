@@ -709,13 +709,20 @@ const Finance: React.FC = () => {
 
   const fetchTaxInvoices = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error, count } = await supabase
         .from('tax_invoices')
-        .select('*')
+        .select('*', { count: 'exact' })
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setTaxInvoices((data || []) as TaxInvoice[]);
+
+      // Add row numbers for invoice number generation
+      const invoicesWithRowNumbers = (data || []).map((invoice, index) => ({
+        ...invoice,
+        rowNumber: (count || 0) - index,
+      })) as TaxInvoice[];
+
+      setTaxInvoices(invoicesWithRowNumbers);
     } catch (error) {
       console.error('Error fetching tax invoices:', error);
     }
