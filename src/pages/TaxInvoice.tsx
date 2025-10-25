@@ -49,6 +49,11 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { formatSupabaseError } from '../utils/error';
 
+interface SubItem {
+  id: string;
+  description: string;
+}
+
 interface InvoiceItem {
   id: string;
   hsn_code: string;
@@ -56,6 +61,7 @@ interface InvoiceItem {
   rate: number;
   cgst_rate: number;
   sgst_rate: number;
+  subItems?: SubItem[];
 }
 
 interface TaxInvoiceData {
@@ -197,267 +203,387 @@ async function generateTaxInvoicePDF(invoice: TaxInvoiceData) {
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     const pageWidth = doc.internal.pageSize.width;
     const pageHeight = doc.internal.pageSize.height;
-    const margin = 14;
+    const margin = 12;
     const contentWidth = pageWidth - 2 * margin;
 
     const colors = {
       primary: { r: 60, g: 80, b: 60 },
       secondary: { r: 100, g: 120, b: 100 },
       text: { r: 33, g: 33, b: 33 },
-      lightGray: { r: 240, g: 240, b: 240 },
+      lightGray: { r: 245, g: 245, b: 245 },
       border: { r: 180, g: 180, b: 180 },
     };
 
     let yPos = margin;
 
-    // Header with logo
+    // Header with logo - improved sizing and spacing
     try {
       const logoData = await fetchImageAsDataURL(LOGO_URL);
       if (logoData) {
-        doc.addImage(logoData, 'PNG', margin, yPos, 20, 20, undefined, 'FAST');
+        doc.addImage(logoData, 'PNG', margin, yPos, 25, 25, undefined, 'FAST');
       }
     } catch (err) {
       console.error('Logo error:', err);
     }
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(14);
+    doc.setFontSize(16);
     doc.setTextColor(colors.primary.r, colors.primary.g, colors.primary.b);
-    doc.text(COMPANY_INFO.name, margin + 22, yPos + 4);
+    doc.text(COMPANY_INFO.name, margin + 27, yPos + 2);
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
+    doc.setFontSize(10);
     doc.setTextColor(colors.text.r, colors.text.g, colors.text.b);
-    doc.text(COMPANY_INFO.address, margin + 22, yPos + 9, { maxWidth: contentWidth - 22 });
+    const addressLines = doc.splitTextToSize(COMPANY_INFO.address, contentWidth - 30);
+    doc.text(addressLines, margin + 27, yPos + 10, { maxWidth: contentWidth - 30 });
 
-    yPos += 25;
+    yPos += 32;
 
-    // Right side info
+    // Right side info with better formatting
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(12);
+    doc.setFontSize(16);
     doc.setTextColor(colors.primary.r, colors.primary.g, colors.primary.b);
-    doc.text('TAX INVOICE', pageWidth - margin - 50, yPos, { align: 'left' });
+    doc.text('TAX INVOICE', pageWidth - margin - 55, yPos, { align: 'left' });
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(colors.text.r, colors.text.g, colors.text.b);
+
+    let infoY = yPos + 9;
+    const infoLabelX = pageWidth - margin - 55;
+    const infoValueX = pageWidth - margin - 30;
+
+    doc.text('#', infoLabelX, infoY);
+    doc.setFont('helvetica', 'bold');
+    doc.text(invoice.invoice_number, infoValueX, infoY, { align: 'right' });
+
+    infoY += 6;
+    doc.setFont('helvetica', 'normal');
+    doc.text('Invoice Date', infoLabelX, infoY);
+    doc.setFont('helvetica', 'bold');
+    doc.text(new Date(invoice.invoice_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }), infoValueX, infoY, { align: 'right' });
+
+    infoY += 6;
+    doc.setFont('helvetica', 'normal');
+    doc.text('Terms', infoLabelX, infoY);
+    doc.setFont('helvetica', 'bold');
+    doc.text('PIA', infoValueX, infoY, { align: 'right' });
+
+    infoY += 6;
+    doc.setFont('helvetica', 'normal');
+    doc.text('Due Date', infoLabelX, infoY);
+    doc.setFont('helvetica', 'bold');
+    const dueDateObj = new Date(invoice.invoice_date);
+    dueDateObj.setDate(dueDateObj.getDate() + 45);
+    doc.text(dueDateObj.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }), infoValueX, infoY, { align: 'right' });
+
+    // Left side invoice details
+    infoY = yPos + 9;
+    const leftInfoX = margin;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.text('#', leftInfoX, infoY);
+    doc.setFont('helvetica', 'bold');
+    doc.text(invoice.gst_number, leftInfoX + 8, infoY);
+
+    infoY += 6;
+    doc.setFont('helvetica', 'normal');
+    doc.text('GST #', leftInfoX, infoY);
+    doc.setFont('helvetica', 'bold');
+    doc.text(invoice.gst_number, leftInfoX + 8, infoY);
+
+    infoY += 6;
+    doc.setFont('helvetica', 'normal');
+    doc.text('Place of Supply', leftInfoX, infoY);
+    doc.setFont('helvetica', 'bold');
+    doc.text(': ' + invoice.place_of_supply, leftInfoX + 8, infoY);
+
+    yPos += 38;
+
+    // Bill To and Ship To section with borders
+    const billToX = margin;
+    const billToWidth = contentWidth / 2 - 2;
+    const shipToX = billToX + billToWidth + 2;
+    const shipToWidth = contentWidth / 2 - 2;
+    const billShipHeight = 26;
+
+    // Draw borders for Bill To
+    doc.setDrawColor(colors.border.r, colors.border.g, colors.border.b);
+    doc.rect(billToX, yPos, billToWidth, billShipHeight);
+
+    // Draw borders for Ship To
+    doc.rect(shipToX, yPos, shipToWidth, billShipHeight);
+
+    // Bill To content
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(colors.primary.r, colors.primary.g, colors.primary.b);
+    doc.text('Bill To', billToX + 2, yPos + 5);
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
     doc.setTextColor(colors.text.r, colors.text.g, colors.text.b);
+    doc.text(invoice.bill_to_name, billToX + 2, yPos + 10);
 
-    let infoY = yPos + 7;
-    const infoLabelX = pageWidth - margin - 50;
-
-    doc.text('Invoice #:', infoLabelX, infoY);
-    doc.setFont('helvetica', 'bold');
-    doc.text(invoice.invoice_number, infoLabelX + 25, infoY);
-
-    infoY += 6;
-    doc.setFont('helvetica', 'normal');
-    doc.text('GST #:', infoLabelX, infoY);
-    doc.setFont('helvetica', 'bold');
-    doc.text(invoice.gst_number, infoLabelX + 25, infoY);
-
-    infoY += 6;
-    doc.setFont('helvetica', 'normal');
-    doc.text('Invoice Date:', infoLabelX, infoY);
-    doc.setFont('helvetica', 'bold');
-    doc.text(new Date(invoice.invoice_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }), infoLabelX + 25, infoY);
-
-    infoY += 6;
-    doc.setFont('helvetica', 'normal');
-    doc.text('Place of Supply:', infoLabelX, infoY);
-    doc.setFont('helvetica', 'bold');
-    doc.text(invoice.place_of_supply, infoLabelX + 25, infoY);
-
-    yPos += 35;
-
-    // Bill To and Ship To
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
-    doc.setTextColor(colors.primary.r, colors.primary.g, colors.primary.b);
-    doc.text('Bill To:', margin, yPos);
-
-    doc.setFont('helvetica', 'normal');
+    const billToAddressLines = doc.splitTextToSize(invoice.bill_to_address, billToWidth - 4);
     doc.setFontSize(8);
-    doc.setTextColor(colors.text.r, colors.text.g, colors.text.b);
-    doc.text(invoice.bill_to_name, margin, yPos + 5);
-    doc.text(invoice.bill_to_address, margin, yPos + 9, { maxWidth: contentWidth / 2 - 2 });
+    doc.text(billToAddressLines, billToX + 2, yPos + 15, { maxWidth: billToWidth - 4 });
 
-    if (invoice.bill_to_gst) {
-      doc.text(`GST: ${invoice.bill_to_gst}`, margin, yPos + 17);
-    }
-
-    // Ship To
+    // Ship To content
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
+    doc.setFontSize(10);
     doc.setTextColor(colors.primary.r, colors.primary.g, colors.primary.b);
-    doc.text('Ship To:', pageWidth / 2 + 2, yPos);
+    doc.text('Ship To', shipToX + 2, yPos + 5);
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
+    doc.setFontSize(9);
     doc.setTextColor(colors.text.r, colors.text.g, colors.text.b);
-    doc.text(invoice.ship_to_name, pageWidth / 2 + 2, yPos + 5);
-    doc.text(invoice.ship_to_address, pageWidth / 2 + 2, yPos + 9, { maxWidth: contentWidth / 2 - 2 });
+    doc.text(invoice.ship_to_name, shipToX + 2, yPos + 10);
 
-    yPos += 25;
+    const shipToAddressLines = doc.splitTextToSize(invoice.ship_to_address, shipToWidth - 4);
+    doc.setFontSize(8);
+    doc.text(shipToAddressLines, shipToX + 2, yPos + 15, { maxWidth: shipToWidth - 4 });
 
-    // Items Table Header
+    yPos += billShipHeight + 2;
+
+    // Items Table with improved spacing and font
     const tableTop = yPos;
-    const colWidths = [10, 30, 15, 12, 18, 15, 15, 18];
+    const colWidths = [8, 35, 12, 10, 15, 15, 15, 15];
     let colX = margin;
 
     doc.setFillColor(colors.primary.r, colors.primary.g, colors.primary.b);
-    doc.rect(margin, tableTop, contentWidth, 7, 'F');
+    doc.rect(margin, tableTop, contentWidth, 8, 'F');
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8);
+    doc.setFontSize(9);
     doc.setTextColor(255, 255, 255);
 
-    const headers = ['#', 'Item Description', 'HSN', 'Qty', 'Rate', 'CGST', 'SGST', 'Amount'];
-    colX = margin + 2;
+    const headers = ['#', 'Item & Description', 'HSN PAC', 'Qty', 'Rate', 'CGST %', 'SGST %', 'Amount'];
+    colX = margin + 1.5;
 
     for (let i = 0; i < headers.length; i++) {
-      doc.text(headers[i], colX, tableTop + 5);
+      doc.text(headers[i], colX, tableTop + 5.5, { align: i === 0 ? 'left' : 'center' });
       colX += colWidths[i];
     }
 
     yPos = tableTop + 10;
 
-    // Items
-    const totalQty = invoice.items.reduce((sum, item) => sum + item.quantity, 0);
-    const totalRate = invoice.items.reduce((sum, item) => sum + item.rate * item.quantity, 0);
-    const totalCgst = invoice.items.reduce((sum, item) => sum + (item.rate * item.quantity * item.cgst_rate) / 100, 0);
-    const totalSgst = invoice.items.reduce((sum, item) => sum + (item.rate * item.quantity * item.sgst_rate) / 100, 0);
-    const totalAmount = totalRate + totalCgst + totalSgst;
-
+    // Items rows - each item as a separate row
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
+    doc.setFontSize(8.5);
     doc.setTextColor(colors.text.r, colors.text.g, colors.text.b);
+    doc.setDrawColor(colors.border.r, colors.border.g, colors.border.b);
 
-    colX = margin + 2;
-    doc.text('1', colX, yPos);
-    colX += colWidths[0];
+    let grandTotalQty = 0;
+    let grandTotalRate = 0;
+    let grandTotalCgst = 0;
+    let grandTotalSgst = 0;
+    let grandTotalAmount = 0;
+    const rowHeight = 5;
 
-    let itemDescText = 'Renewable Energy Devices and accessories - All items combined';
-    const wrappedDesc = doc.splitTextToSize(itemDescText, colWidths[1] - 2);
-    doc.text(wrappedDesc, colX, yPos, { maxWidth: colWidths[1] - 2 });
-    colX += colWidths[1];
+    invoice.items.forEach((item, itemIndex) => {
+      // Calculate individual item totals
+      const itemRate = item.rate * item.quantity;
+      const itemCgst = (itemRate * item.cgst_rate) / 100;
+      const itemSgst = (itemRate * item.sgst_rate) / 100;
+      const itemAmount = itemRate + itemCgst + itemSgst;
 
-    const hsnCodes = invoice.items.map(item => item.hsn_code).join(', ');
-    doc.text(hsnCodes, colX, yPos, { maxWidth: colWidths[2] - 2 });
-    colX += colWidths[2];
+      // Add to grand totals
+      grandTotalQty += item.quantity;
+      grandTotalRate += itemRate;
+      grandTotalCgst += itemCgst;
+      grandTotalSgst += itemSgst;
+      grandTotalAmount += itemAmount;
 
-    doc.text(totalQty.toString(), colX, yPos, { align: 'right' });
-    colX += colWidths[3];
+      // Item number
+      colX = margin + 1.5;
+      doc.text((itemIndex + 1).toString(), colX, yPos + 2, { align: 'center' });
 
-    doc.text(totalRate.toFixed(2), colX, yPos, { align: 'right' });
-    colX += colWidths[4];
+      // Item description
+      colX += colWidths[0];
+      const itemDesc = `Renewable Energy Devices and accessories`;
+      const wrappedDesc = doc.splitTextToSize(itemDesc, colWidths[1] - 1);
+      doc.text(wrappedDesc, colX, yPos + 1, { maxWidth: colWidths[1] - 1 });
 
-    doc.text(`${invoice.items[0]?.cgst_rate || 0}%`, colX, yPos, { align: 'right' });
-    doc.text(totalCgst.toFixed(2), colX, yPos + 4, { align: 'right' });
-    colX += colWidths[5];
+      // HSN code
+      colX += colWidths[1];
+      doc.text(item.hsn_code, colX, yPos + 2, { align: 'center' });
 
-    doc.text(`${invoice.items[0]?.sgst_rate || 0}%`, colX, yPos, { align: 'right' });
-    doc.text(totalSgst.toFixed(2), colX, yPos + 4, { align: 'right' });
-    colX += colWidths[6];
+      // Quantity
+      colX += colWidths[2];
+      doc.text(item.quantity.toString(), colX, yPos + 2, { align: 'center' });
 
-    doc.text(totalAmount.toFixed(2), colX, yPos, { align: 'right' });
+      // Rate
+      colX += colWidths[3];
+      doc.text(itemRate.toFixed(2), colX, yPos + 2, { align: 'right' });
 
-    yPos += 15;
+      // CGST % and amount
+      colX += colWidths[4];
+      doc.text(`${item.cgst_rate}%`, colX, yPos + 0.5, { align: 'center' });
+      doc.text(itemCgst.toFixed(2), colX, yPos + 3.5, { align: 'right' });
 
-    // Summary box
-    const summaryX = pageWidth - margin - 60;
-    const summaryWidth = 56;
+      // SGST % and amount
+      colX += colWidths[5];
+      doc.text(`${item.sgst_rate}%`, colX, yPos + 0.5, { align: 'center' });
+      doc.text(itemSgst.toFixed(2), colX, yPos + 3.5, { align: 'right' });
 
-    doc.setFillColor(colors.lightGray.r, colors.lightGray.g, colors.lightGray.b);
-    doc.rect(summaryX, yPos, summaryWidth, 30, 'F');
+      // Total amount
+      colX += colWidths[6];
+      doc.text(itemAmount.toFixed(2), colX, yPos + 2, { align: 'right' });
 
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.setTextColor(colors.text.r, colors.text.g, colors.text.b);
+      yPos += rowHeight + 1;
 
-    doc.text('Sub Total', summaryX + 2, yPos + 5);
-    doc.text(totalRate.toFixed(2), summaryX + summaryWidth - 2, yPos + 5, { align: 'right' });
+      // Draw horizontal line between items
+      doc.setDrawColor(colors.border.r, colors.border.g, colors.border.b);
+      doc.setLineWidth(0.3);
+      doc.line(margin, yPos, margin + contentWidth, yPos);
+      yPos += 1;
+    });
 
-    doc.text(`CGST (${invoice.items[0]?.cgst_rate || 0}%)`, summaryX + 2, yPos + 11);
-    doc.text(totalCgst.toFixed(2), summaryX + summaryWidth - 2, yPos + 11, { align: 'right' });
-
-    doc.text(`SGST (${invoice.items[0]?.sgst_rate || 0}%)`, summaryX + 2, yPos + 17);
-    doc.text(totalSgst.toFixed(2), summaryX + summaryWidth - 2, yPos + 17, { align: 'right' });
-
+    // Grand totals row
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
     doc.setTextColor(colors.primary.r, colors.primary.g, colors.primary.b);
-    doc.text('Total', summaryX + 2, yPos + 25);
-    doc.text(`₹${totalAmount.toFixed(2)}`, summaryX + summaryWidth - 2, yPos + 25, { align: 'right' });
+
+    colX = margin + 1.5;
+    doc.text('TOTAL', colX, yPos + 2, { align: 'center' });
+
+    colX += colWidths[0] + colWidths[1] + colWidths[2];
+    doc.text(grandTotalRate.toFixed(2), colX, yPos + 2, { align: 'right' });
+
+    colX += colWidths[3];
+    doc.text(grandTotalCgst.toFixed(2), colX, yPos + 2, { align: 'right' });
+
+    colX += colWidths[4];
+    doc.text(grandTotalSgst.toFixed(2), colX, yPos + 2, { align: 'right' });
+
+    colX += colWidths[5];
+    doc.text(grandTotalAmount.toFixed(2), colX, yPos + 2, { align: 'right' });
+
+    yPos += rowHeight + 2;
+
+    // Draw table bottom border
+    doc.setDrawColor(colors.border.r, colors.border.g, colors.border.b);
+    doc.setLineWidth(0.5);
+    doc.line(margin, yPos, margin + contentWidth, yPos);
+
+    yPos += 3;
+
+    // Summary box with better formatting
+    const summaryX = pageWidth - margin - 65;
+    const summaryWidth = 61;
+    const summaryItemHeight = 5;
+
+    doc.setFillColor(colors.lightGray.r, colors.lightGray.g, colors.lightGray.b);
+    doc.rect(summaryX, yPos, summaryWidth, 32, 'F');
+    doc.setDrawColor(colors.border.r, colors.border.g, colors.border.b);
+    doc.rect(summaryX, yPos, summaryWidth, 32);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(colors.text.r, colors.text.g, colors.text.b);
+
+    let summaryY = yPos + 4;
+    doc.text('Sub Total', summaryX + 2, summaryY);
+    doc.text(grandTotalRate.toFixed(2), summaryX + summaryWidth - 2, summaryY, { align: 'right' });
+
+    summaryY += summaryItemHeight;
+    doc.text(`CGST (6%)`, summaryX + 2, summaryY);
+    doc.text(grandTotalCgst.toFixed(2), summaryX + summaryWidth - 2, summaryY, { align: 'right' });
+
+    summaryY += summaryItemHeight;
+    doc.text(`SGST (6%)`, summaryX + 2, summaryY);
+    doc.text(grandTotalSgst.toFixed(2), summaryX + summaryWidth - 2, summaryY, { align: 'right' });
+
+    summaryY += summaryItemHeight + 2;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(colors.primary.r, colors.primary.g, colors.primary.b);
+    doc.text('Total', summaryX + 2, summaryY);
+    doc.text(`Rs.${grandTotalAmount.toFixed(2)}`, summaryX + summaryWidth - 2, summaryY, { align: 'right' });
 
     yPos += 35;
 
-    // Amount in words
-    const amountWords = convertNumberToWords(Math.floor(totalAmount));
+    // Amount in words section
+    const amountWords = convertNumberToWords(Math.floor(grandTotalAmount));
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
+    doc.setFontSize(9);
     doc.setTextColor(colors.text.r, colors.text.g, colors.text.b);
-    doc.text('Total in Words:', margin, yPos);
+    doc.text('Total in Words', margin, yPos);
     doc.setFont('helvetica', 'bold');
-    const wrappedWords = doc.splitTextToSize(`Indian Rupees ${amountWords} Only`, contentWidth - 40);
-    doc.text(wrappedWords, margin + 40, yPos);
+    doc.setFontSize(9);
+    const wrappedWords = doc.splitTextToSize(`Indian Rupee ${amountWords} Only`, contentWidth - 40);
+    doc.text(wrappedWords, margin, yPos + 5);
 
-    yPos += 10;
+    yPos += 12;
 
-    // Notes
+    // Notes section
     if (invoice.notes) {
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(8);
+      doc.setFontSize(9);
       doc.setTextColor(colors.primary.r, colors.primary.g, colors.primary.b);
-      doc.text('Notes:', margin, yPos);
+      doc.text('Notes', margin, yPos);
       doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
       doc.setTextColor(colors.text.r, colors.text.g, colors.text.b);
       const wrappedNotes = doc.splitTextToSize(invoice.notes, contentWidth);
       doc.text(wrappedNotes, margin, yPos + 4, { maxWidth: contentWidth });
-      yPos += wrappedNotes.length * 4 + 4;
+      yPos += wrappedNotes.length * 3.5 + 5;
     }
 
-    yPos += 5;
+    yPos += 2;
 
-    // Terms and Conditions
+    // Terms and Conditions section
     if (invoice.terms_and_conditions) {
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(8);
+      doc.setFontSize(9);
       doc.setTextColor(colors.primary.r, colors.primary.g, colors.primary.b);
-      doc.text('Terms & Conditions:', margin, yPos);
+      doc.text('Terms & Conditions', margin, yPos);
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7);
+      doc.setFontSize(8);
       doc.setTextColor(colors.text.r, colors.text.g, colors.text.b);
       const wrappedTerms = doc.splitTextToSize(invoice.terms_and_conditions, contentWidth);
       doc.text(wrappedTerms, margin, yPos + 4, { maxWidth: contentWidth });
     }
 
-    // Signature area at bottom
+    // Signature area at bottom - improved layout
     const signY = pageHeight - 35;
+
+    // Left side - Authorized Signature
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
     doc.setTextColor(colors.text.r, colors.text.g, colors.text.b);
-    doc.text('Authorized Signature', margin, signY);
+    doc.line(margin, signY - 2, margin + 35, signY - 2);
+    doc.text('Authorized Signature', margin + 12, signY + 3, { align: 'center' });
+
+    // Right side - Manager/Signature
+    const signRightX = pageWidth - margin - 50;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.text('For AXISO GREEN ENERGIES PVT LTD', signRightX, signY - 12);
 
     try {
       const stampData = await fetchImageAsDataURL(STAMP_URL);
       if (stampData) {
-        doc.addImage(stampData, 'PNG', pageWidth - margin - 40, signY - 15, 35, 18, undefined, 'FAST');
+        doc.addImage(stampData, 'PNG', signRightX + 5, signY - 20, 40, 20, undefined, 'FAST');
       }
     } catch (err) {
       console.error('Stamp error:', err);
     }
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8);
-    doc.text('Manager', pageWidth - margin - 40, signY, { align: 'center' });
+    doc.setFontSize(9);
+    doc.setTextColor(colors.text.r, colors.text.g, colors.primary.b);
+    doc.line(signRightX + 8, signY, signRightX + 40, signY);
+    doc.text('Manager', signRightX + 24, signY + 4, { align: 'center' });
 
     // Footer
     doc.setFillColor(colors.primary.r, colors.primary.g, colors.primary.b);
-    doc.rect(0, pageHeight - 8, pageWidth, 8, 'F');
+    doc.rect(0, pageHeight - 7, pageWidth, 7, 'F');
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7);
+    doc.setFontSize(7.5);
     doc.setTextColor(255, 255, 255);
-    doc.text(`GSTIN: ${COMPANY_INFO.gstin} | Email: ${COMPANY_INFO.email} | Web: ${COMPANY_INFO.website}`, pageWidth / 2, pageHeight - 4, { align: 'center' });
+    doc.text(`GSTIN: ${COMPANY_INFO.gstin} | Email: ${COMPANY_INFO.email} | Web: ${COMPANY_INFO.website}`, pageWidth / 2, pageHeight - 3, { align: 'center' });
 
     doc.save(`TaxInvoice_${invoice.invoice_number}_${invoice.gst_number}.pdf`);
   } catch (error) {
@@ -661,6 +787,44 @@ const TaxInvoice: React.FC = () => {
     }
   };
 
+  const addSubItem = (itemIndex: number) => {
+    const newItems = [...formData.items];
+    if (!newItems[itemIndex].subItems) {
+      newItems[itemIndex].subItems = [];
+    }
+    const newSubItem: SubItem = {
+      id: Date.now().toString(),
+      description: '',
+    };
+    newItems[itemIndex].subItems!.push(newSubItem);
+    setFormData(prev => ({
+      ...prev,
+      items: newItems,
+    }));
+  };
+
+  const handleSubItemChange = (itemIndex: number, subItemIndex: number, description: string) => {
+    const newItems = [...formData.items];
+    if (newItems[itemIndex].subItems) {
+      newItems[itemIndex].subItems![subItemIndex].description = description;
+      setFormData(prev => ({
+        ...prev,
+        items: newItems,
+      }));
+    }
+  };
+
+  const removeSubItem = (itemIndex: number, subItemIndex: number) => {
+    const newItems = [...formData.items];
+    if (newItems[itemIndex].subItems) {
+      newItems[itemIndex].subItems!.splice(subItemIndex, 1);
+      setFormData(prev => ({
+        ...prev,
+        items: newItems,
+      }));
+    }
+  };
+
   const handleSaveInvoice = async () => {
     if (!formData.customer_name || !formData.place_of_supply || !formData.state || formData.items.length === 0) {
       toast({
@@ -683,6 +847,7 @@ const TaxInvoice: React.FC = () => {
         rate: Number(item.rate) || 0,
         cgst_rate: Number(item.cgst_rate) || 0,
         sgst_rate: Number(item.sgst_rate) || 0,
+        subItems: item.subItems && item.subItems.length > 0 ? item.subItems : undefined,
       }));
 
       // Prepare invoice data - only save columns that exist in the database table
@@ -1027,68 +1192,116 @@ const TaxInvoice: React.FC = () => {
                 <CardBody>
                   <VStack spacing={4}>
                     {formData.items.map((item, index) => (
-                      <Card key={item.id} w="full" bg="white">
+                      <Card key={item.id} w="full" bg="white" border="2px solid" borderColor="green.200">
+                        <CardHeader bg="green.100" borderBottom="1px solid" borderColor="green.200">
+                          <Flex justify="space-between" align="center">
+                            <Heading size="sm">Main Item {index + 1}</Heading>
+                            <Button
+                              size="sm"
+                              colorScheme="red"
+                              variant="outline"
+                              onClick={() => removeItem(index)}
+                              isDisabled={formData.items.length === 1}
+                            >
+                              Remove Item
+                            </Button>
+                          </Flex>
+                        </CardHeader>
                         <CardBody>
-                          <SimpleGrid columns={3} spacing={3}>
-                            <FormControl>
-                              <FormLabel fontSize="sm">HSN Code</FormLabel>
-                              <Input
-                                value={item.hsn_code}
-                                onChange={(e) => handleItemChange(index, 'hsn_code', e.target.value)}
-                                placeholder="HSN Code"
-                              />
-                            </FormControl>
-                            <FormControl>
-                              <FormLabel fontSize="sm">Quantity</FormLabel>
-                              <Input
-                                type="number"
-                                value={item.quantity}
-                                onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
-                                min={0}
-                              />
-                            </FormControl>
-                            <FormControl>
-                              <FormLabel fontSize="sm">Rate</FormLabel>
-                              <Input
-                                type="number"
-                                value={item.rate}
-                                onChange={(e) => handleItemChange(index, 'rate', e.target.value)}
-                                min={0}
-                              />
-                            </FormControl>
-                            <FormControl>
-                              <FormLabel fontSize="sm">CGST %</FormLabel>
-                              <Input
-                                type="number"
-                                value={item.cgst_rate}
-                                onChange={(e) => handleItemChange(index, 'cgst_rate', e.target.value)}
-                                min={0}
-                                max={100}
-                              />
-                            </FormControl>
-                            <FormControl>
-                              <FormLabel fontSize="sm">SGST %</FormLabel>
-                              <Input
-                                type="number"
-                                value={item.sgst_rate}
-                                onChange={(e) => handleItemChange(index, 'sgst_rate', e.target.value)}
-                                min={0}
-                                max={100}
-                              />
-                            </FormControl>
-                            <Flex align="flex-end">
-                              <Button
-                                size="sm"
-                                colorScheme="red"
-                                variant="outline"
-                                onClick={() => removeItem(index)}
-                                isDisabled={formData.items.length === 1}
-                                w="full"
-                              >
-                                Remove
-                              </Button>
-                            </Flex>
-                          </SimpleGrid>
+                          <VStack spacing={4} align="stretch">
+                            <SimpleGrid columns={3} spacing={3}>
+                              <FormControl>
+                                <FormLabel fontSize="sm">HSN Code</FormLabel>
+                                <Input
+                                  value={item.hsn_code}
+                                  onChange={(e) => handleItemChange(index, 'hsn_code', e.target.value)}
+                                  placeholder="HSN Code"
+                                />
+                              </FormControl>
+                              <FormControl>
+                                <FormLabel fontSize="sm">Quantity</FormLabel>
+                                <Input
+                                  type="number"
+                                  value={item.quantity}
+                                  onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
+                                  min={0}
+                                />
+                              </FormControl>
+                              <FormControl>
+                                <FormLabel fontSize="sm">Rate</FormLabel>
+                                <Input
+                                  type="number"
+                                  value={item.rate}
+                                  onChange={(e) => handleItemChange(index, 'rate', e.target.value)}
+                                  min={0}
+                                />
+                              </FormControl>
+                              <FormControl>
+                                <FormLabel fontSize="sm">CGST %</FormLabel>
+                                <Input
+                                  type="number"
+                                  value={item.cgst_rate}
+                                  onChange={(e) => handleItemChange(index, 'cgst_rate', e.target.value)}
+                                  min={0}
+                                  max={100}
+                                />
+                              </FormControl>
+                              <FormControl>
+                                <FormLabel fontSize="sm">SGST %</FormLabel>
+                                <Input
+                                  type="number"
+                                  value={item.sgst_rate}
+                                  onChange={(e) => handleItemChange(index, 'sgst_rate', e.target.value)}
+                                  min={0}
+                                  max={100}
+                                />
+                              </FormControl>
+                            </SimpleGrid>
+
+                            <Card bg="blue.50" w="full">
+                              <CardHeader>
+                                <Flex justify="space-between" align="center">
+                                  <Heading size="xs">Sub-Items (Descriptions)</Heading>
+                                  <Button
+                                    size="xs"
+                                    colorScheme="blue"
+                                    onClick={() => addSubItem(index)}
+                                  >
+                                    Add Sub-Item
+                                  </Button>
+                                </Flex>
+                              </CardHeader>
+                              <CardBody>
+                                {item.subItems && item.subItems.length > 0 ? (
+                                  <VStack spacing={2} align="stretch">
+                                    {item.subItems.map((subItem, subIndex) => (
+                                      <Flex key={subItem.id} gap={2} align="flex-end">
+                                        <FormControl>
+                                          <FormLabel fontSize="xs">Sub-Item {subIndex + 1} Description</FormLabel>
+                                          <Input
+                                            size="sm"
+                                            value={subItem.description}
+                                            onChange={(e) => handleSubItemChange(index, subIndex, e.target.value)}
+                                            placeholder="Enter sub-item description"
+                                          />
+                                        </FormControl>
+                                        <Button
+                                          size="sm"
+                                          colorScheme="red"
+                                          variant="outline"
+                                          onClick={() => removeSubItem(index, subIndex)}
+                                        >
+                                          Remove
+                                        </Button>
+                                      </Flex>
+                                    ))}
+                                  </VStack>
+                                ) : (
+                                  <Text color="gray.500" fontSize="sm">No sub-items added yet. Click "Add Sub-Item" to add descriptions.</Text>
+                                )}
+                              </CardBody>
+                            </Card>
+                          </VStack>
                         </CardBody>
                       </Card>
                     ))}
