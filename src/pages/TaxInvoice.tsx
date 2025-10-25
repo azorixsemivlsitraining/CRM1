@@ -698,7 +698,7 @@ const TaxInvoice: React.FC = () => {
 
         if (error) {
           console.error('Insert error details:', error);
-          throw new Error(`Insert failed: ${error.message || error.code || JSON.stringify(error)}`);
+          throw error;
         }
         toast({ title: 'Success', description: 'Invoice created', status: 'success', duration: 2000, isClosable: true });
       }
