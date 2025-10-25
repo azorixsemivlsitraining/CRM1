@@ -2619,11 +2619,34 @@ const Finance: React.FC = () => {
                           width="full"
                           onClick={handleAddTaxInvoice}
                           isLoading={taxInvoiceLoading}
-                          loadingText="Creating"
+                          loadingText={editingInvoiceId ? 'Updating' : 'Creating'}
                           size="lg"
                         >
-                          Create Invoice & Download PDF
+                          {editingInvoiceId ? 'Update Invoice & Download PDF' : 'Create Invoice & Download PDF'}
                         </Button>
+                        {editingInvoiceId && (
+                          <Button
+                            colorScheme="gray"
+                            width="full"
+                            variant="outline"
+                            onClick={() => {
+                              setEditingInvoiceId(null);
+                              setTaxInvoiceForm({
+                                customer_name: '',
+                                place_of_supply: '',
+                                state: '',
+                                gst_no: '',
+                                items: [],
+                                project_id: '',
+                                capacity: '',
+                                amount_paid: 0,
+                              });
+                              setProjectSearchTerm('');
+                            }}
+                          >
+                            Cancel Edit
+                          </Button>
+                        )}
                       </VStack>
                     </CardBody>
                   </Card>
