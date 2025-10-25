@@ -131,6 +131,8 @@ interface TaxInvoice {
 }
 
 const PREDEFINED_INVOICE_ITEMS = [
+  { name: 'Renewable energy devices and spare parts design', category: 'renewable_design' },
+  { name: 'Installation and commissioning of rooftop solar power plant', category: 'renewable_design' },
   { name: 'Solar PV Modules Wp_Bifical_' },
   { name: 'Solar Grid Tied Inverter' },
   { name: 'Module Mounting' },
@@ -143,7 +145,9 @@ const PREDEFINED_INVOICE_ITEMS = [
   { name: 'Installation & Commissioning of Rooftop Solar Power Plant' },
 ];
 
-const inr = (v: number) => `₹${(v || 0).toLocaleString('en-IN')}`;
+const ITEMS_WITHOUT_DETAILS = new Set(['renewable_design']);
+
+const inr = (v: number) => `��${(v || 0).toLocaleString('en-IN')}`;
 
 const makeCsv = (rows: any[]) => {
   if (!rows || rows.length === 0) return '';
