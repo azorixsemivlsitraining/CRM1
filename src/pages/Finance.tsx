@@ -401,30 +401,55 @@ const Finance: React.FC = () => {
 
     try {
       setEstimationLoading(true);
-      const { error } = await supabase.from('estimation_costs').insert([{
-        customer_name: estimationForm.customerName,
-        description: estimationForm.description,
-        service_no: estimationForm.serviceNo,
-        estimated_cost: parseFloat(estimationForm.estimatedCost),
-      }]);
 
-      if (error) throw error;
+      if (editingEstimationId) {
+        const { error } = await supabase
+          .from('estimation_costs')
+          .update({
+            customer_name: estimationForm.customerName,
+            description: estimationForm.description,
+            service_no: estimationForm.serviceNo,
+            estimated_cost: parseFloat(estimationForm.estimatedCost),
+          })
+          .eq('id', editingEstimationId);
 
-      toast({
-        title: 'Success',
-        description: 'Estimation cost added successfully.',
-        status: 'success',
-        duration: 3000,
-        isClosable: true,
-      });
+        if (error) throw error;
+
+        toast({
+          title: 'Success',
+          description: 'Estimation cost updated successfully.',
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        });
+
+        setEditingEstimationId(null);
+      } else {
+        const { error } = await supabase.from('estimation_costs').insert([{
+          customer_name: estimationForm.customerName,
+          description: estimationForm.description,
+          service_no: estimationForm.serviceNo,
+          estimated_cost: parseFloat(estimationForm.estimatedCost),
+        }]);
+
+        if (error) throw error;
+
+        toast({
+          title: 'Success',
+          description: 'Estimation cost added successfully.',
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        });
+      }
 
       setEstimationForm({ customerName: '', description: '', serviceNo: '', estimatedCost: '' });
       await fetchEstimations();
     } catch (error) {
-      console.error('Error adding estimation:', error);
+      console.error('Error saving estimation:', error);
       toast({
         title: 'Error',
-        description: 'Failed to add estimation cost.',
+        description: 'Failed to save estimation cost.',
         status: 'error',
         duration: 3000,
         isClosable: true,
