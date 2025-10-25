@@ -706,20 +706,11 @@ const TaxInvoice: React.FC = () => {
       onClose();
       await fetchInvoices();
     } catch (error: any) {
-      let errorMsg = 'Unknown error occurred';
-
-      if (error instanceof Error) {
-        errorMsg = error.message;
-      } else if (typeof error === 'object' && error !== null) {
-        errorMsg = error.message || error.details || error.hint || error.code || JSON.stringify(error);
-      } else if (typeof error === 'string') {
-        errorMsg = error;
-      }
-
+      const errorMsg = formatSupabaseError(error);
       console.error('Error saving invoice:', errorMsg, 'Full error:', error);
       toast({
         title: 'Error Saving Invoice',
-        description: errorMsg || 'Failed to save invoice. Check browser console for details.',
+        description: errorMsg,
         status: 'error',
         duration: 6000,
         isClosable: true,
