@@ -739,6 +739,44 @@ const TaxInvoice: React.FC = () => {
     }
   };
 
+  const addSubItem = (itemIndex: number) => {
+    const newItems = [...formData.items];
+    if (!newItems[itemIndex].subItems) {
+      newItems[itemIndex].subItems = [];
+    }
+    const newSubItem: SubItem = {
+      id: Date.now().toString(),
+      description: '',
+    };
+    newItems[itemIndex].subItems!.push(newSubItem);
+    setFormData(prev => ({
+      ...prev,
+      items: newItems,
+    }));
+  };
+
+  const handleSubItemChange = (itemIndex: number, subItemIndex: number, description: string) => {
+    const newItems = [...formData.items];
+    if (newItems[itemIndex].subItems) {
+      newItems[itemIndex].subItems![subItemIndex].description = description;
+      setFormData(prev => ({
+        ...prev,
+        items: newItems,
+      }));
+    }
+  };
+
+  const removeSubItem = (itemIndex: number, subItemIndex: number) => {
+    const newItems = [...formData.items];
+    if (newItems[itemIndex].subItems) {
+      newItems[itemIndex].subItems!.splice(subItemIndex, 1);
+      setFormData(prev => ({
+        ...prev,
+        items: newItems,
+      }));
+    }
+  };
+
   const handleSaveInvoice = async () => {
     if (!formData.customer_name || !formData.place_of_supply || !formData.state || formData.items.length === 0) {
       toast({
