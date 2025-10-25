@@ -2459,29 +2459,57 @@ const Finance: React.FC = () => {
                               >
                                 <option value="">-- Select Item --</option>
                                 {PREDEFINED_INVOICE_ITEMS.map((item, idx) => (
-                                  <option key={idx} value={idx}>
-                                    {item.name}
-                                  </option>
+                                  <optgroup key={idx} label={item.name}>
+                                    {item.isParent ? (
+                                      item.subItems?.map((subItem, subIdx) => (
+                                        <option key={`${idx}-${subIdx}`} value={`${idx}-${subIdx}`}>
+                                          {subItem.name}
+                                        </option>
+                                      ))
+                                    ) : (
+                                      <option value={idx.toString()}>
+                                        {item.name}
+                                      </option>
+                                    )}
+                                  </optgroup>
                                 ))}
                               </Select>
                               <Button
                                 colorScheme="blue"
                                 onClick={() => {
                                   const select = document.getElementById('itemSelect') as HTMLSelectElement;
-                                  const selectedIndex = parseInt(select.value);
-                                  if (selectedIndex >= 0) {
-                                    const selectedItem = PREDEFINED_INVOICE_ITEMS[selectedIndex];
-                                    const isRenewableItem = selectedItem.category === 'renewable_design';
+                                  const selectedValue = select.value;
+                                  if (selectedValue) {
+                                    const parts = selectedValue.includes('-') ? selectedValue.split('-') : [selectedValue];
+                                    const parentIdx = parseInt(parts[0]);
+                                    const subIdx = parts.length > 1 ? parseInt(parts[1]) : -1;
+
+                                    const parentItem = PREDEFINED_INVOICE_ITEMS[parentIdx];
+                                    let selectedItem;
+                                    let isSubCategory = false;
+                                    let parentCategory = '';
+
+                                    if (subIdx >= 0 && parentItem.isParent) {
+                                      selectedItem = parentItem.subItems![subIdx];
+                                      isSubCategory = true;
+                                      parentCategory = parentItem.category || '';
+                                    } else {
+                                      selectedItem = parentItem;
+                                      isSubCategory = false;
+                                    }
+
                                     const newItems = [
                                       ...taxInvoiceForm.items,
                                       {
                                         description: selectedItem.name,
-                                        hsn: isRenewableItem ? '' : '',
-                                        quantity: isRenewableItem ? 0 : 1,
-                                        rate: isRenewableItem ? 0 : 0,
-                                        cgst_percent: isRenewableItem ? 0 : 9,
-                                        sgst_percent: isRenewableItem ? 0 : 9,
+                                        hsn: isSubCategory ? '' : '',
+                                        quantity: isSubCategory ? 0 : 1,
+                                        rate: isSubCategory ? 0 : 0,
+                                        cgst_percent: isSubCategory ? 0 : 9,
+                                        sgst_percent: isSubCategory ? 0 : 9,
                                         category: selectedItem.category,
+                                        isSubCategory: isSubCategory,
+                                        parentCategory: parentCategory,
                                       },
                                     ];
                                     setTaxInvoiceForm({ ...taxInvoiceForm, items: newItems });
