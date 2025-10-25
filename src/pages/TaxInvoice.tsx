@@ -47,6 +47,7 @@ import { DeleteIcon, EditIcon, DownloadIcon } from '@chakra-ui/icons';
 import jsPDF from 'jspdf';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import { formatSupabaseError } from '../utils/error';
 
 interface InvoiceItem {
   id: string;
