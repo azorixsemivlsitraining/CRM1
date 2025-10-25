@@ -2488,30 +2488,48 @@ const Finance: React.FC = () => {
                                     let selectedItem;
                                     let isSubCategory = false;
                                     let parentCategory = '';
+                                    let newItems = [...taxInvoiceForm.items];
 
                                     if (subIdx >= 0 && parentItem.isParent) {
                                       selectedItem = parentItem.subItems![subIdx];
                                       isSubCategory = true;
                                       parentCategory = parentItem.category || '';
+
+                                      const parentAlreadyExists = newItems.some(
+                                        item => item.parentCategory === parentCategory ||
+                                        (item.description === parentItem.name && !item.isSubCategory)
+                                      );
+
+                                      if (!parentAlreadyExists) {
+                                        newItems.push({
+                                          description: parentItem.name,
+                                          hsn: '',
+                                          quantity: 0,
+                                          rate: 0,
+                                          cgst_percent: 0,
+                                          sgst_percent: 0,
+                                          category: parentItem.category,
+                                          isSubCategory: false,
+                                          parentCategory: '',
+                                        });
+                                      }
                                     } else {
                                       selectedItem = parentItem;
                                       isSubCategory = false;
                                     }
 
-                                    const newItems = [
-                                      ...taxInvoiceForm.items,
-                                      {
-                                        description: selectedItem.name,
-                                        hsn: isSubCategory ? '' : '',
-                                        quantity: isSubCategory ? 0 : 1,
-                                        rate: isSubCategory ? 0 : 0,
-                                        cgst_percent: isSubCategory ? 0 : 9,
-                                        sgst_percent: isSubCategory ? 0 : 9,
-                                        category: selectedItem.category,
-                                        isSubCategory: isSubCategory,
-                                        parentCategory: parentCategory,
-                                      },
-                                    ];
+                                    newItems.push({
+                                      description: selectedItem.name,
+                                      hsn: '',
+                                      quantity: 0,
+                                      rate: 0,
+                                      cgst_percent: 0,
+                                      sgst_percent: 0,
+                                      category: selectedItem.category,
+                                      isSubCategory: isSubCategory,
+                                      parentCategory: parentCategory,
+                                    });
+
                                     setTaxInvoiceForm({ ...taxInvoiceForm, items: newItems });
                                     select.value = '';
                                   }
