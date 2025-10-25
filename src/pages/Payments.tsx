@@ -23,6 +23,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { formatSupabaseError } from '../utils/error';
 
 declare global {
   interface Window {
@@ -87,9 +88,9 @@ const Payments: React.FC = () => {
         console.error('Error fetching projects:', error);
         toast({
           title: 'Error fetching projects',
-          description: error.message,
+          description: formatSupabaseError(error),
           status: 'error',
-          duration: 3000,
+          duration: 4000,
           isClosable: true,
         });
       }

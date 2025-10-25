@@ -122,13 +122,12 @@ interface TaxInvoice {
   place_of_supply: string;
   state: string;
   gst_no: string;
-  invoice_no: string;
-  invoice_date: string;
   items: TaxInvoiceItem[];
   project_id?: string;
   capacity?: string;
   amount_paid?: number;
   created_at?: string;
+  rowNumber?: number;
 }
 
 const PREDEFINED_INVOICE_ITEMS = [
@@ -329,8 +328,6 @@ const Finance: React.FC = () => {
     place_of_supply: '',
     state: '',
     gst_no: '',
-    invoice_no: '',
-    invoice_date: new Date().toISOString().split('T')[0],
     items: [],
     project_id: '',
     capacity: '',
@@ -369,20 +366,15 @@ const Finance: React.FC = () => {
 
   const getNextInvoiceNo = async (): Promise<string> => {
     try {
-      const { data } = await supabase
+      const { count } = await supabase
         .from('tax_invoices')
-        .select('invoice_no')
-        .order('created_at', { ascending: false })
-        .limit(1);
+        .select('id', { count: 'exact' });
 
-      if (data && data.length > 0) {
-        const lastInvoiceNo = data[0].invoice_no;
-        const match = lastInvoiceNo.match(/INV-(\d+)/);
-        if (match) {
-          const nextNum = parseInt(match[1]) + 1;
-          return `INV-${String(nextNum).padStart(6, '0')}`;
-        }
+      if (count !== null && count !== undefined) {
+        const nextNum = count + 1;
+        return `INV-${String(nextNum).padStart(6, '0')}`;
       }
+
       return 'INV-000001';
     } catch {
       return 'INV-000001';
@@ -604,6 +596,7 @@ const Finance: React.FC = () => {
     try {
       setTaxInvoiceLoading(true);
       const nextGstNo = await getNextGstNo();
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const nextInvoiceNo = await getNextInvoiceNo();
 
       if (editingInvoiceId) {
@@ -634,8 +627,6 @@ const Finance: React.FC = () => {
           place_of_supply: taxInvoiceForm.place_of_supply,
           state: taxInvoiceForm.state,
           gst_no: nextGstNo,
-          invoice_no: nextInvoiceNo,
-          invoice_date: taxInvoiceForm.invoice_date,
           items: taxInvoiceForm.items,
         }]);
 
@@ -655,8 +646,6 @@ const Finance: React.FC = () => {
         place_of_supply: '',
         state: '',
         gst_no: '',
-        invoice_no: '',
-        invoice_date: new Date().toISOString().split('T')[0],
         items: [],
         project_id: '',
         capacity: '',
@@ -677,6 +666,7 @@ const Finance: React.FC = () => {
     }
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleDeleteInvoice = async (invoiceId: string) => {
     if (!window.confirm('Are you sure you want to delete this invoice?')) return;
 
@@ -709,6 +699,7 @@ const Finance: React.FC = () => {
     }
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleEditInvoice = (invoice: TaxInvoice) => {
     setEditingInvoiceId(invoice.id || null);
     setTaxInvoiceForm(invoice);
@@ -717,13 +708,20 @@ const Finance: React.FC = () => {
 
   const fetchTaxInvoices = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error, count } = await supabase
         .from('tax_invoices')
-        .select('*')
+        .select('*', { count: 'exact' })
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setTaxInvoices((data || []) as TaxInvoice[]);
+
+      // Add row numbers for invoice number generation
+      const invoicesWithRowNumbers = (data || []).map((invoice: any, index: number) => ({
+        ...invoice,
+        rowNumber: (count || 0) - index,
+      })) as TaxInvoice[];
+
+      setTaxInvoices(invoicesWithRowNumbers);
     } catch (error) {
       console.error('Error fetching tax invoices:', error);
     }
@@ -748,15 +746,6 @@ const Finance: React.FC = () => {
       const SIGNATURE_URL = 'https://cdn.builder.io/api/v1/image/assets%2F8bf52f20c3654880b140d224131cfa2e%2Fd31cd52135f84c5db35418d5a42dc0a8?format=webp&width=800';
 
       try {
-        const logoImg = new Image();
-        logoImg.src = LOGO_URL;
-        const canvas = document.createElement('canvas');
-        const img = await new Promise<HTMLImageElement>((resolve) => {
-          const tempImg = new Image();
-          tempImg.crossOrigin = 'anonymous';
-          tempImg.onload = () => resolve(tempImg);
-          tempImg.src = LOGO_URL;
-        });
         const logoWidth = 25;
         const logoHeight = 20;
         doc.addImage(LOGO_URL, 'PNG', margin + 2, margin + 2, logoWidth, logoHeight);
@@ -784,6 +773,10 @@ const Finance: React.FC = () => {
       doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
       doc.text('TAX INVOICE', pageWidth / 2, margin + 12, { align: 'center' });
 
+      // Generate invoice number and date from stored data
+      const invoiceNumber = `INV-${String((invoice as any).rowNumber || 1).padStart(6, '0')}`;
+      const invoiceDate = (invoice as any).created_at ? new Date((invoice as any).created_at).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8);
       doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
@@ -794,7 +787,7 @@ const Finance: React.FC = () => {
       doc.text('#', invoiceDetailsX, invoiceDetailsY);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
-      doc.text(invoice.invoice_no, invoiceDetailsX + 20, invoiceDetailsY);
+      doc.text(invoiceNumber, invoiceDetailsX + 20, invoiceDetailsY);
 
       invoiceDetailsY += 5;
       doc.setFont('helvetica', 'normal');
@@ -802,8 +795,7 @@ const Finance: React.FC = () => {
       doc.text('Invoice Date', invoiceDetailsX, invoiceDetailsY);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
-      const invDate = invoice.invoice_date ? new Date(invoice.invoice_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
-      doc.text(invDate, invoiceDetailsX + 20, invoiceDetailsY);
+      doc.text(invoiceDate, invoiceDetailsX + 20, invoiceDetailsY);
 
       invoiceDetailsY += 5;
       doc.setFont('helvetica', 'normal');
@@ -819,7 +811,7 @@ const Finance: React.FC = () => {
       doc.text('Due Date', invoiceDetailsX, invoiceDetailsY);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
-      const dueDate = invoice.invoice_date ? new Date(new Date(invoice.invoice_date).getTime() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
+      const dueDate = (invoice as any).created_at ? new Date(new Date((invoice as any).created_at).getTime() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
       doc.text(dueDate, invoiceDetailsX + 20, invoiceDetailsY);
 
       invoiceDetailsY += 5;
@@ -1022,7 +1014,7 @@ const Finance: React.FC = () => {
       doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
       doc.text('Manager', pageWidth - margin - 5, pageHeight - 8, { align: 'right' });
 
-      doc.save(`Tax_Invoice_${invoice.invoice_no}.pdf`);
+      doc.save(`Tax_Invoice_${invoiceNumber}.pdf`);
     } catch (error) {
       console.error('Error generating tax invoice PDF:', error);
       toast({
