@@ -49,6 +49,11 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { formatSupabaseError } from '../utils/error';
 
+interface SubItem {
+  id: string;
+  description: string;
+}
+
 interface InvoiceItem {
   id: string;
   hsn_code: string;
@@ -56,6 +61,7 @@ interface InvoiceItem {
   rate: number;
   cgst_rate: number;
   sgst_rate: number;
+  subItems?: SubItem[];
 }
 
 interface TaxInvoiceData {
