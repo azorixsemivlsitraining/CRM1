@@ -2547,7 +2547,7 @@ const Finance: React.FC = () => {
                               <CardBody>
                                 <VStack spacing={3}>
                                   <FormControl isRequired>
-                                    <FormLabel>Item Description (Optional)</FormLabel>
+                                    <FormLabel>{item.isSubCategory ? 'Item Description' : 'Item Description (Optional)'}</FormLabel>
                                     <Input
                                       as="textarea"
                                       placeholder="Add additional description or specifications for this item"
@@ -2557,7 +2557,9 @@ const Finance: React.FC = () => {
                                         newItems[index].description = e.target.value;
                                         setTaxInvoiceForm({ ...taxInvoiceForm, items: newItems });
                                       }}
-                                      minH="80px"
+                                      minH={item.isSubCategory ? '60px' : '80px'}
+                                      isReadOnly={item.isSubCategory}
+                                      bg={item.isSubCategory ? 'gray.100' : 'white'}
                                     />
                                   </FormControl>
                                   {!item.isSubCategory && (
