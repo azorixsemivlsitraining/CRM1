@@ -328,8 +328,6 @@ const Finance: React.FC = () => {
     place_of_supply: '',
     state: '',
     gst_no: '',
-    invoice_no: '',
-    invoice_date: new Date().toISOString().split('T')[0],
     items: [],
     project_id: '',
     capacity: '',
@@ -647,8 +645,6 @@ const Finance: React.FC = () => {
         place_of_supply: '',
         state: '',
         gst_no: '',
-        invoice_no: '',
-        invoice_date: new Date().toISOString().split('T')[0],
         items: [],
         project_id: '',
         capacity: '',
@@ -717,7 +713,7 @@ const Finance: React.FC = () => {
       if (error) throw error;
 
       // Add row numbers for invoice number generation
-      const invoicesWithRowNumbers = (data || []).map((invoice, index) => ({
+      const invoicesWithRowNumbers = (data || []).map((invoice: any, index: number) => ({
         ...invoice,
         rowNumber: (count || 0) - index,
       })) as TaxInvoice[];
