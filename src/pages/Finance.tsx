@@ -132,18 +132,27 @@ interface TaxInvoice {
 }
 
 const PREDEFINED_INVOICE_ITEMS = [
-  { name: 'Renewable energy devices and spare parts design', category: 'renewable_design' },
-  { name: 'Installation and commissioning of rooftop solar power plant', category: 'renewable_design' },
-  { name: 'Solar PV Modules Wp_Bifical_' },
-  { name: 'Solar Grid Tied Inverter' },
-  { name: 'Module Mounting' },
-  { name: 'DC Distribution box IP65' },
-  { name: 'AC Distribution Box IP65' },
-  { name: 'Copper cables' },
-  { name: 'Earthing' },
-  { name: 'Lightning Arrestor' },
-  { name: 'Hardware SS304 and other required accessories' },
-  { name: 'Installation & Commissioning of Rooftop Solar Power Plant' },
+  {
+    name: 'Renewable energy devices and spare parts design',
+    category: 'renewable_devices',
+    isParent: true,
+    subItems: [
+      { name: 'Solar PV Modules Wp_Bifical_', category: 'sub_renewable' },
+      { name: 'Solar Grid Tied Inverter', category: 'sub_renewable' },
+      { name: 'Module Mounting', category: 'sub_renewable' },
+      { name: 'DC Distribution box IP65', category: 'sub_renewable' },
+      { name: 'AC Distribution Box IP65', category: 'sub_renewable' },
+      { name: 'Copper cables', category: 'sub_renewable' },
+      { name: 'Earthing', category: 'sub_renewable' },
+      { name: 'Lightning Arrestor', category: 'sub_renewable' },
+      { name: 'Hardware SS304 and other required accessories', category: 'sub_renewable' },
+    ],
+  },
+  {
+    name: 'Installation and commissioning of rooftop solar power plant',
+    category: 'installation',
+    isParent: false,
+  },
 ];
 
 const inr = (v: number) => `₹${(v || 0).toLocaleString('en-IN')}`;
