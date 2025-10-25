@@ -260,7 +260,7 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
       console.error('Error fetching projects:', error);
       toast({
         title: 'Error',
-        description: 'An unexpected error occurred',
+        description: `Failed to fetch projects. ${formatSupabaseError(error)}`,
         status: 'error',
         duration: 5000,
         isClosable: true,
