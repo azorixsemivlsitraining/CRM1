@@ -114,6 +114,7 @@ interface TaxInvoiceItem {
   rate: number;
   cgst_percent: number;
   sgst_percent: number;
+  category?: string;
 }
 
 interface TaxInvoice {
@@ -147,7 +148,7 @@ const PREDEFINED_INVOICE_ITEMS = [
 
 const ITEMS_WITHOUT_DETAILS = new Set(['renewable_design']);
 
-const inr = (v: number) => `��${(v || 0).toLocaleString('en-IN')}`;
+const inr = (v: number) => `₹${(v || 0).toLocaleString('en-IN')}`;
 
 const makeCsv = (rows: any[]) => {
   if (!rows || rows.length === 0) return '';
