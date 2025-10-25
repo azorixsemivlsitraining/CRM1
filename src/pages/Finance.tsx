@@ -634,8 +634,6 @@ const Finance: React.FC = () => {
           place_of_supply: taxInvoiceForm.place_of_supply,
           state: taxInvoiceForm.state,
           gst_no: nextGstNo,
-          invoice_no: nextInvoiceNo,
-          invoice_date: taxInvoiceForm.invoice_date,
           items: taxInvoiceForm.items,
         }]);
 
