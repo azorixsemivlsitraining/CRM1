@@ -485,22 +485,22 @@ async function generateTaxInvoicePDF(invoice: TaxInvoiceData) {
 
     let summaryY = yPos + 4;
     doc.text('Sub Total', summaryX + 2, summaryY);
-    doc.text(totalRate.toFixed(2), summaryX + summaryWidth - 2, summaryY, { align: 'right' });
+    doc.text(grandTotalRate.toFixed(2), summaryX + summaryWidth - 2, summaryY, { align: 'right' });
 
     summaryY += summaryItemHeight;
-    doc.text(`CGST (${invoice.items[0]?.cgst_rate || 0}%)`, summaryX + 2, summaryY);
-    doc.text(totalCgst.toFixed(2), summaryX + summaryWidth - 2, summaryY, { align: 'right' });
+    doc.text(`CGST (6%)`, summaryX + 2, summaryY);
+    doc.text(grandTotalCgst.toFixed(2), summaryX + summaryWidth - 2, summaryY, { align: 'right' });
 
     summaryY += summaryItemHeight;
-    doc.text(`SGST (${invoice.items[0]?.sgst_rate || 0}%)`, summaryX + 2, summaryY);
-    doc.text(totalSgst.toFixed(2), summaryX + summaryWidth - 2, summaryY, { align: 'right' });
+    doc.text(`SGST (6%)`, summaryX + 2, summaryY);
+    doc.text(grandTotalSgst.toFixed(2), summaryX + summaryWidth - 2, summaryY, { align: 'right' });
 
     summaryY += summaryItemHeight + 2;
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
     doc.setTextColor(colors.primary.r, colors.primary.g, colors.primary.b);
     doc.text('Total', summaryX + 2, summaryY);
-    doc.text(`Rs.${totalAmount.toFixed(2)}`, summaryX + summaryWidth - 2, summaryY, { align: 'right' });
+    doc.text(`Rs.${grandTotalAmount.toFixed(2)}`, summaryX + summaryWidth - 2, summaryY, { align: 'right' });
 
     yPos += 35;
 
