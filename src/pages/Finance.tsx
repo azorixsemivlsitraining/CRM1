@@ -1014,7 +1014,7 @@ const Finance: React.FC = () => {
       doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
       doc.text('Manager', pageWidth - margin - 5, pageHeight - 8, { align: 'right' });
 
-      doc.save(`Tax_Invoice_${invoice.invoice_no}.pdf`);
+      doc.save(`Tax_Invoice_${invoiceNumber}.pdf`);
     } catch (error) {
       console.error('Error generating tax invoice PDF:', error);
       toast({
