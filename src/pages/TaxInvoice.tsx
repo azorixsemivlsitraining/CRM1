@@ -736,7 +736,7 @@ const TaxInvoice: React.FC = () => {
       onDeleteClose();
       await fetchInvoices();
     } catch (error: any) {
-      const errorMsg = error?.message || error?.details || JSON.stringify(error);
+      const errorMsg = formatSupabaseError(error);
       console.error('Error deleting invoice:', errorMsg);
       toast({
         title: 'Error',
