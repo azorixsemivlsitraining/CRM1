@@ -122,13 +122,12 @@ interface TaxInvoice {
   place_of_supply: string;
   state: string;
   gst_no: string;
-  invoice_no: string;
-  invoice_date: string;
   items: TaxInvoiceItem[];
   project_id?: string;
   capacity?: string;
   amount_paid?: number;
   created_at?: string;
+  rowNumber?: number;
 }
 
 const PREDEFINED_INVOICE_ITEMS = [
