@@ -2246,10 +2246,23 @@ const Finance: React.FC = () => {
                           width="full"
                           onClick={handleAddEstimation}
                           isLoading={estimationLoading}
-                          loadingText="Creating"
+                          loadingText={editingEstimationId ? 'Updating' : 'Creating'}
                         >
-                          Create Estimation & Download PDF
+                          {editingEstimationId ? 'Update Estimation & Download PDF' : 'Create Estimation & Download PDF'}
                         </Button>
+                        {editingEstimationId && (
+                          <Button
+                            colorScheme="gray"
+                            width="full"
+                            variant="outline"
+                            onClick={() => {
+                              setEditingEstimationId(null);
+                              setEstimationForm({ customerName: '', description: '', serviceNo: '', estimatedCost: '' });
+                            }}
+                          >
+                            Cancel Edit
+                          </Button>
+                        )}
                       </VStack>
                     </CardBody>
                   </Card>
