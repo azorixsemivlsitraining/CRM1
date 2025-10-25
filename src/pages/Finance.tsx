@@ -2560,7 +2560,7 @@ const Finance: React.FC = () => {
                                       minH="80px"
                                     />
                                   </FormControl>
-                                  {item.category !== 'renewable_design' && (
+                                  {!item.isSubCategory && (
                                     <FormControl isRequired>
                                       <FormLabel>HSN Code</FormLabel>
                                       <Input
@@ -2574,7 +2574,7 @@ const Finance: React.FC = () => {
                                       />
                                     </FormControl>
                                   )}
-                                  {item.category !== 'renewable_design' && (
+                                  {!item.isSubCategory && (
                                     <SimpleGrid columns={4} spacing={3} width="full">
                                       <FormControl isRequired>
                                         <FormLabel fontSize="sm">Quantity</FormLabel>
@@ -2638,7 +2638,7 @@ const Finance: React.FC = () => {
                                       </FormControl>
                                     </SimpleGrid>
                                   )}
-                                  {item.category !== 'renewable_design' && (
+                                  {!item.isSubCategory && (
                                     <Box width="full" p={2} bg="gray.100" borderRadius="md">
                                       <Text fontSize="sm" color="gray.700" fontWeight="bold">
                                         Item Total: ₹{(item.quantity * item.rate).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
