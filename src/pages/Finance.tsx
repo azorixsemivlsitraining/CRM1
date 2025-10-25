@@ -146,8 +146,6 @@ const PREDEFINED_INVOICE_ITEMS = [
   { name: 'Installation & Commissioning of Rooftop Solar Power Plant' },
 ];
 
-const ITEMS_WITHOUT_DETAILS = new Set(['renewable_design']);
-
 const inr = (v: number) => `₹${(v || 0).toLocaleString('en-IN')}`;
 
 const makeCsv = (rows: any[]) => {
