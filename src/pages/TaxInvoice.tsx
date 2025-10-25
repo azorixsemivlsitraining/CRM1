@@ -47,6 +47,7 @@ import { DeleteIcon, EditIcon, DownloadIcon } from '@chakra-ui/icons';
 import jsPDF from 'jspdf';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import { formatSupabaseError } from '../utils/error';
 
 interface InvoiceItem {
   id: string;
@@ -83,7 +84,7 @@ const STAMP_URL = 'https://cdn.builder.io/api/v1/image/assets%2Fa31d1200efef4b74
 const COMPANY_INFO = {
   name: 'Axiso Green Energies Private Limited',
   address: 'Plot No-102,103, Temple Lane Mythri Nagar, Shri Ambika Vidya Mandir, Mathrusrinagar, Serlingampally, Hyderabad, Rangareddy, Telangana 500049',
-  phone: '+91 88888 88888',
+  phone: '+91 88888 88898',
   email: 'admin@axisogreen.in',
   website: 'www.axisogreen.in',
   gstin: '36ABBCA4478M1Z9',
@@ -505,37 +506,68 @@ const TaxInvoice: React.FC = () => {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Supabase error:', error);
+        console.error('Supabase fetch error:', error);
         throw error;
       }
-      setInvoices((data || []) as TaxInvoiceData[]);
+
+      // Map database records to include generated invoice_number and invoice_date
+      const mappedInvoices = (data || []).map((record: any, index: number) => ({
+        ...record,
+        gst_number: record.gst_no,
+        invoice_number: `INV-${String(index + 1).padStart(6, '0')}`,
+        invoice_date: record.created_at ? new Date(record.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        bill_to_name: '',
+        bill_to_address: '',
+        bill_to_gst: '',
+        ship_to_name: '',
+        ship_to_address: '',
+        notes: '',
+        terms_and_conditions: '',
+      }));
+
+      setInvoices(mappedInvoices as TaxInvoiceData[]);
     } catch (error: any) {
-      const errorMsg = error?.message || error?.details || JSON.stringify(error);
-      console.error('Error fetching invoices:', errorMsg);
+      let errorMsg = 'Unknown error occurred';
+
+      if (error instanceof Error) {
+        errorMsg = error.message;
+      } else if (typeof error === 'object' && error !== null) {
+        errorMsg = error.message || error.details || error.hint || error.code || JSON.stringify(error);
+      }
+
+      console.error('Error fetching invoices:', errorMsg, 'Full error:', error);
 
       // Check if table doesn't exist
       if (errorMsg.includes('relation') || errorMsg.includes('does not exist') || errorMsg.includes('404')) {
         toast({
           title: 'Setup Required',
-          description: 'Tax invoices table not found. Please create it in Supabase first. Check TAX_INVOICE_SETUP.md for instructions.',
+          description: 'Tax invoices table not found. Please create it in Supabase first. Check TAX_INVOICE_TROUBLESHOOTING.md for instructions.',
           status: 'warning',
-          duration: 5000,
+          duration: 6000,
           isClosable: true,
         });
       } else if (errorMsg.includes('permission') || errorMsg.includes('policy')) {
         toast({
           title: 'Permission Error',
-          description: `You don't have permission to access tax invoices. Error: ${errorMsg}`,
+          description: `You don't have permission to access tax invoices. Ensure you're logged in as Finance or Admin. Error: ${errorMsg}`,
           status: 'error',
-          duration: 5000,
+          duration: 6000,
+          isClosable: true,
+        });
+      } else if (errorMsg.includes('Supabase is not configured') || errorMsg.includes('environment')) {
+        toast({
+          title: 'Configuration Error',
+          description: 'Supabase is not configured. Please set REACT_APP_SUPABASE_URL and REACT_APP_SUPABASE_ANON_KEY environment variables.',
+          status: 'error',
+          duration: 6000,
           isClosable: true,
         });
       } else {
         toast({
-          title: 'Error',
-          description: `Failed to load invoices: ${errorMsg}`,
+          title: 'Error Loading Invoices',
+          description: errorMsg || 'Failed to load invoices. Check browser console for details.',
           status: 'error',
-          duration: 5000,
+          duration: 6000,
           isClosable: true,
         });
       }
@@ -646,14 +678,15 @@ const TaxInvoice: React.FC = () => {
 
       // Clean items - only include required fields
       const cleanItems = formData.items.map(item => ({
-        hsn_code: item.hsn_code,
+        hsn_code: item.hsn_code || '',
         quantity: Number(item.quantity) || 0,
         rate: Number(item.rate) || 0,
         cgst_rate: Number(item.cgst_rate) || 0,
         sgst_rate: Number(item.sgst_rate) || 0,
       }));
 
-      // Prepare invoice data to match table structure exactly
+      // Prepare invoice data - only save columns that exist in the database table
+      // The table has: id, customer_name, place_of_supply, state, gst_no, items, created_at, updated_at
       const invoiceToSave = {
         customer_name: formData.customer_name.trim(),
         place_of_supply: formData.place_of_supply.trim(),
@@ -671,7 +704,7 @@ const TaxInvoice: React.FC = () => {
           .eq('id', editingId);
 
         if (error) {
-          console.error('Update error:', error);
+          console.error('Update error details:', error);
           throw error;
         }
         toast({ title: 'Success', description: 'Invoice updated', status: 'success', duration: 2000, isClosable: true });
@@ -681,7 +714,7 @@ const TaxInvoice: React.FC = () => {
           .insert([invoiceToSave]);
 
         if (error) {
-          console.error('Insert error:', error);
+          console.error('Insert error details:', error);
           throw error;
         }
         toast({ title: 'Success', description: 'Invoice created', status: 'success', duration: 2000, isClosable: true });
@@ -690,13 +723,13 @@ const TaxInvoice: React.FC = () => {
       onClose();
       await fetchInvoices();
     } catch (error: any) {
-      const errorMsg = error?.message || error?.details || JSON.stringify(error);
-      console.error('Error saving invoice:', errorMsg);
+      const errorMsg = formatSupabaseError(error);
+      console.error('Error saving invoice:', errorMsg, 'Full error:', error);
       toast({
-        title: 'Error',
-        description: `Failed to save invoice: ${errorMsg}`,
+        title: 'Error Saving Invoice',
+        description: errorMsg,
         status: 'error',
-        duration: 5000,
+        duration: 6000,
         isClosable: true,
       });
     } finally {
@@ -720,7 +753,7 @@ const TaxInvoice: React.FC = () => {
       onDeleteClose();
       await fetchInvoices();
     } catch (error: any) {
-      const errorMsg = error?.message || error?.details || JSON.stringify(error);
+      const errorMsg = formatSupabaseError(error);
       console.error('Error deleting invoice:', errorMsg);
       toast({
         title: 'Error',
@@ -743,7 +776,7 @@ const TaxInvoice: React.FC = () => {
         isClosable: true,
       });
     } catch (error: any) {
-      const errorMsg = error?.message || error?.details || JSON.stringify(error);
+      const errorMsg = formatSupabaseError(error);
       console.error('Error generating PDF:', errorMsg);
       toast({
         title: 'Error',
