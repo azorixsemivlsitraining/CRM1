@@ -326,6 +326,7 @@ const Finance: React.FC = () => {
   const [estimations, setEstimations] = useState<EstimationCost[]>([]);
   const [estimationForm, setEstimationForm] = useState({ customerName: '', description: '', serviceNo: '', estimatedCost: '' });
   const [estimationLoading, setEstimationLoading] = useState(false);
+  const [editingEstimationId, setEditingEstimationId] = useState<string | null>(null);
 
   const [taxInvoices, setTaxInvoices] = useState<TaxInvoice[]>([]);
   const [taxInvoiceForm, setTaxInvoiceForm] = useState<TaxInvoice>({
