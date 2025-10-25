@@ -368,61 +368,103 @@ async function generateTaxInvoicePDF(invoice: TaxInvoiceData) {
 
     yPos = tableTop + 10;
 
-    // Calculate totals
-    const totalQty = invoice.items.reduce((sum, item) => sum + item.quantity, 0);
-    const totalRate = invoice.items.reduce((sum, item) => sum + item.rate * item.quantity, 0);
-    const totalCgst = invoice.items.reduce((sum, item) => sum + (item.rate * item.quantity * item.cgst_rate) / 100, 0);
-    const totalSgst = invoice.items.reduce((sum, item) => sum + (item.rate * item.quantity * item.sgst_rate) / 100, 0);
-    const totalAmount = totalRate + totalCgst + totalSgst;
-
-    // Items rows
+    // Items rows - each item as a separate row
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
+    doc.setFontSize(8.5);
     doc.setTextColor(colors.text.r, colors.text.g, colors.text.b);
     doc.setDrawColor(colors.border.r, colors.border.g, colors.border.b);
 
-    // Item number
+    let grandTotalQty = 0;
+    let grandTotalRate = 0;
+    let grandTotalCgst = 0;
+    let grandTotalSgst = 0;
+    let grandTotalAmount = 0;
+    const rowHeight = 5;
+
+    invoice.items.forEach((item, itemIndex) => {
+      // Calculate individual item totals
+      const itemRate = item.rate * item.quantity;
+      const itemCgst = (itemRate * item.cgst_rate) / 100;
+      const itemSgst = (itemRate * item.sgst_rate) / 100;
+      const itemAmount = itemRate + itemCgst + itemSgst;
+
+      // Add to grand totals
+      grandTotalQty += item.quantity;
+      grandTotalRate += itemRate;
+      grandTotalCgst += itemCgst;
+      grandTotalSgst += itemSgst;
+      grandTotalAmount += itemAmount;
+
+      // Item number
+      colX = margin + 1.5;
+      doc.text((itemIndex + 1).toString(), colX, yPos + 2, { align: 'center' });
+
+      // Item description
+      colX += colWidths[0];
+      const itemDesc = `Renewable Energy Devices and accessories`;
+      const wrappedDesc = doc.splitTextToSize(itemDesc, colWidths[1] - 1);
+      doc.text(wrappedDesc, colX, yPos + 1, { maxWidth: colWidths[1] - 1 });
+
+      // HSN code
+      colX += colWidths[1];
+      doc.text(item.hsn_code, colX, yPos + 2, { align: 'center' });
+
+      // Quantity
+      colX += colWidths[2];
+      doc.text(item.quantity.toString(), colX, yPos + 2, { align: 'center' });
+
+      // Rate
+      colX += colWidths[3];
+      doc.text(itemRate.toFixed(2), colX, yPos + 2, { align: 'right' });
+
+      // CGST % and amount
+      colX += colWidths[4];
+      doc.text(`${item.cgst_rate}%`, colX, yPos + 0.5, { align: 'center' });
+      doc.text(itemCgst.toFixed(2), colX, yPos + 3.5, { align: 'right' });
+
+      // SGST % and amount
+      colX += colWidths[5];
+      doc.text(`${item.sgst_rate}%`, colX, yPos + 0.5, { align: 'center' });
+      doc.text(itemSgst.toFixed(2), colX, yPos + 3.5, { align: 'right' });
+
+      // Total amount
+      colX += colWidths[6];
+      doc.text(itemAmount.toFixed(2), colX, yPos + 2, { align: 'right' });
+
+      yPos += rowHeight + 1;
+
+      // Draw horizontal line between items
+      doc.setDrawColor(colors.border.r, colors.border.g, colors.border.b);
+      doc.setLineWidth(0.3);
+      doc.line(margin, yPos, margin + contentWidth, yPos);
+      yPos += 1;
+    });
+
+    // Grand totals row
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(colors.primary.r, colors.primary.g, colors.primary.b);
+
     colX = margin + 1.5;
-    doc.text('1', colX, yPos);
+    doc.text('TOTAL', colX, yPos + 2, { align: 'center' });
 
-    // Item description
-    colX += colWidths[0];
-    let itemDescText = 'Renewable Energy Devices and its Space Parts Design Manufacturing Defects 30KW Solar Grid Tie Power Plant consists of below items: 1. PVModules:Wp, BiPcal, ReNEw: 345Wp: 6 No 2. Solar Inverter, 3kW, 1Ph, GrowwL: 1 No 3. Mounting Structure,:7H Height: 15sc 4. DC Distribution box, IP 65 5. AC Distribution box, IP 65 with Type 2 SPD: 1 No 5. AC Distribution box, IP 65 with Type 2 SPD: 1 no 6. Copper cables: 1 Set 7. Earthing: 3 Set 8. Lightning Arrester: 1 Set 9. And all other accessories: 1 Set';
-    const wrappedDesc = doc.splitTextToSize(itemDescText, colWidths[1] - 1);
-    doc.text(wrappedDesc, colX, yPos, { maxWidth: colWidths[1] - 1 });
-    const itemRowHeight = wrappedDesc.length * 3.5 + 2;
+    colX += colWidths[0] + colWidths[1] + colWidths[2];
+    doc.text(grandTotalRate.toFixed(2), colX, yPos + 2, { align: 'right' });
 
-    // HSN code
-    colX += colWidths[1];
-    const hsnCodes = invoice.items.map(item => item.hsn_code).join(', ');
-    doc.text(hsnCodes, colX, yPos + 1, { align: 'center' });
-
-    // Quantity
-    colX += colWidths[2];
-    doc.text(totalQty.toString(), colX, yPos + 1, { align: 'center' });
-
-    // Rate
     colX += colWidths[3];
-    doc.text(totalRate.toFixed(2), colX, yPos + 1, { align: 'right' });
+    doc.text(grandTotalCgst.toFixed(2), colX, yPos + 2, { align: 'right' });
 
-    // CGST % and amount
     colX += colWidths[4];
-    doc.text(`${invoice.items[0]?.cgst_rate || 0}%`, colX, yPos + 1, { align: 'center' });
-    doc.text(totalCgst.toFixed(2), colX, yPos + 4.5, { align: 'right' });
+    doc.text(grandTotalSgst.toFixed(2), colX, yPos + 2, { align: 'right' });
 
-    // SGST % and amount
     colX += colWidths[5];
-    doc.text(`${invoice.items[0]?.sgst_rate || 0}%`, colX, yPos + 1, { align: 'center' });
-    doc.text(totalSgst.toFixed(2), colX, yPos + 4.5, { align: 'right' });
+    doc.text(grandTotalAmount.toFixed(2), colX, yPos + 2, { align: 'right' });
 
-    // Total amount
-    colX += colWidths[6];
-    doc.text(totalAmount.toFixed(2), colX, yPos + 2.5, { align: 'right' });
-
-    yPos += itemRowHeight + 3;
+    yPos += rowHeight + 2;
 
     // Draw table bottom border
     doc.setDrawColor(colors.border.r, colors.border.g, colors.border.b);
+    doc.setLineWidth(0.5);
     doc.line(margin, yPos, margin + contentWidth, yPos);
 
     yPos += 3;
