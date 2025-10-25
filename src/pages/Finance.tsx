@@ -2425,85 +2425,91 @@ const Finance: React.FC = () => {
                                       minH="80px"
                                     />
                                   </FormControl>
-                                  <FormControl isRequired>
-                                    <FormLabel>HSN Code</FormLabel>
-                                    <Input
-                                      placeholder="Enter HSN/SAC code"
-                                      value={item.hsn}
-                                      onChange={(e) => {
-                                        const newItems = [...taxInvoiceForm.items];
-                                        newItems[index].hsn = e.target.value;
-                                        setTaxInvoiceForm({ ...taxInvoiceForm, items: newItems });
-                                      }}
-                                    />
-                                  </FormControl>
-                                  <SimpleGrid columns={4} spacing={3} width="full">
+                                  {item.category !== 'renewable_design' && (
                                     <FormControl isRequired>
-                                      <FormLabel fontSize="sm">Quantity</FormLabel>
+                                      <FormLabel>HSN Code</FormLabel>
                                       <Input
-                                        type="number"
-                                        placeholder="Qty"
-                                        value={item.quantity}
+                                        placeholder="Enter HSN/SAC code"
+                                        value={item.hsn}
                                         onChange={(e) => {
                                           const newItems = [...taxInvoiceForm.items];
-                                          newItems[index].quantity = parseFloat(e.target.value) || 0;
+                                          newItems[index].hsn = e.target.value;
                                           setTaxInvoiceForm({ ...taxInvoiceForm, items: newItems });
                                         }}
-                                        min="0"
-                                        step="0.01"
                                       />
                                     </FormControl>
-                                    <FormControl isRequired>
-                                      <FormLabel fontSize="sm">Rate (₹)</FormLabel>
-                                      <Input
-                                        type="number"
-                                        placeholder="Rate"
-                                        value={item.rate}
-                                        onChange={(e) => {
-                                          const newItems = [...taxInvoiceForm.items];
-                                          newItems[index].rate = parseFloat(e.target.value) || 0;
-                                          setTaxInvoiceForm({ ...taxInvoiceForm, items: newItems });
-                                        }}
-                                        min="0"
-                                        step="0.01"
-                                      />
-                                    </FormControl>
-                                    <FormControl isRequired>
-                                      <FormLabel fontSize="sm">CGST %</FormLabel>
-                                      <Input
-                                        type="number"
-                                        placeholder="CGST %"
-                                        value={item.cgst_percent}
-                                        onChange={(e) => {
-                                          const newItems = [...taxInvoiceForm.items];
-                                          newItems[index].cgst_percent = parseFloat(e.target.value) || 0;
-                                          setTaxInvoiceForm({ ...taxInvoiceForm, items: newItems });
-                                        }}
-                                        min="0"
-                                        step="0.01"
-                                      />
-                                    </FormControl>
-                                    <FormControl isRequired>
-                                      <FormLabel fontSize="sm">SGST %</FormLabel>
-                                      <Input
-                                        type="number"
-                                        placeholder="SGST %"
-                                        value={item.sgst_percent}
-                                        onChange={(e) => {
-                                          const newItems = [...taxInvoiceForm.items];
-                                          newItems[index].sgst_percent = parseFloat(e.target.value) || 0;
-                                          setTaxInvoiceForm({ ...taxInvoiceForm, items: newItems });
-                                        }}
-                                        min="0"
-                                        step="0.01"
-                                      />
-                                    </FormControl>
-                                  </SimpleGrid>
-                                  <Box width="full" p={2} bg="gray.100" borderRadius="md">
-                                    <Text fontSize="sm" color="gray.700" fontWeight="bold">
-                                      Item Total: ₹{(item.quantity * item.rate).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                    </Text>
-                                  </Box>
+                                  )}
+                                  {item.category !== 'renewable_design' && (
+                                    <SimpleGrid columns={4} spacing={3} width="full">
+                                      <FormControl isRequired>
+                                        <FormLabel fontSize="sm">Quantity</FormLabel>
+                                        <Input
+                                          type="number"
+                                          placeholder="Qty"
+                                          value={item.quantity}
+                                          onChange={(e) => {
+                                            const newItems = [...taxInvoiceForm.items];
+                                            newItems[index].quantity = parseFloat(e.target.value) || 0;
+                                            setTaxInvoiceForm({ ...taxInvoiceForm, items: newItems });
+                                          }}
+                                          min="0"
+                                          step="0.01"
+                                        />
+                                      </FormControl>
+                                      <FormControl isRequired>
+                                        <FormLabel fontSize="sm">Rate (₹)</FormLabel>
+                                        <Input
+                                          type="number"
+                                          placeholder="Rate"
+                                          value={item.rate}
+                                          onChange={(e) => {
+                                            const newItems = [...taxInvoiceForm.items];
+                                            newItems[index].rate = parseFloat(e.target.value) || 0;
+                                            setTaxInvoiceForm({ ...taxInvoiceForm, items: newItems });
+                                          }}
+                                          min="0"
+                                          step="0.01"
+                                        />
+                                      </FormControl>
+                                      <FormControl isRequired>
+                                        <FormLabel fontSize="sm">CGST %</FormLabel>
+                                        <Input
+                                          type="number"
+                                          placeholder="CGST %"
+                                          value={item.cgst_percent}
+                                          onChange={(e) => {
+                                            const newItems = [...taxInvoiceForm.items];
+                                            newItems[index].cgst_percent = parseFloat(e.target.value) || 0;
+                                            setTaxInvoiceForm({ ...taxInvoiceForm, items: newItems });
+                                          }}
+                                          min="0"
+                                          step="0.01"
+                                        />
+                                      </FormControl>
+                                      <FormControl isRequired>
+                                        <FormLabel fontSize="sm">SGST %</FormLabel>
+                                        <Input
+                                          type="number"
+                                          placeholder="SGST %"
+                                          value={item.sgst_percent}
+                                          onChange={(e) => {
+                                            const newItems = [...taxInvoiceForm.items];
+                                            newItems[index].sgst_percent = parseFloat(e.target.value) || 0;
+                                            setTaxInvoiceForm({ ...taxInvoiceForm, items: newItems });
+                                          }}
+                                          min="0"
+                                          step="0.01"
+                                        />
+                                      </FormControl>
+                                    </SimpleGrid>
+                                  )}
+                                  {item.category !== 'renewable_design' && (
+                                    <Box width="full" p={2} bg="gray.100" borderRadius="md">
+                                      <Text fontSize="sm" color="gray.700" fontWeight="bold">
+                                        Item Total: ₹{(item.quantity * item.rate).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                      </Text>
+                                    </Box>
+                                  )}
                                 </VStack>
                               </CardBody>
                             </Card>
