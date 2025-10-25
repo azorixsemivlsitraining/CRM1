@@ -2281,13 +2281,29 @@ const Finance: React.FC = () => {
                                   <Td isNumeric>{est.estimated_cost.toLocaleString('en-IN')}</Td>
                                   <Td>{est.created_at ? new Date(est.created_at).toLocaleDateString() : '-'}</Td>
                                   <Td>
-                                    <Button
-                                      size="sm"
-                                      colorScheme="blue"
-                                      onClick={() => downloadEstimationPDF(est)}
-                                    >
-                                      Download PDF
-                                    </Button>
+                                    <HStack spacing={2}>
+                                      <Button
+                                        size="sm"
+                                        colorScheme="blue"
+                                        onClick={() => downloadEstimationPDF(est)}
+                                      >
+                                        Download PDF
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        colorScheme="orange"
+                                        onClick={() => handleEditEstimation(est)}
+                                      >
+                                        Edit
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        colorScheme="red"
+                                        onClick={() => handleDeleteEstimation(est.id)}
+                                      >
+                                        Delete
+                                      </Button>
+                                    </HStack>
                                   </Td>
                                 </Tr>
                               ))}
