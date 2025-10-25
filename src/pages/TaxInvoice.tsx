@@ -799,6 +799,7 @@ const TaxInvoice: React.FC = () => {
         rate: Number(item.rate) || 0,
         cgst_rate: Number(item.cgst_rate) || 0,
         sgst_rate: Number(item.sgst_rate) || 0,
+        subItems: item.subItems && item.subItems.length > 0 ? item.subItems : undefined,
       }));
 
       // Prepare invoice data - only save columns that exist in the database table
