@@ -369,20 +369,15 @@ const Finance: React.FC = () => {
 
   const getNextInvoiceNo = async (): Promise<string> => {
     try {
-      const { data } = await supabase
+      const { count } = await supabase
         .from('tax_invoices')
-        .select('invoice_no')
-        .order('created_at', { ascending: false })
-        .limit(1);
+        .select('id', { count: 'exact' });
 
-      if (data && data.length > 0) {
-        const lastInvoiceNo = data[0].invoice_no;
-        const match = lastInvoiceNo.match(/INV-(\d+)/);
-        if (match) {
-          const nextNum = parseInt(match[1]) + 1;
-          return `INV-${String(nextNum).padStart(6, '0')}`;
-        }
+      if (count !== null && count !== undefined) {
+        const nextNum = count + 1;
+        return `INV-${String(nextNum).padStart(6, '0')}`;
       }
+
       return 'INV-000001';
     } catch {
       return 'INV-000001';
