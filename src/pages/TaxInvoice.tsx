@@ -216,28 +216,28 @@ async function generateTaxInvoicePDF(invoice: TaxInvoiceData) {
 
     let yPos = margin;
 
-    // Header with logo
+    // Header with logo - improved sizing and spacing
     try {
       const logoData = await fetchImageAsDataURL(LOGO_URL);
       if (logoData) {
-        doc.addImage(logoData, 'PNG', margin, yPos, 22, 22, undefined, 'FAST');
+        doc.addImage(logoData, 'PNG', margin, yPos, 25, 25, undefined, 'FAST');
       }
     } catch (err) {
       console.error('Logo error:', err);
     }
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(15);
+    doc.setFontSize(16);
     doc.setTextColor(colors.primary.r, colors.primary.g, colors.primary.b);
-    doc.text(COMPANY_INFO.name, margin + 24, yPos + 3);
+    doc.text(COMPANY_INFO.name, margin + 27, yPos + 2);
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
+    doc.setFontSize(10);
     doc.setTextColor(colors.text.r, colors.text.g, colors.text.b);
-    const addressLines = doc.splitTextToSize(COMPANY_INFO.address, contentWidth - 26);
-    doc.text(addressLines, margin + 24, yPos + 9, { maxWidth: contentWidth - 26 });
+    const addressLines = doc.splitTextToSize(COMPANY_INFO.address, contentWidth - 30);
+    doc.text(addressLines, margin + 27, yPos + 10, { maxWidth: contentWidth - 30 });
 
-    yPos += 28;
+    yPos += 32;
 
     // Right side info with better formatting
     doc.setFont('helvetica', 'bold');
