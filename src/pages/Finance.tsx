@@ -2557,13 +2557,29 @@ const Finance: React.FC = () => {
                                   <Td>{invoice.state}</Td>
                                   <Td>{invoice.created_at ? new Date(invoice.created_at).toLocaleDateString() : '-'}</Td>
                                   <Td>
-                                    <Button
-                                      size="sm"
-                                      colorScheme="blue"
-                                      onClick={() => downloadTaxInvoicePDF(invoice)}
-                                    >
-                                      Download PDF
-                                    </Button>
+                                    <HStack spacing={2}>
+                                      <Button
+                                        size="sm"
+                                        colorScheme="blue"
+                                        onClick={() => downloadTaxInvoicePDF(invoice)}
+                                      >
+                                        Download PDF
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        colorScheme="orange"
+                                        onClick={() => handleEditInvoice(invoice)}
+                                      >
+                                        Edit
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        colorScheme="red"
+                                        onClick={() => handleDeleteInvoice(invoice.id || '')}
+                                      >
+                                        Delete
+                                      </Button>
+                                    </HStack>
                                   </Td>
                                 </Tr>
                               ))}
