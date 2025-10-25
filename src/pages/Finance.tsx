@@ -2364,15 +2364,17 @@ const Finance: React.FC = () => {
                                   const selectedIndex = parseInt(select.value);
                                   if (selectedIndex >= 0) {
                                     const selectedItem = PREDEFINED_INVOICE_ITEMS[selectedIndex];
+                                    const isRenewableItem = selectedItem.category === 'renewable_design';
                                     const newItems = [
                                       ...taxInvoiceForm.items,
                                       {
                                         description: selectedItem.name,
-                                        hsn: '',
-                                        quantity: 1,
-                                        rate: 0,
-                                        cgst_percent: 9,
-                                        sgst_percent: 9,
+                                        hsn: isRenewableItem ? '' : '',
+                                        quantity: isRenewableItem ? 0 : 1,
+                                        rate: isRenewableItem ? 0 : 0,
+                                        cgst_percent: isRenewableItem ? 0 : 9,
+                                        sgst_percent: isRenewableItem ? 0 : 9,
+                                        category: selectedItem.category,
                                       },
                                     ];
                                     setTaxInvoiceForm({ ...taxInvoiceForm, items: newItems });
