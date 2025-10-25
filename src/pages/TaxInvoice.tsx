@@ -1144,68 +1144,116 @@ const TaxInvoice: React.FC = () => {
                 <CardBody>
                   <VStack spacing={4}>
                     {formData.items.map((item, index) => (
-                      <Card key={item.id} w="full" bg="white">
+                      <Card key={item.id} w="full" bg="white" border="2px solid" borderColor="green.200">
+                        <CardHeader bg="green.100" borderBottom="1px solid" borderColor="green.200">
+                          <Flex justify="space-between" align="center">
+                            <Heading size="sm">Main Item {index + 1}</Heading>
+                            <Button
+                              size="sm"
+                              colorScheme="red"
+                              variant="outline"
+                              onClick={() => removeItem(index)}
+                              isDisabled={formData.items.length === 1}
+                            >
+                              Remove Item
+                            </Button>
+                          </Flex>
+                        </CardHeader>
                         <CardBody>
-                          <SimpleGrid columns={3} spacing={3}>
-                            <FormControl>
-                              <FormLabel fontSize="sm">HSN Code</FormLabel>
-                              <Input
-                                value={item.hsn_code}
-                                onChange={(e) => handleItemChange(index, 'hsn_code', e.target.value)}
-                                placeholder="HSN Code"
-                              />
-                            </FormControl>
-                            <FormControl>
-                              <FormLabel fontSize="sm">Quantity</FormLabel>
-                              <Input
-                                type="number"
-                                value={item.quantity}
-                                onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
-                                min={0}
-                              />
-                            </FormControl>
-                            <FormControl>
-                              <FormLabel fontSize="sm">Rate</FormLabel>
-                              <Input
-                                type="number"
-                                value={item.rate}
-                                onChange={(e) => handleItemChange(index, 'rate', e.target.value)}
-                                min={0}
-                              />
-                            </FormControl>
-                            <FormControl>
-                              <FormLabel fontSize="sm">CGST %</FormLabel>
-                              <Input
-                                type="number"
-                                value={item.cgst_rate}
-                                onChange={(e) => handleItemChange(index, 'cgst_rate', e.target.value)}
-                                min={0}
-                                max={100}
-                              />
-                            </FormControl>
-                            <FormControl>
-                              <FormLabel fontSize="sm">SGST %</FormLabel>
-                              <Input
-                                type="number"
-                                value={item.sgst_rate}
-                                onChange={(e) => handleItemChange(index, 'sgst_rate', e.target.value)}
-                                min={0}
-                                max={100}
-                              />
-                            </FormControl>
-                            <Flex align="flex-end">
-                              <Button
-                                size="sm"
-                                colorScheme="red"
-                                variant="outline"
-                                onClick={() => removeItem(index)}
-                                isDisabled={formData.items.length === 1}
-                                w="full"
-                              >
-                                Remove
-                              </Button>
-                            </Flex>
-                          </SimpleGrid>
+                          <VStack spacing={4} align="stretch">
+                            <SimpleGrid columns={3} spacing={3}>
+                              <FormControl>
+                                <FormLabel fontSize="sm">HSN Code</FormLabel>
+                                <Input
+                                  value={item.hsn_code}
+                                  onChange={(e) => handleItemChange(index, 'hsn_code', e.target.value)}
+                                  placeholder="HSN Code"
+                                />
+                              </FormControl>
+                              <FormControl>
+                                <FormLabel fontSize="sm">Quantity</FormLabel>
+                                <Input
+                                  type="number"
+                                  value={item.quantity}
+                                  onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
+                                  min={0}
+                                />
+                              </FormControl>
+                              <FormControl>
+                                <FormLabel fontSize="sm">Rate</FormLabel>
+                                <Input
+                                  type="number"
+                                  value={item.rate}
+                                  onChange={(e) => handleItemChange(index, 'rate', e.target.value)}
+                                  min={0}
+                                />
+                              </FormControl>
+                              <FormControl>
+                                <FormLabel fontSize="sm">CGST %</FormLabel>
+                                <Input
+                                  type="number"
+                                  value={item.cgst_rate}
+                                  onChange={(e) => handleItemChange(index, 'cgst_rate', e.target.value)}
+                                  min={0}
+                                  max={100}
+                                />
+                              </FormControl>
+                              <FormControl>
+                                <FormLabel fontSize="sm">SGST %</FormLabel>
+                                <Input
+                                  type="number"
+                                  value={item.sgst_rate}
+                                  onChange={(e) => handleItemChange(index, 'sgst_rate', e.target.value)}
+                                  min={0}
+                                  max={100}
+                                />
+                              </FormControl>
+                            </SimpleGrid>
+
+                            <Card bg="blue.50" w="full">
+                              <CardHeader>
+                                <Flex justify="space-between" align="center">
+                                  <Heading size="xs">Sub-Items (Descriptions)</Heading>
+                                  <Button
+                                    size="xs"
+                                    colorScheme="blue"
+                                    onClick={() => addSubItem(index)}
+                                  >
+                                    Add Sub-Item
+                                  </Button>
+                                </Flex>
+                              </CardHeader>
+                              <CardBody>
+                                {item.subItems && item.subItems.length > 0 ? (
+                                  <VStack spacing={2} align="stretch">
+                                    {item.subItems.map((subItem, subIndex) => (
+                                      <Flex key={subItem.id} gap={2} align="flex-end">
+                                        <FormControl>
+                                          <FormLabel fontSize="xs">Sub-Item {subIndex + 1} Description</FormLabel>
+                                          <Input
+                                            size="sm"
+                                            value={subItem.description}
+                                            onChange={(e) => handleSubItemChange(index, subIndex, e.target.value)}
+                                            placeholder="Enter sub-item description"
+                                          />
+                                        </FormControl>
+                                        <Button
+                                          size="sm"
+                                          colorScheme="red"
+                                          variant="outline"
+                                          onClick={() => removeSubItem(index, subIndex)}
+                                        >
+                                          Remove
+                                        </Button>
+                                      </Flex>
+                                    ))}
+                                  </VStack>
+                                ) : (
+                                  <Text color="gray.500" fontSize="sm">No sub-items added yet. Click "Add Sub-Item" to add descriptions.</Text>
+                                )}
+                              </CardBody>
+                            </Card>
+                          </VStack>
                         </CardBody>
                       </Card>
                     ))}
