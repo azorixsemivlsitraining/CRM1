@@ -115,6 +115,8 @@ interface TaxInvoiceItem {
   cgst_percent: number;
   sgst_percent: number;
   category?: string;
+  isSubCategory?: boolean;
+  parentCategory?: string;
 }
 
 interface TaxInvoice {
