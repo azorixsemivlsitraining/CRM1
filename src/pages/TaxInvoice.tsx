@@ -505,37 +505,52 @@ const TaxInvoice: React.FC = () => {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Supabase error:', error);
+        console.error('Supabase fetch error:', error);
         throw error;
       }
       setInvoices((data || []) as TaxInvoiceData[]);
     } catch (error: any) {
-      const errorMsg = error?.message || error?.details || JSON.stringify(error);
-      console.error('Error fetching invoices:', errorMsg);
+      let errorMsg = 'Unknown error occurred';
+
+      if (error instanceof Error) {
+        errorMsg = error.message;
+      } else if (typeof error === 'object' && error !== null) {
+        errorMsg = error.message || error.details || error.hint || error.code || JSON.stringify(error);
+      }
+
+      console.error('Error fetching invoices:', errorMsg, 'Full error:', error);
 
       // Check if table doesn't exist
       if (errorMsg.includes('relation') || errorMsg.includes('does not exist') || errorMsg.includes('404')) {
         toast({
           title: 'Setup Required',
-          description: 'Tax invoices table not found. Please create it in Supabase first. Check TAX_INVOICE_SETUP.md for instructions.',
+          description: 'Tax invoices table not found. Please create it in Supabase first. Check TAX_INVOICE_TROUBLESHOOTING.md for instructions.',
           status: 'warning',
-          duration: 5000,
+          duration: 6000,
           isClosable: true,
         });
       } else if (errorMsg.includes('permission') || errorMsg.includes('policy')) {
         toast({
           title: 'Permission Error',
-          description: `You don't have permission to access tax invoices. Error: ${errorMsg}`,
+          description: `You don't have permission to access tax invoices. Ensure you're logged in as Finance or Admin. Error: ${errorMsg}`,
           status: 'error',
-          duration: 5000,
+          duration: 6000,
+          isClosable: true,
+        });
+      } else if (errorMsg.includes('Supabase is not configured') || errorMsg.includes('environment')) {
+        toast({
+          title: 'Configuration Error',
+          description: 'Supabase is not configured. Please set REACT_APP_SUPABASE_URL and REACT_APP_SUPABASE_ANON_KEY environment variables.',
+          status: 'error',
+          duration: 6000,
           isClosable: true,
         });
       } else {
         toast({
-          title: 'Error',
-          description: `Failed to load invoices: ${errorMsg}`,
+          title: 'Error Loading Invoices',
+          description: errorMsg || 'Failed to load invoices. Check browser console for details.',
           status: 'error',
-          duration: 5000,
+          duration: 6000,
           isClosable: true,
         });
       }
