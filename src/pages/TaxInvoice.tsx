@@ -84,7 +84,7 @@ const STAMP_URL = 'https://cdn.builder.io/api/v1/image/assets%2Fa31d1200efef4b74
 const COMPANY_INFO = {
   name: 'Axiso Green Energies Private Limited',
   address: 'Plot No-102,103, Temple Lane Mythri Nagar, Shri Ambika Vidya Mandir, Mathrusrinagar, Serlingampally, Hyderabad, Rangareddy, Telangana 500049',
-  phone: '+91 88888 88888',
+  phone: '+91 88888 88898',
   email: 'admin@axisogreen.in',
   website: 'www.axisogreen.in',
   gstin: '36ABBCA4478M1Z9',
