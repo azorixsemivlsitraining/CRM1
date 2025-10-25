@@ -459,6 +459,49 @@ const Finance: React.FC = () => {
     }
   };
 
+  const handleEditEstimation = (estimation: EstimationCost) => {
+    setEditingEstimationId(estimation.id);
+    setEstimationForm({
+      customerName: estimation.customer_name,
+      description: estimation.description,
+      serviceNo: estimation.service_no,
+      estimatedCost: estimation.estimated_cost.toString(),
+    });
+    window.scrollTo(0, 0);
+  };
+
+  const handleDeleteEstimation = async (estimationId: string) => {
+    if (!window.confirm('Are you sure you want to delete this estimation?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('estimation_costs')
+        .delete()
+        .eq('id', estimationId);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Success',
+        description: 'Estimation deleted successfully.',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+
+      await fetchEstimations();
+    } catch (error) {
+      console.error('Error deleting estimation:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to delete estimation.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
   const fetchEstimations = async () => {
     try {
       const { data, error } = await supabase
