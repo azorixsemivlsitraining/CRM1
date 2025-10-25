@@ -114,6 +114,9 @@ interface TaxInvoiceItem {
   rate: number;
   cgst_percent: number;
   sgst_percent: number;
+  category?: string;
+  isSubCategory?: boolean;
+  parentCategory?: string;
 }
 
 interface TaxInvoice {
@@ -131,16 +134,27 @@ interface TaxInvoice {
 }
 
 const PREDEFINED_INVOICE_ITEMS = [
-  { name: 'Solar PV Modules Wp_Bifical_' },
-  { name: 'Solar Grid Tied Inverter' },
-  { name: 'Module Mounting' },
-  { name: 'DC Distribution box IP65' },
-  { name: 'AC Distribution Box IP65' },
-  { name: 'Copper cables' },
-  { name: 'Earthing' },
-  { name: 'Lightning Arrestor' },
-  { name: 'Hardware SS304 and other required accessories' },
-  { name: 'Installation & Commissioning of Rooftop Solar Power Plant' },
+  {
+    name: 'Renewable energy devices and spare parts design',
+    category: 'renewable_devices',
+    isParent: true,
+    subItems: [
+      { name: 'Solar PV Modules Wp_Bifical_', category: 'sub_renewable' },
+      { name: 'Solar Grid Tied Inverter', category: 'sub_renewable' },
+      { name: 'Module Mounting', category: 'sub_renewable' },
+      { name: 'DC Distribution box IP65', category: 'sub_renewable' },
+      { name: 'AC Distribution Box IP65', category: 'sub_renewable' },
+      { name: 'Copper cables', category: 'sub_renewable' },
+      { name: 'Earthing', category: 'sub_renewable' },
+      { name: 'Lightning Arrestor', category: 'sub_renewable' },
+      { name: 'Hardware SS304 and other required accessories', category: 'sub_renewable' },
+    ],
+  },
+  {
+    name: 'Installation and commissioning of rooftop solar power plant',
+    category: 'installation',
+    isParent: false,
+  },
 ];
 
 const inr = (v: number) => `₹${(v || 0).toLocaleString('en-IN')}`;
@@ -321,6 +335,7 @@ const Finance: React.FC = () => {
   const [estimations, setEstimations] = useState<EstimationCost[]>([]);
   const [estimationForm, setEstimationForm] = useState({ customerName: '', description: '', serviceNo: '', estimatedCost: '' });
   const [estimationLoading, setEstimationLoading] = useState(false);
+  const [editingEstimationId, setEditingEstimationId] = useState<string | null>(null);
 
   const [taxInvoices, setTaxInvoices] = useState<TaxInvoice[]>([]);
   const [taxInvoiceForm, setTaxInvoiceForm] = useState<TaxInvoice>({
@@ -395,36 +410,104 @@ const Finance: React.FC = () => {
 
     try {
       setEstimationLoading(true);
-      const { error } = await supabase.from('estimation_costs').insert([{
-        customer_name: estimationForm.customerName,
-        description: estimationForm.description,
-        service_no: estimationForm.serviceNo,
-        estimated_cost: parseFloat(estimationForm.estimatedCost),
-      }]);
 
-      if (error) throw error;
+      if (editingEstimationId) {
+        const { error } = await supabase
+          .from('estimation_costs')
+          .update({
+            customer_name: estimationForm.customerName,
+            description: estimationForm.description,
+            service_no: estimationForm.serviceNo,
+            estimated_cost: parseFloat(estimationForm.estimatedCost),
+          })
+          .eq('id', editingEstimationId);
 
-      toast({
-        title: 'Success',
-        description: 'Estimation cost added successfully.',
-        status: 'success',
-        duration: 3000,
-        isClosable: true,
-      });
+        if (error) throw error;
+
+        toast({
+          title: 'Success',
+          description: 'Estimation cost updated successfully.',
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        });
+
+        setEditingEstimationId(null);
+      } else {
+        const { error } = await supabase.from('estimation_costs').insert([{
+          customer_name: estimationForm.customerName,
+          description: estimationForm.description,
+          service_no: estimationForm.serviceNo,
+          estimated_cost: parseFloat(estimationForm.estimatedCost),
+        }]);
+
+        if (error) throw error;
+
+        toast({
+          title: 'Success',
+          description: 'Estimation cost added successfully.',
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        });
+      }
 
       setEstimationForm({ customerName: '', description: '', serviceNo: '', estimatedCost: '' });
       await fetchEstimations();
     } catch (error) {
-      console.error('Error adding estimation:', error);
+      console.error('Error saving estimation:', error);
       toast({
         title: 'Error',
-        description: 'Failed to add estimation cost.',
+        description: 'Failed to save estimation cost.',
         status: 'error',
         duration: 3000,
         isClosable: true,
       });
     } finally {
       setEstimationLoading(false);
+    }
+  };
+
+  const handleEditEstimation = (estimation: EstimationCost) => {
+    setEditingEstimationId(estimation.id);
+    setEstimationForm({
+      customerName: estimation.customer_name,
+      description: estimation.description,
+      serviceNo: estimation.service_no,
+      estimatedCost: estimation.estimated_cost.toString(),
+    });
+    window.scrollTo(0, 0);
+  };
+
+  const handleDeleteEstimation = async (estimationId: string) => {
+    if (!window.confirm('Are you sure you want to delete this estimation?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('estimation_costs')
+        .delete()
+        .eq('id', estimationId);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Success',
+        description: 'Estimation deleted successfully.',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+
+      await fetchEstimations();
+    } catch (error) {
+      console.error('Error deleting estimation:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to delete estimation.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
     }
   };
 
@@ -2172,10 +2255,23 @@ const Finance: React.FC = () => {
                           width="full"
                           onClick={handleAddEstimation}
                           isLoading={estimationLoading}
-                          loadingText="Creating"
+                          loadingText={editingEstimationId ? 'Updating' : 'Creating'}
                         >
-                          Create Estimation & Download PDF
+                          {editingEstimationId ? 'Update Estimation & Download PDF' : 'Create Estimation & Download PDF'}
                         </Button>
+                        {editingEstimationId && (
+                          <Button
+                            colorScheme="gray"
+                            width="full"
+                            variant="outline"
+                            onClick={() => {
+                              setEditingEstimationId(null);
+                              setEstimationForm({ customerName: '', description: '', serviceNo: '', estimatedCost: '' });
+                            }}
+                          >
+                            Cancel Edit
+                          </Button>
+                        )}
                       </VStack>
                     </CardBody>
                   </Card>
@@ -2207,13 +2303,29 @@ const Finance: React.FC = () => {
                                   <Td isNumeric>{est.estimated_cost.toLocaleString('en-IN')}</Td>
                                   <Td>{est.created_at ? new Date(est.created_at).toLocaleDateString() : '-'}</Td>
                                   <Td>
-                                    <Button
-                                      size="sm"
-                                      colorScheme="blue"
-                                      onClick={() => downloadEstimationPDF(est)}
-                                    >
-                                      Download PDF
-                                    </Button>
+                                    <HStack spacing={2}>
+                                      <Button
+                                        size="sm"
+                                        colorScheme="blue"
+                                        onClick={() => downloadEstimationPDF(est)}
+                                      >
+                                        Download PDF
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        colorScheme="orange"
+                                        onClick={() => handleEditEstimation(est)}
+                                      >
+                                        Edit
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        colorScheme="red"
+                                        onClick={() => handleDeleteEstimation(est.id)}
+                                      >
+                                        Delete
+                                      </Button>
+                                    </HStack>
                                   </Td>
                                 </Tr>
                               ))}
@@ -2347,29 +2459,77 @@ const Finance: React.FC = () => {
                               >
                                 <option value="">-- Select Item --</option>
                                 {PREDEFINED_INVOICE_ITEMS.map((item, idx) => (
-                                  <option key={idx} value={idx}>
-                                    {item.name}
-                                  </option>
+                                  <optgroup key={idx} label={item.name}>
+                                    {item.isParent ? (
+                                      item.subItems?.map((subItem, subIdx) => (
+                                        <option key={`${idx}-${subIdx}`} value={`${idx}-${subIdx}`}>
+                                          {subItem.name}
+                                        </option>
+                                      ))
+                                    ) : (
+                                      <option value={idx.toString()}>
+                                        {item.name}
+                                      </option>
+                                    )}
+                                  </optgroup>
                                 ))}
                               </Select>
                               <Button
                                 colorScheme="blue"
                                 onClick={() => {
                                   const select = document.getElementById('itemSelect') as HTMLSelectElement;
-                                  const selectedIndex = parseInt(select.value);
-                                  if (selectedIndex >= 0) {
-                                    const selectedItem = PREDEFINED_INVOICE_ITEMS[selectedIndex];
-                                    const newItems = [
-                                      ...taxInvoiceForm.items,
-                                      {
-                                        description: selectedItem.name,
-                                        hsn: '',
-                                        quantity: 1,
-                                        rate: 0,
-                                        cgst_percent: 9,
-                                        sgst_percent: 9,
-                                      },
-                                    ];
+                                  const selectedValue = select.value;
+                                  if (selectedValue) {
+                                    const parts = selectedValue.includes('-') ? selectedValue.split('-') : [selectedValue];
+                                    const parentIdx = parseInt(parts[0]);
+                                    const subIdx = parts.length > 1 ? parseInt(parts[1]) : -1;
+
+                                    const parentItem = PREDEFINED_INVOICE_ITEMS[parentIdx];
+                                    let selectedItem;
+                                    let isSubCategory = false;
+                                    let parentCategory = '';
+                                    let newItems = [...taxInvoiceForm.items];
+
+                                    if (subIdx >= 0 && parentItem.isParent) {
+                                      selectedItem = parentItem.subItems![subIdx];
+                                      isSubCategory = true;
+                                      parentCategory = parentItem.category || '';
+
+                                      const parentAlreadyExists = newItems.some(
+                                        item => item.parentCategory === parentCategory ||
+                                        (item.description === parentItem.name && !item.isSubCategory)
+                                      );
+
+                                      if (!parentAlreadyExists) {
+                                        newItems.push({
+                                          description: parentItem.name,
+                                          hsn: '',
+                                          quantity: 0,
+                                          rate: 0,
+                                          cgst_percent: 0,
+                                          sgst_percent: 0,
+                                          category: parentItem.category,
+                                          isSubCategory: false,
+                                          parentCategory: '',
+                                        });
+                                      }
+                                    } else {
+                                      selectedItem = parentItem;
+                                      isSubCategory = false;
+                                    }
+
+                                    newItems.push({
+                                      description: selectedItem.name,
+                                      hsn: '',
+                                      quantity: 0,
+                                      rate: 0,
+                                      cgst_percent: 0,
+                                      sgst_percent: 0,
+                                      category: selectedItem.category,
+                                      isSubCategory: isSubCategory,
+                                      parentCategory: parentCategory,
+                                    });
+
                                     setTaxInvoiceForm({ ...taxInvoiceForm, items: newItems });
                                     select.value = '';
                                   }
@@ -2404,20 +2564,38 @@ const Finance: React.FC = () => {
                               </CardHeader>
                               <CardBody>
                                 <VStack spacing={3}>
-                                  <FormControl isRequired>
-                                    <FormLabel>Item Description (Optional)</FormLabel>
-                                    <Input
-                                      as="textarea"
-                                      placeholder="Add additional description or specifications for this item"
-                                      value={item.description}
-                                      onChange={(e) => {
-                                        const newItems = [...taxInvoiceForm.items];
-                                        newItems[index].description = e.target.value;
-                                        setTaxInvoiceForm({ ...taxInvoiceForm, items: newItems });
-                                      }}
-                                      minH="80px"
-                                    />
-                                  </FormControl>
+                                  {!item.isSubCategory && (
+                                    <FormControl isRequired>
+                                      <FormLabel>Item Description</FormLabel>
+                                      <Input
+                                        as="textarea"
+                                        placeholder="Add item description"
+                                        value={item.description}
+                                        onChange={(e) => {
+                                          const newItems = [...taxInvoiceForm.items];
+                                          newItems[index].description = e.target.value;
+                                          setTaxInvoiceForm({ ...taxInvoiceForm, items: newItems });
+                                        }}
+                                        minH="80px"
+                                      />
+                                    </FormControl>
+                                  )}
+                                  {item.isSubCategory && (
+                                    <FormControl isRequired>
+                                      <FormLabel>Item Description</FormLabel>
+                                      <Input
+                                        as="textarea"
+                                        placeholder="Add description for this sub-item"
+                                        value={item.description}
+                                        onChange={(e) => {
+                                          const newItems = [...taxInvoiceForm.items];
+                                          newItems[index].description = e.target.value;
+                                          setTaxInvoiceForm({ ...taxInvoiceForm, items: newItems });
+                                        }}
+                                        minH="60px"
+                                      />
+                                    </FormControl>
+                                  )}
                                   <FormControl isRequired>
                                     <FormLabel>HSN Code</FormLabel>
                                     <Input
@@ -2508,11 +2686,34 @@ const Finance: React.FC = () => {
                           width="full"
                           onClick={handleAddTaxInvoice}
                           isLoading={taxInvoiceLoading}
-                          loadingText="Creating"
+                          loadingText={editingInvoiceId ? 'Updating' : 'Creating'}
                           size="lg"
                         >
-                          Create Invoice & Download PDF
+                          {editingInvoiceId ? 'Update Invoice & Download PDF' : 'Create Invoice & Download PDF'}
                         </Button>
+                        {editingInvoiceId && (
+                          <Button
+                            colorScheme="gray"
+                            width="full"
+                            variant="outline"
+                            onClick={() => {
+                              setEditingInvoiceId(null);
+                              setTaxInvoiceForm({
+                                customer_name: '',
+                                place_of_supply: '',
+                                state: '',
+                                gst_no: '',
+                                items: [],
+                                project_id: '',
+                                capacity: '',
+                                amount_paid: 0,
+                              });
+                              setProjectSearchTerm('');
+                            }}
+                          >
+                            Cancel Edit
+                          </Button>
+                        )}
                       </VStack>
                     </CardBody>
                   </Card>
@@ -2544,13 +2745,29 @@ const Finance: React.FC = () => {
                                   <Td>{invoice.state}</Td>
                                   <Td>{invoice.created_at ? new Date(invoice.created_at).toLocaleDateString() : '-'}</Td>
                                   <Td>
-                                    <Button
-                                      size="sm"
-                                      colorScheme="blue"
-                                      onClick={() => downloadTaxInvoicePDF(invoice)}
-                                    >
-                                      Download PDF
-                                    </Button>
+                                    <HStack spacing={2}>
+                                      <Button
+                                        size="sm"
+                                        colorScheme="blue"
+                                        onClick={() => downloadTaxInvoicePDF(invoice)}
+                                      >
+                                        Download PDF
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        colorScheme="orange"
+                                        onClick={() => handleEditInvoice(invoice)}
+                                      >
+                                        Edit
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        colorScheme="red"
+                                        onClick={() => handleDeleteInvoice(invoice.id || '')}
+                                      >
+                                        Delete
+                                      </Button>
+                                    </HStack>
                                   </Td>
                                 </Tr>
                               ))}
