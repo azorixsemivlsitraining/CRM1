@@ -811,7 +811,7 @@ const Finance: React.FC = () => {
       doc.text('Due Date', invoiceDetailsX, invoiceDetailsY);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
-      const dueDate = invoice.invoice_date ? new Date(new Date(invoice.invoice_date).getTime() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
+      const dueDate = (invoice as any).created_at ? new Date(new Date((invoice as any).created_at).getTime() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
       doc.text(dueDate, invoiceDetailsX + 20, invoiceDetailsY);
 
       invoiceDetailsY += 5;
