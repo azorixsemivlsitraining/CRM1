@@ -738,18 +738,8 @@ const Finance: React.FC = () => {
       doc.rect(margin, margin, pageWidth - margin * 2, pageHeight - margin * 2);
 
       const LOGO_URL = 'https://cdn.builder.io/api/v1/image/assets%2F8bf52f20c3654880b140d224131cfa2e%2Ffa1e04c2340e47698e33419042fa128a?format=webp&width=800';
-      const SIGNATURE_URL = 'https://cdn.builder.io/api/v1/image/assets%2F8bf52f20c3654880b140d224131cfa2e%2Fd31cd52135f84c5db35418d5a42dc0a8?format=webp&width=800';
 
       try {
-        const logoImg = new Image();
-        logoImg.src = LOGO_URL;
-        const canvas = document.createElement('canvas');
-        const img = await new Promise<HTMLImageElement>((resolve) => {
-          const tempImg = new Image();
-          tempImg.crossOrigin = 'anonymous';
-          tempImg.onload = () => resolve(tempImg);
-          tempImg.src = LOGO_URL;
-        });
         const logoWidth = 25;
         const logoHeight = 20;
         doc.addImage(LOGO_URL, 'PNG', margin + 2, margin + 2, logoWidth, logoHeight);
@@ -777,6 +767,10 @@ const Finance: React.FC = () => {
       doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
       doc.text('TAX INVOICE', pageWidth / 2, margin + 12, { align: 'center' });
 
+      // Generate invoice number and date from stored data
+      const invoiceNumber = `INV-${String((invoice as any).rowNumber || 1).padStart(6, '0')}`;
+      const invoiceDate = (invoice as any).created_at ? new Date((invoice as any).created_at).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8);
       doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
@@ -787,7 +781,7 @@ const Finance: React.FC = () => {
       doc.text('#', invoiceDetailsX, invoiceDetailsY);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
-      doc.text(invoice.invoice_no, invoiceDetailsX + 20, invoiceDetailsY);
+      doc.text(invoiceNumber, invoiceDetailsX + 20, invoiceDetailsY);
 
       invoiceDetailsY += 5;
       doc.setFont('helvetica', 'normal');
@@ -795,8 +789,7 @@ const Finance: React.FC = () => {
       doc.text('Invoice Date', invoiceDetailsX, invoiceDetailsY);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
-      const invDate = invoice.invoice_date ? new Date(invoice.invoice_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
-      doc.text(invDate, invoiceDetailsX + 20, invoiceDetailsY);
+      doc.text(invoiceDate, invoiceDetailsX + 20, invoiceDetailsY);
 
       invoiceDetailsY += 5;
       doc.setFont('helvetica', 'normal');
