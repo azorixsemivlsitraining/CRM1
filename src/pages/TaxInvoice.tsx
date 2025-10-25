@@ -509,7 +509,23 @@ const TaxInvoice: React.FC = () => {
         console.error('Supabase fetch error:', error);
         throw error;
       }
-      setInvoices((data || []) as TaxInvoiceData[]);
+
+      // Map database records to include generated invoice_number and invoice_date
+      const mappedInvoices = (data || []).map((record: any, index: number) => ({
+        ...record,
+        gst_number: record.gst_no,
+        invoice_number: `INV-${String(index + 1).padStart(6, '0')}`,
+        invoice_date: record.created_at ? new Date(record.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        bill_to_name: '',
+        bill_to_address: '',
+        bill_to_gst: '',
+        ship_to_name: '',
+        ship_to_address: '',
+        notes: '',
+        terms_and_conditions: '',
+      }));
+
+      setInvoices(mappedInvoices as TaxInvoiceData[]);
     } catch (error: any) {
       let errorMsg = 'Unknown error occurred';
 
