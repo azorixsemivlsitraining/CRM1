@@ -759,7 +759,7 @@ const TaxInvoice: React.FC = () => {
         isClosable: true,
       });
     } catch (error: any) {
-      const errorMsg = error?.message || error?.details || JSON.stringify(error);
+      const errorMsg = formatSupabaseError(error);
       console.error('Error generating PDF:', errorMsg);
       toast({
         title: 'Error',
