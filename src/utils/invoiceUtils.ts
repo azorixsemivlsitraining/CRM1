@@ -1,6 +1,11 @@
 import jsPDF from 'jspdf';
 import { supabase } from '../lib/supabase';
 
+export interface SubItem {
+  id: string;
+  description: string;
+}
+
 export interface InvoiceItem {
   id: string;
   hsn_code: string;
@@ -8,6 +13,7 @@ export interface InvoiceItem {
   rate: number;
   cgst_rate: number;
   sgst_rate: number;
+  subItems?: SubItem[];
 }
 
 export interface TaxInvoiceData {
