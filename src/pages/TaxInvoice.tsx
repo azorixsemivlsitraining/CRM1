@@ -671,8 +671,8 @@ const TaxInvoice: React.FC = () => {
           .eq('id', editingId);
 
         if (error) {
-          console.error('Update error:', error);
-          throw error;
+          console.error('Update error details:', error);
+          throw new Error(`Update failed: ${error.message || error.code || JSON.stringify(error)}`);
         }
         toast({ title: 'Success', description: 'Invoice updated', status: 'success', duration: 2000, isClosable: true });
       } else {
@@ -681,8 +681,8 @@ const TaxInvoice: React.FC = () => {
           .insert([invoiceToSave]);
 
         if (error) {
-          console.error('Insert error:', error);
-          throw error;
+          console.error('Insert error details:', error);
+          throw new Error(`Insert failed: ${error.message || error.code || JSON.stringify(error)}`);
         }
         toast({ title: 'Success', description: 'Invoice created', status: 'success', duration: 2000, isClosable: true });
       }
@@ -690,13 +690,22 @@ const TaxInvoice: React.FC = () => {
       onClose();
       await fetchInvoices();
     } catch (error: any) {
-      const errorMsg = error?.message || error?.details || JSON.stringify(error);
-      console.error('Error saving invoice:', errorMsg);
+      let errorMsg = 'Unknown error occurred';
+
+      if (error instanceof Error) {
+        errorMsg = error.message;
+      } else if (typeof error === 'object' && error !== null) {
+        errorMsg = error.message || error.details || error.hint || error.code || JSON.stringify(error);
+      } else if (typeof error === 'string') {
+        errorMsg = error;
+      }
+
+      console.error('Error saving invoice:', errorMsg, 'Full error:', error);
       toast({
-        title: 'Error',
-        description: `Failed to save invoice: ${errorMsg}`,
+        title: 'Error Saving Invoice',
+        description: errorMsg || 'Failed to save invoice. Check browser console for details.',
         status: 'error',
-        duration: 5000,
+        duration: 6000,
         isClosable: true,
       });
     } finally {
