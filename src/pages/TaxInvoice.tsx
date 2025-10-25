@@ -546,17 +546,26 @@ async function generateTaxInvoicePDF(invoice: TaxInvoiceData) {
       doc.text(wrappedTerms, margin, yPos + 4, { maxWidth: contentWidth });
     }
 
-    // Signature area at bottom
-    const signY = pageHeight - 32;
+    // Signature area at bottom - improved layout
+    const signY = pageHeight - 35;
+
+    // Left side - Authorized Signature
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
+    doc.setFontSize(8);
     doc.setTextColor(colors.text.r, colors.text.g, colors.text.b);
-    doc.text('For AXISO GREEN ENERGIES PVT LTD', pageWidth - margin - 50, signY);
+    doc.line(margin, signY - 2, margin + 35, signY - 2);
+    doc.text('Authorized Signature', margin + 12, signY + 3, { align: 'center' });
+
+    // Right side - Manager/Signature
+    const signRightX = pageWidth - margin - 50;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.text('For AXISO GREEN ENERGIES PVT LTD', signRightX, signY - 12);
 
     try {
       const stampData = await fetchImageAsDataURL(STAMP_URL);
       if (stampData) {
-        doc.addImage(stampData, 'PNG', pageWidth - margin - 45, signY - 12, 38, 18, undefined, 'FAST');
+        doc.addImage(stampData, 'PNG', signRightX + 5, signY - 20, 40, 20, undefined, 'FAST');
       }
     } catch (err) {
       console.error('Stamp error:', err);
@@ -564,12 +573,9 @@ async function generateTaxInvoicePDF(invoice: TaxInvoiceData) {
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
-    doc.setTextColor(colors.text.r, colors.text.g, colors.text.b);
-    doc.text('Manager', pageWidth - margin - 26, signY + 9, { align: 'center' });
-
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.text('Authorized Signature', margin, signY + 12);
+    doc.setTextColor(colors.text.r, colors.text.g, colors.primary.b);
+    doc.line(signRightX + 8, signY, signRightX + 40, signY);
+    doc.text('Manager', signRightX + 24, signY + 4, { align: 'center' });
 
     // Footer
     doc.setFillColor(colors.primary.r, colors.primary.g, colors.primary.b);
