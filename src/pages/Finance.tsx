@@ -596,6 +596,7 @@ const Finance: React.FC = () => {
     try {
       setTaxInvoiceLoading(true);
       const nextGstNo = await getNextGstNo();
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const nextInvoiceNo = await getNextInvoiceNo();
 
       if (editingInvoiceId) {
