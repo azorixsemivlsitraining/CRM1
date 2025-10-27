@@ -390,7 +390,6 @@ async function generateTaxInvoicePDF(invoice: TaxInvoiceData) {
     doc.setDrawColor(colors.border.r, colors.border.g, colors.border.b);
     doc.setLineWidth(0.3);
 
-    let grandTotalQty = 0;
     let grandTotalRate = 0;
     let grandTotalCgst = 0;
     let grandTotalSgst = 0;
@@ -405,7 +404,6 @@ async function generateTaxInvoicePDF(invoice: TaxInvoiceData) {
       const itemAmount = itemRate + itemCgst + itemSgst;
 
       // Add to grand totals
-      grandTotalQty += item.quantity;
       grandTotalRate += itemRate;
       grandTotalCgst += itemCgst;
       grandTotalSgst += itemSgst;
