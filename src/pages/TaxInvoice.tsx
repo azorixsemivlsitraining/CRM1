@@ -485,35 +485,36 @@ async function generateTaxInvoicePDF(invoice: TaxInvoiceData) {
 
     yPos += 2;
 
-    // Summary box with better formatting
-    const summaryX = pageWidth - margin - 65;
-    const summaryWidth = 61;
+    // Summary box
+    const summaryX = pageWidth - margin - 62;
+    const summaryWidth = 58;
     const summaryItemHeight = 5;
 
     doc.setFillColor(colors.lightGray.r, colors.lightGray.g, colors.lightGray.b);
-    doc.rect(summaryX, yPos, summaryWidth, 32, 'F');
+    doc.rect(summaryX, yPos, summaryWidth, 28, 'F');
     doc.setDrawColor(colors.border.r, colors.border.g, colors.border.b);
-    doc.rect(summaryX, yPos, summaryWidth, 32);
+    doc.setLineWidth(0.5);
+    doc.rect(summaryX, yPos, summaryWidth, 28);
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
+    doc.setFontSize(8);
     doc.setTextColor(colors.text.r, colors.text.g, colors.text.b);
 
-    let summaryY = yPos + 4;
+    let summaryY = yPos + 3.5;
     doc.text('Sub Total', summaryX + 2, summaryY);
-    doc.text(grandTotalRate.toFixed(2), summaryX + summaryWidth - 2, summaryY, { align: 'right' });
+    doc.text('₹ ' + grandTotalRate.toFixed(2), summaryX + summaryWidth - 2, summaryY, { align: 'right' });
 
     summaryY += summaryItemHeight;
-    doc.text(`CGST (6%)`, summaryX + 2, summaryY);
-    doc.text(grandTotalCgst.toFixed(2), summaryX + summaryWidth - 2, summaryY, { align: 'right' });
+    doc.text(`CGST (${invoice.items[0]?.cgst_rate || 9}%)`, summaryX + 2, summaryY);
+    doc.text('₹ ' + grandTotalCgst.toFixed(2), summaryX + summaryWidth - 2, summaryY, { align: 'right' });
 
     summaryY += summaryItemHeight;
-    doc.text(`SGST (6%)`, summaryX + 2, summaryY);
-    doc.text(grandTotalSgst.toFixed(2), summaryX + summaryWidth - 2, summaryY, { align: 'right' });
+    doc.text(`SGST (${invoice.items[0]?.sgst_rate || 9}%)`, summaryX + 2, summaryY);
+    doc.text('₹ ' + grandTotalSgst.toFixed(2), summaryX + summaryWidth - 2, summaryY, { align: 'right' });
 
-    summaryY += summaryItemHeight + 2;
+    summaryY += summaryItemHeight + 1.5;
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
+    doc.setFontSize(9);
     doc.setTextColor(colors.primary.r, colors.primary.g, colors.primary.b);
     doc.text('Total', summaryX + 2, summaryY);
     doc.text(`Rs.${grandTotalAmount.toFixed(2)}`, summaryX + summaryWidth - 2, summaryY, { align: 'right' });
