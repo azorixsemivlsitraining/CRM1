@@ -82,14 +82,22 @@ const ExpenseSheet: React.FC = () => {
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    date: string;
+    category: string;
+    vendor: string;
+    description: string;
+    amount: number;
+    tax_amount: number;
+    status: 'pending' | 'approved' | 'rejected';
+  }>({
     date: new Date().toISOString().split('T')[0],
     category: EXPENSE_CATEGORIES[0],
     vendor: '',
     description: '',
     amount: 0,
     tax_amount: 0,
-    status: 'pending' as const,
+    status: 'pending',
   });
 
   useEffect(() => {
