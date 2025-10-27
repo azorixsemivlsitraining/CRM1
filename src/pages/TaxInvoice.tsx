@@ -385,9 +385,10 @@ async function generateTaxInvoicePDF(invoice: TaxInvoiceData) {
 
     // Items rows - each item as a separate row
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8.5);
+    doc.setFontSize(8);
     doc.setTextColor(colors.text.r, colors.text.g, colors.text.b);
     doc.setDrawColor(colors.border.r, colors.border.g, colors.border.b);
+    doc.setLineWidth(0.3);
 
     let grandTotalQty = 0;
     let grandTotalRate = 0;
@@ -411,48 +412,46 @@ async function generateTaxInvoicePDF(invoice: TaxInvoiceData) {
       grandTotalAmount += itemAmount;
 
       // Item number
-      colX = margin + 1.5;
-      doc.text((itemIndex + 1).toString(), colX, yPos + 2, { align: 'center' });
+      colX = margin + 0.5;
+      doc.text((itemIndex + 1).toString(), colX, yPos + 2.5, { align: 'center' });
 
       // Item description
       colX += colWidths[0];
       const itemDesc = `Renewable Energy Devices and accessories`;
       const wrappedDesc = doc.splitTextToSize(itemDesc, colWidths[1] - 1);
-      doc.text(wrappedDesc, colX, yPos + 1, { maxWidth: colWidths[1] - 1 });
+      doc.text(wrappedDesc, colX + 1, yPos + 1.5, { maxWidth: colWidths[1] - 2 });
 
       // HSN code
       colX += colWidths[1];
-      doc.text(item.hsn_code, colX, yPos + 2, { align: 'center' });
+      doc.text(item.hsn_code, colX, yPos + 2.5, { align: 'center' });
 
       // Quantity
       colX += colWidths[2];
-      doc.text(item.quantity.toString(), colX, yPos + 2, { align: 'center' });
+      doc.text(item.quantity.toString(), colX, yPos + 2.5, { align: 'center' });
 
       // Rate
       colX += colWidths[3];
-      doc.text(itemRate.toFixed(2), colX, yPos + 2, { align: 'right' });
+      doc.text(itemRate.toFixed(2), colX, yPos + 2.5, { align: 'right' });
 
-      // CGST % and amount
+      // CGST
       colX += colWidths[4];
-      doc.text(`${item.cgst_rate}%`, colX, yPos + 0.5, { align: 'center' });
-      doc.text(itemCgst.toFixed(2), colX, yPos + 3.5, { align: 'right' });
+      doc.text(`${item.cgst_rate}%`, colX - 3, yPos + 0.5, { align: 'center' });
+      doc.text(itemCgst.toFixed(2), colX, yPos + 3, { align: 'right' });
 
-      // SGST % and amount
+      // SGST
       colX += colWidths[5];
-      doc.text(`${item.sgst_rate}%`, colX, yPos + 0.5, { align: 'center' });
-      doc.text(itemSgst.toFixed(2), colX, yPos + 3.5, { align: 'right' });
+      doc.text(`${item.sgst_rate}%`, colX - 3, yPos + 0.5, { align: 'center' });
+      doc.text(itemSgst.toFixed(2), colX, yPos + 3, { align: 'right' });
 
       // Total amount
       colX += colWidths[6];
-      doc.text(itemAmount.toFixed(2), colX, yPos + 2, { align: 'right' });
+      doc.text(itemAmount.toFixed(2), colX, yPos + 2.5, { align: 'right' });
 
       yPos += rowHeight + 1;
 
       // Draw horizontal line between items
-      doc.setDrawColor(colors.border.r, colors.border.g, colors.border.b);
-      doc.setLineWidth(0.3);
       doc.line(margin, yPos, margin + contentWidth, yPos);
-      yPos += 1;
+      yPos += 0.5;
     });
 
     // Grand totals row
