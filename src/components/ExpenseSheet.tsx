@@ -203,7 +203,7 @@ const ExpenseSheet: React.FC = () => {
       description: '',
       amount: 0,
       tax_amount: 0,
-      status: 'pending',
+      status: 'pending' as 'pending' | 'approved' | 'rejected',
     });
     onOpen();
   };
