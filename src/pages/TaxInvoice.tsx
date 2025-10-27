@@ -564,44 +564,44 @@ async function generateTaxInvoicePDF(invoice: TaxInvoiceData) {
       yPos += wrappedTerms.length * 3 + 2;
     }
 
-    // Signature area at bottom - improved layout
-    const signY = pageHeight - 35;
+    // Signature area at bottom
+    const signY = pageHeight - 32;
 
     // Left side - Authorized Signature
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
+    doc.setFontSize(7);
     doc.setTextColor(colors.text.r, colors.text.g, colors.text.b);
-    doc.line(margin, signY - 2, margin + 35, signY - 2);
-    doc.text('Authorized Signature', margin + 12, signY + 3, { align: 'center' });
+    doc.line(margin, signY - 1, margin + 30, signY - 1);
+    doc.text('Authorized Signature', margin + 10, signY + 3, { align: 'center' });
 
-    // Right side - Manager/Signature
-    const signRightX = pageWidth - margin - 50;
+    // Right side - Manager/Signature and stamp
+    const signRightX = pageWidth - margin - 55;
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.text('For AXISO GREEN ENERGIES PVT LTD', signRightX, signY - 12);
+    doc.setFontSize(7);
+    doc.text('For AXISO GREEN ENERGIES PVT LTD', signRightX, signY - 10);
 
     try {
       const stampData = await fetchImageAsDataURL(STAMP_URL);
       if (stampData) {
-        doc.addImage(stampData, 'PNG', signRightX + 5, signY - 20, 40, 20, undefined, 'FAST');
+        doc.addImage(stampData, 'PNG', signRightX + 3, signY - 18, 35, 18, undefined, 'FAST');
       }
     } catch (err) {
       console.error('Stamp error:', err);
     }
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
-    doc.setTextColor(colors.text.r, colors.text.g, colors.primary.b);
-    doc.line(signRightX + 8, signY, signRightX + 40, signY);
-    doc.text('Manager', signRightX + 24, signY + 4, { align: 'center' });
+    doc.setFontSize(8);
+    doc.setTextColor(colors.text.r, colors.text.g, colors.text.b);
+    doc.line(signRightX + 5, signY, signRightX + 35, signY);
+    doc.text('Manager', signRightX + 20, signY + 3, { align: 'center' });
 
     // Footer
     doc.setFillColor(colors.primary.r, colors.primary.g, colors.primary.b);
-    doc.rect(0, pageHeight - 7, pageWidth, 7, 'F');
+    doc.rect(0, pageHeight - 6, pageWidth, 6, 'F');
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7.5);
+    doc.setFontSize(7);
     doc.setTextColor(255, 255, 255);
-    doc.text(`GSTIN: ${COMPANY_INFO.gstin} | Email: ${COMPANY_INFO.email} | Web: ${COMPANY_INFO.website}`, pageWidth / 2, pageHeight - 3, { align: 'center' });
+    doc.text(`GSTIN: ${COMPANY_INFO.gstin} | Email: ${COMPANY_INFO.email} | Web: ${COMPANY_INFO.website}`, pageWidth / 2, pageHeight - 2, { align: 'center' });
 
     doc.save(`TaxInvoice_${invoice.invoice_number}_${invoice.gst_number}.pdf`);
   } catch (error) {
