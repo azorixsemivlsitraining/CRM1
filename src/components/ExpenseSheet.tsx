@@ -217,7 +217,7 @@ const ExpenseSheet: React.FC = () => {
       description: expense.description,
       amount: expense.amount,
       tax_amount: expense.tax_amount || 0,
-      status: expense.status,
+      status: expense.status as 'pending' | 'approved' | 'rejected',
     });
     onOpen();
   };
