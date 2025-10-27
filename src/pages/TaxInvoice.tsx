@@ -359,27 +359,29 @@ async function generateTaxInvoicePDF(invoice: TaxInvoiceData) {
 
     yPos += billShipHeight + 3;
 
-    // Items Table with improved spacing and font
+    // Items Table with professional formatting
     const tableTop = yPos;
-    const colWidths = [8, 35, 12, 10, 15, 15, 15, 15];
+    const colWidths = [7, 32, 11, 10, 14, 13, 13, 20];
     let colX = margin;
 
+    // Table header background
     doc.setFillColor(colors.primary.r, colors.primary.g, colors.primary.b);
-    doc.rect(margin, tableTop, contentWidth, 8, 'F');
+    doc.rect(margin, tableTop, contentWidth, 7, 'F');
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
+    doc.setFontSize(8);
     doc.setTextColor(255, 255, 255);
 
-    const headers = ['#', 'Item & Description', 'HSN PAC', 'Qty', 'Rate', 'CGST %', 'SGST %', 'Amount'];
-    colX = margin + 1.5;
+    const headers = ['#', 'Item & Description', 'HSN/SAC', 'Qty', 'Rate', 'CGST %', 'SGST %', 'Amount'];
+    colX = margin + 1.2;
 
     for (let i = 0; i < headers.length; i++) {
-      doc.text(headers[i], colX, tableTop + 5.5, { align: i === 0 ? 'left' : 'center' });
+      const align = i === 0 || i === 1 ? 'left' : 'center';
+      doc.text(headers[i], colX, tableTop + 4.5, { align });
       colX += colWidths[i];
     }
 
-    yPos = tableTop + 10;
+    yPos = tableTop + 8.5;
 
     // Items rows - each item as a separate row
     doc.setFont('helvetica', 'normal');
