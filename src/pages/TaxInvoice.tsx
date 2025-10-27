@@ -306,51 +306,58 @@ async function generateTaxInvoicePDF(invoice: TaxInvoiceData) {
 
     yPos += 32;
 
-    // Bill To and Ship To section with borders
+    // Bill To and Ship To section with boxes
     const billToX = margin;
-    const billToWidth = contentWidth / 2 - 2;
-    const shipToX = billToX + billToWidth + 2;
-    const shipToWidth = contentWidth / 2 - 2;
-    const billShipHeight = 26;
+    const billToWidth = contentWidth / 2 - 1.5;
+    const shipToX = billToX + billToWidth + 3;
+    const shipToWidth = contentWidth / 2 - 1.5;
+    const billShipHeight = 24;
 
-    // Draw borders for Bill To
+    // Bill To box
     doc.setDrawColor(colors.border.r, colors.border.g, colors.border.b);
+    doc.setLineWidth(0.5);
     doc.rect(billToX, yPos, billToWidth, billShipHeight);
 
-    // Draw borders for Ship To
+    // Ship To box
     doc.rect(shipToX, yPos, shipToWidth, billShipHeight);
 
-    // Bill To content
+    // Bill To header
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
-    doc.setTextColor(colors.primary.r, colors.primary.g, colors.primary.b);
-    doc.text('Bill To', billToX + 2, yPos + 5);
-
-    doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
-    doc.setTextColor(colors.text.r, colors.text.g, colors.text.b);
-    doc.text(invoice.bill_to_name, billToX + 2, yPos + 10);
+    doc.setTextColor(255, 255, 255);
+    doc.setFillColor(colors.primary.r, colors.primary.g, colors.primary.b);
+    doc.rect(billToX, yPos, billToWidth, 5, 'F');
+    doc.text('Bill To', billToX + 2, yPos + 3.5);
 
-    const billToAddressLines = doc.splitTextToSize(invoice.bill_to_address, billToWidth - 4);
+    // Bill To content
+    doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
-    doc.text(billToAddressLines, billToX + 2, yPos + 15, { maxWidth: billToWidth - 4 });
+    doc.setTextColor(colors.text.r, colors.text.g, colors.text.b);
+    doc.text(invoice.bill_to_name || 'N/A', billToX + 2, yPos + 9);
+
+    const billToAddressLines = doc.splitTextToSize(invoice.bill_to_address || '', billToWidth - 4);
+    doc.setFontSize(7.5);
+    doc.text(billToAddressLines, billToX + 2, yPos + 13, { maxWidth: billToWidth - 4 });
+
+    // Ship To header
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(255, 255, 255);
+    doc.setFillColor(colors.primary.r, colors.primary.g, colors.primary.b);
+    doc.rect(shipToX, yPos, shipToWidth, 5, 'F');
+    doc.text('Ship To', shipToX + 2, yPos + 3.5);
 
     // Ship To content
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
-    doc.setTextColor(colors.primary.r, colors.primary.g, colors.primary.b);
-    doc.text('Ship To', shipToX + 2, yPos + 5);
-
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.setTextColor(colors.text.r, colors.text.g, colors.text.b);
-    doc.text(invoice.ship_to_name, shipToX + 2, yPos + 10);
-
-    const shipToAddressLines = doc.splitTextToSize(invoice.ship_to_address, shipToWidth - 4);
     doc.setFontSize(8);
-    doc.text(shipToAddressLines, shipToX + 2, yPos + 15, { maxWidth: shipToWidth - 4 });
+    doc.setTextColor(colors.text.r, colors.text.g, colors.text.b);
+    doc.text(invoice.ship_to_name || 'N/A', shipToX + 2, yPos + 9);
 
-    yPos += billShipHeight + 2;
+    const shipToAddressLines = doc.splitTextToSize(invoice.ship_to_address || '', shipToWidth - 4);
+    doc.setFontSize(7.5);
+    doc.text(shipToAddressLines, shipToX + 2, yPos + 13, { maxWidth: shipToWidth - 4 });
+
+    yPos += billShipHeight + 3;
 
     // Items Table with improved spacing and font
     const tableTop = yPos;
