@@ -517,9 +517,9 @@ async function generateTaxInvoicePDF(invoice: TaxInvoiceData) {
     doc.setFontSize(9);
     doc.setTextColor(colors.primary.r, colors.primary.g, colors.primary.b);
     doc.text('Total', summaryX + 2, summaryY);
-    doc.text(`Rs.${grandTotalAmount.toFixed(2)}`, summaryX + summaryWidth - 2, summaryY, { align: 'right' });
+    doc.text(`₹ ${grandTotalAmount.toFixed(2)}`, summaryX + summaryWidth - 2, summaryY, { align: 'right' });
 
-    yPos += 35;
+    yPos += 30;
 
     // Amount in words section
     const amountWords = convertNumberToWords(Math.floor(grandTotalAmount));
