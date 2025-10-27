@@ -524,43 +524,44 @@ async function generateTaxInvoicePDF(invoice: TaxInvoiceData) {
     // Amount in words section
     const amountWords = convertNumberToWords(Math.floor(grandTotalAmount));
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
+    doc.setFontSize(8);
     doc.setTextColor(colors.text.r, colors.text.g, colors.text.b);
     doc.text('Total in Words', margin, yPos);
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
-    const wrappedWords = doc.splitTextToSize(`Indian Rupee ${amountWords} Only`, contentWidth - 40);
-    doc.text(wrappedWords, margin, yPos + 5);
+    doc.setFontSize(8);
+    const wrappedWords = doc.splitTextToSize(`Indian Rupee ${amountWords} Only`, contentWidth - 50);
+    doc.text(wrappedWords, margin, yPos + 4);
 
-    yPos += 12;
+    yPos += 10;
 
     // Notes section
     if (invoice.notes) {
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(9);
+      doc.setFontSize(8);
       doc.setTextColor(colors.primary.r, colors.primary.g, colors.primary.b);
       doc.text('Notes', margin, yPos);
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8);
+      doc.setFontSize(7);
       doc.setTextColor(colors.text.r, colors.text.g, colors.text.b);
       const wrappedNotes = doc.splitTextToSize(invoice.notes, contentWidth);
-      doc.text(wrappedNotes, margin, yPos + 4, { maxWidth: contentWidth });
-      yPos += wrappedNotes.length * 3.5 + 5;
+      doc.text(wrappedNotes, margin, yPos + 3.5, { maxWidth: contentWidth });
+      yPos += wrappedNotes.length * 3 + 4;
     }
 
-    yPos += 2;
+    yPos += 1;
 
     // Terms and Conditions section
     if (invoice.terms_and_conditions) {
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(9);
+      doc.setFontSize(8);
       doc.setTextColor(colors.primary.r, colors.primary.g, colors.primary.b);
       doc.text('Terms & Conditions', margin, yPos);
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8);
+      doc.setFontSize(7);
       doc.setTextColor(colors.text.r, colors.text.g, colors.text.b);
       const wrappedTerms = doc.splitTextToSize(invoice.terms_and_conditions, contentWidth);
-      doc.text(wrappedTerms, margin, yPos + 4, { maxWidth: contentWidth });
+      doc.text(wrappedTerms, margin, yPos + 3.5, { maxWidth: contentWidth });
+      yPos += wrappedTerms.length * 3 + 2;
     }
 
     // Signature area at bottom - improved layout
