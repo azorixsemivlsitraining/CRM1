@@ -203,41 +203,44 @@ async function generateTaxInvoicePDF(invoice: TaxInvoiceData) {
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     const pageWidth = doc.internal.pageSize.width;
     const pageHeight = doc.internal.pageSize.height;
-    const margin = 12;
+    const margin = 10;
     const contentWidth = pageWidth - 2 * margin;
 
     const colors = {
-      primary: { r: 60, g: 80, b: 60 },
+      primary: { r: 60, g: 100, b: 60 },
       secondary: { r: 100, g: 120, b: 100 },
-      text: { r: 33, g: 33, b: 33 },
-      lightGray: { r: 245, g: 245, b: 245 },
-      border: { r: 180, g: 180, b: 180 },
+      text: { r: 40, g: 40, b: 40 },
+      lightGray: { r: 248, g: 248, b: 248 },
+      border: { r: 200, g: 200, b: 200 },
+      headerBg: { r: 60, g: 100, b: 60 },
     };
 
     let yPos = margin;
 
-    // Header with logo - improved sizing and spacing
+    // Header with logo and company info
     try {
       const logoData = await fetchImageAsDataURL(LOGO_URL);
       if (logoData) {
-        doc.addImage(logoData, 'PNG', margin, yPos, 25, 25, undefined, 'FAST');
+        doc.addImage(logoData, 'PNG', margin, yPos, 22, 22, undefined, 'FAST');
       }
     } catch (err) {
       console.error('Logo error:', err);
     }
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(16);
+    doc.setFontSize(15);
     doc.setTextColor(colors.primary.r, colors.primary.g, colors.primary.b);
-    doc.text(COMPANY_INFO.name, margin + 27, yPos + 2);
+    doc.text(COMPANY_INFO.name, margin + 24, yPos + 3);
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
+    doc.setFontSize(9);
     doc.setTextColor(colors.text.r, colors.text.g, colors.text.b);
-    const addressLines = doc.splitTextToSize(COMPANY_INFO.address, contentWidth - 30);
-    doc.text(addressLines, margin + 27, yPos + 10, { maxWidth: contentWidth - 30 });
+    doc.text(`GST: ${COMPANY_INFO.gstin}`, margin + 24, yPos + 8);
+    doc.text(`Phone: ${COMPANY_INFO.phone}`, margin + 24, yPos + 12);
+    doc.text(`Email: ${COMPANY_INFO.email}`, margin + 24, yPos + 16);
+    doc.text(`Website: ${COMPANY_INFO.website}`, margin + 24, yPos + 20);
 
-    yPos += 32;
+    yPos += 28;
 
     // Right side info with better formatting
     doc.setFont('helvetica', 'bold');
