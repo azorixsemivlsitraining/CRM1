@@ -1905,6 +1905,7 @@ const Finance: React.FC = () => {
           <Tab>Projects Receivables</Tab>
           <Tab>Estimation Cost</Tab>
           <Tab>Tax Invoice</Tab>
+          <Tab>Expense Sheet</Tab>
           <Tab>Reports & Export</Tab>
         </TabList>
         <TabPanels>
