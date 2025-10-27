@@ -242,66 +242,69 @@ async function generateTaxInvoicePDF(invoice: TaxInvoiceData) {
 
     yPos += 28;
 
-    // Right side info with better formatting
+    // TAX INVOICE title and right side info
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(16);
+    doc.setFontSize(18);
     doc.setTextColor(colors.primary.r, colors.primary.g, colors.primary.b);
-    doc.text('TAX INVOICE', pageWidth - margin - 55, yPos, { align: 'left' });
+    doc.text('TAX INVOICE', pageWidth - margin - 50, yPos - 5, { align: 'right' });
 
+    // Invoice details on right side
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
+    doc.setFontSize(9);
     doc.setTextColor(colors.text.r, colors.text.g, colors.text.b);
 
-    let infoY = yPos + 9;
-    const infoLabelX = pageWidth - margin - 55;
-    const infoValueX = pageWidth - margin - 30;
+    const rightInfoX = pageWidth - margin - 60;
+    const rightValueX = pageWidth - margin - 5;
+    let infoY = yPos + 5;
 
-    doc.text('#', infoLabelX, infoY);
+    doc.text('#', rightInfoX, infoY);
     doc.setFont('helvetica', 'bold');
-    doc.text(invoice.invoice_number, infoValueX, infoY, { align: 'right' });
+    doc.setFontSize(9);
+    doc.text(invoice.invoice_number, rightValueX, infoY, { align: 'right' });
 
-    infoY += 6;
+    infoY += 5;
     doc.setFont('helvetica', 'normal');
-    doc.text('Invoice Date', infoLabelX, infoY);
+    doc.text('Invoice Date', rightInfoX, infoY);
     doc.setFont('helvetica', 'bold');
-    doc.text(new Date(invoice.invoice_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }), infoValueX, infoY, { align: 'right' });
+    doc.text(new Date(invoice.invoice_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }), rightValueX, infoY, { align: 'right' });
 
-    infoY += 6;
+    infoY += 5;
     doc.setFont('helvetica', 'normal');
-    doc.text('Terms', infoLabelX, infoY);
+    doc.text('Terms', rightInfoX, infoY);
     doc.setFont('helvetica', 'bold');
-    doc.text('PIA', infoValueX, infoY, { align: 'right' });
+    doc.text('PIA', rightValueX, infoY, { align: 'right' });
 
-    infoY += 6;
+    infoY += 5;
     doc.setFont('helvetica', 'normal');
-    doc.text('Due Date', infoLabelX, infoY);
+    doc.text('Due Date', rightInfoX, infoY);
     doc.setFont('helvetica', 'bold');
     const dueDateObj = new Date(invoice.invoice_date);
     dueDateObj.setDate(dueDateObj.getDate() + 45);
-    doc.text(dueDateObj.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }), infoValueX, infoY, { align: 'right' });
+    doc.text(dueDateObj.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }), rightValueX, infoY, { align: 'right' });
 
     // Left side invoice details
-    infoY = yPos + 9;
     const leftInfoX = margin;
+    infoY = yPos + 5;
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
+    doc.setFontSize(9);
     doc.text('#', leftInfoX, infoY);
     doc.setFont('helvetica', 'bold');
-    doc.text(invoice.gst_number, leftInfoX + 8, infoY);
+    doc.setFontSize(9);
+    doc.text(invoice.gst_number, leftInfoX + 5, infoY);
 
-    infoY += 6;
+    infoY += 5;
     doc.setFont('helvetica', 'normal');
     doc.text('GST #', leftInfoX, infoY);
     doc.setFont('helvetica', 'bold');
-    doc.text(invoice.gst_number, leftInfoX + 8, infoY);
+    doc.text(invoice.gst_number, leftInfoX + 5, infoY);
 
-    infoY += 6;
+    infoY += 5;
     doc.setFont('helvetica', 'normal');
     doc.text('Place of Supply', leftInfoX, infoY);
     doc.setFont('helvetica', 'bold');
-    doc.text(': ' + invoice.place_of_supply, leftInfoX + 8, infoY);
+    doc.text(invoice.place_of_supply, leftInfoX + 5, infoY);
 
-    yPos += 38;
+    yPos += 32;
 
     // Bill To and Ship To section with borders
     const billToX = margin;
