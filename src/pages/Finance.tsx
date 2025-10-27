@@ -46,6 +46,7 @@ import jsPDF from 'jspdf';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { generatePaymentReceiptPDF } from '../components/PaymentReceipt';
+import ExpenseSheet from '../components/ExpenseSheet';
 
 interface Project {
   id: string;
@@ -1904,6 +1905,7 @@ const Finance: React.FC = () => {
           <Tab>Projects Receivables</Tab>
           <Tab>Estimation Cost</Tab>
           <Tab>Tax Invoice</Tab>
+          <Tab>Expense Sheet</Tab>
           <Tab>Reports & Export</Tab>
         </TabList>
         <TabPanels>
@@ -2782,6 +2784,10 @@ const Finance: React.FC = () => {
                 </VStack>
               </CardBody>
             </Card>
+          </TabPanel>
+
+          <TabPanel p={0} pt={4}>
+            <ExpenseSheet />
           </TabPanel>
 
           <TabPanel p={0} pt={4}>
