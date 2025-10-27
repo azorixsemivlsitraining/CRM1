@@ -456,32 +456,34 @@ async function generateTaxInvoicePDF(invoice: TaxInvoiceData) {
 
     // Grand totals row
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
-    doc.setTextColor(colors.primary.r, colors.primary.g, colors.primary.b);
+    doc.setFontSize(8);
+    doc.setTextColor(255, 255, 255);
+    doc.setFillColor(colors.primary.r, colors.primary.g, colors.primary.b);
+    doc.rect(margin, yPos, contentWidth, 5, 'F');
 
-    colX = margin + 1.5;
-    doc.text('TOTAL', colX, yPos + 2, { align: 'center' });
+    colX = margin + 0.5;
+    doc.text('TOTAL', colX, yPos + 3.2, { align: 'center' });
 
     colX += colWidths[0] + colWidths[1] + colWidths[2];
-    doc.text(grandTotalRate.toFixed(2), colX, yPos + 2, { align: 'right' });
+    doc.text(grandTotalRate.toFixed(2), colX, yPos + 3.2, { align: 'right' });
 
     colX += colWidths[3];
-    doc.text(grandTotalCgst.toFixed(2), colX, yPos + 2, { align: 'right' });
+    doc.text(grandTotalCgst.toFixed(2), colX, yPos + 3.2, { align: 'right' });
 
     colX += colWidths[4];
-    doc.text(grandTotalSgst.toFixed(2), colX, yPos + 2, { align: 'right' });
+    doc.text(grandTotalSgst.toFixed(2), colX, yPos + 3.2, { align: 'right' });
 
     colX += colWidths[5];
-    doc.text(grandTotalAmount.toFixed(2), colX, yPos + 2, { align: 'right' });
+    doc.text(grandTotalAmount.toFixed(2), colX, yPos + 3.2, { align: 'right' });
 
-    yPos += rowHeight + 2;
+    yPos += 6;
 
-    // Draw table bottom border
+    // Draw table borders
     doc.setDrawColor(colors.border.r, colors.border.g, colors.border.b);
     doc.setLineWidth(0.5);
-    doc.line(margin, yPos, margin + contentWidth, yPos);
+    doc.rect(margin, tableTop, contentWidth, yPos - tableTop);
 
-    yPos += 3;
+    yPos += 2;
 
     // Summary box with better formatting
     const summaryX = pageWidth - margin - 65;
