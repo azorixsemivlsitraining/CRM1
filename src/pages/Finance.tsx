@@ -46,6 +46,7 @@ import jsPDF from 'jspdf';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { generatePaymentReceiptPDF } from '../components/PaymentReceipt';
+import ExpenseSheet from '../components/ExpenseSheet';
 
 interface Project {
   id: string;
