@@ -2787,6 +2787,10 @@ const Finance: React.FC = () => {
           </TabPanel>
 
           <TabPanel p={0} pt={4}>
+            <ExpenseSheet />
+          </TabPanel>
+
+          <TabPanel p={0} pt={4}>
             <Card>
               <CardHeader>
                 <Heading size="md">Reports & Export</Heading>
