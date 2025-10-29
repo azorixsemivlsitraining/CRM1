@@ -20,6 +20,30 @@ const isCategoryGroup = (item: AccountingSubcategory | AccountingCategoryGroup):
 
 export const ACCOUNTING_CATEGORIES: AccountingCategory[] = [
   {
+    code: '1000',
+    name: 'Assets',
+    description: 'What you OWN (e.g., Bank Account, Computers)',
+    subcategories: [],
+  },
+  {
+    code: '2000',
+    name: 'Liabilities',
+    description: 'What you OWE (e.g., Credit Card, Loan)',
+    subcategories: [],
+  },
+  {
+    code: '3000',
+    name: 'Equity',
+    description: 'What\'s LEFT (e.g., Owner\'s Investment, Retained Earnings)',
+    subcategories: [],
+  },
+  {
+    code: '4000',
+    name: 'Revenue',
+    description: 'What you EARN (e.g., Sales, Service Income)',
+    subcategories: [],
+  },
+  {
     code: '5000',
     name: 'Cost of Goods Sold (COGS)',
     description: 'Costs directly tied to delivering products/services to customers',
@@ -130,11 +154,15 @@ export const getAllLeafCategories = (): AccountingSubcategory[] => {
   const leaves: AccountingSubcategory[] = [];
 
   for (const main of ACCOUNTING_CATEGORIES) {
-    for (const sub of main.subcategories) {
-      if (isCategoryGroup(sub)) {
-        leaves.push(...sub.sub);
-      } else {
-        leaves.push(sub);
+    if (main.subcategories.length === 0) {
+      leaves.push({ code: main.code, name: main.name });
+    } else {
+      for (const sub of main.subcategories) {
+        if (isCategoryGroup(sub)) {
+          leaves.push(...sub.sub);
+        } else {
+          leaves.push(sub);
+        }
       }
     }
   }
@@ -159,6 +187,7 @@ export const getCategoryNameByCode = (code: string): string => {
 
 export const getMainCategoryByLeafCode = (code: string): string | null => {
   for (const main of ACCOUNTING_CATEGORIES) {
+    if (main.code === code) return main.code;
     for (const sub of main.subcategories) {
       if (sub.code === code) return main.code;
       if (isCategoryGroup(sub)) {
@@ -169,4 +198,9 @@ export const getMainCategoryByLeafCode = (code: string): string | null => {
     }
   }
   return null;
+};
+
+export const hasSubcategories = (mainCode: string): boolean => {
+  const main = ACCOUNTING_CATEGORIES.find((c) => c.code === mainCode);
+  return main ? main.subcategories.length > 0 : false;
 };
