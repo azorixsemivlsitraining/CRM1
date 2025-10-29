@@ -681,8 +681,8 @@ const ExpenseSheet: React.FC = () => {
                   onChange={(e) => {
                     const newMainCode = e.target.value;
                     setMainCategoryCode(newMainCode);
-                    const firstSub = getSubcategoriesByMainCode(newMainCode)[0];
-                    const newSubCode = firstSub?.code || '';
+                    const firstLeaves = getLeafSubcategoriesByMainCode(newMainCode);
+                    const newSubCode = firstLeaves[0]?.code || '';
                     setSubCategoryCode(newSubCode);
                     setFormData({
                       ...formData,
@@ -713,7 +713,7 @@ const ExpenseSheet: React.FC = () => {
                     });
                   }}
                 >
-                  {getSubcategoriesByMainCode(mainCategoryCode).map((sub) => (
+                  {getLeafSubcategoriesByMainCode(mainCategoryCode).map((sub) => (
                     <option key={sub.code} value={sub.code}>
                       {sub.code} - {sub.name}
                     </option>
