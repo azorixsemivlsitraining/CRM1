@@ -130,8 +130,15 @@ const ExpenseSheet: React.FC = () => {
       );
     }
 
-    if (selectedCategory !== 'all') {
-      filtered = filtered.filter((exp) => exp.category === selectedCategory);
+    if (selectedMainCategory !== 'all') {
+      filtered = filtered.filter((exp) => {
+        const code = exp.accounting_code || exp.category;
+        return ACCOUNTING_CATEGORIES.some(
+          (cat) =>
+            cat.code === selectedMainCategory &&
+            cat.subcategories.some((sub) => sub.code === code)
+        );
+      });
     }
 
     if (selectedStatus !== 'all') {
@@ -146,7 +153,6 @@ const ExpenseSheet: React.FC = () => {
       filtered = filtered.filter((exp) => exp.date <= filterDateTo);
     }
 
-    // Sort
     filtered.sort((a, b) => {
       let aVal, bVal;
       if (sortBy === 'date') {
@@ -165,7 +171,7 @@ const ExpenseSheet: React.FC = () => {
     });
 
     return filtered;
-  }, [expenses, searchTerm, selectedCategory, selectedStatus, filterDateFrom, filterDateTo, sortBy, sortOrder]);
+  }, [expenses, searchTerm, selectedMainCategory, selectedStatus, filterDateFrom, filterDateTo, sortBy, sortOrder]);
 
   const expenseSummary = useMemo(() => {
     const total = filteredExpenses.reduce((sum, exp) => sum + (exp.amount || 0), 0);
