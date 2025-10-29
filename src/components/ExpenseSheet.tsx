@@ -573,6 +573,7 @@ const ExpenseSheet: React.FC = () => {
                 <Thead>
                   <Tr>
                     <Th>Date</Th>
+                    <Th>Code</Th>
                     <Th>Category</Th>
                     <Th>Vendor</Th>
                     <Th>Description</Th>
@@ -586,6 +587,7 @@ const ExpenseSheet: React.FC = () => {
                   {filteredExpenses.map((expense) => (
                     <Tr key={expense.id}>
                       <Td>{new Date(expense.date).toLocaleDateString()}</Td>
+                      <Td fontSize="sm" fontWeight="bold">{expense.accounting_code || 'N/A'}</Td>
                       <Td fontSize="sm">{expense.category}</Td>
                       <Td fontWeight="medium">{expense.vendor}</Td>
                       <Td fontSize="sm">{expense.description}</Td>
