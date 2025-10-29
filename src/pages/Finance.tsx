@@ -1473,8 +1473,9 @@ const Finance: React.FC = () => {
     const m = new Map<string, number>();
     const source = period === 'all' ? expenses : periodExpenses;
     source.forEach((e) => {
-      const key = (e.category || 'Uncategorized').trim() || 'Uncategorized';
-      m.set(key, (m.get(key) || 0) + (e.amount || 0));
+      const code = e.accounting_code || 'Uncategorized';
+      const label = code !== 'Uncategorized' ? `${code} - ${e.category || 'Uncategorized'}` : 'Uncategorized';
+      m.set(label, (m.get(label) || 0) + (e.amount || 0));
     });
     const arr = Array.from(m.entries()).sort((a, b) => b[1] - a[1]);
     return { labels: arr.map(a => a[0]), values: arr.map(a => a[1]) };
