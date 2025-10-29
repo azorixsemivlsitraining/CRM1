@@ -184,8 +184,10 @@ const ExpenseSheet: React.FC = () => {
   const expensesByCategory = useMemo(() => {
     const categoryMap = new Map<string, number>();
     filteredExpenses.forEach((exp) => {
-      const current = categoryMap.get(exp.category) || 0;
-      categoryMap.set(exp.category, current + (exp.amount || 0));
+      const code = exp.accounting_code || exp.category;
+      const categoryName = getCategoryNameByCode(code);
+      const current = categoryMap.get(categoryName) || 0;
+      categoryMap.set(categoryName, current + (exp.amount || 0));
     });
     return Array.from(categoryMap.entries())
       .sort((a, b) => b[1] - a[1])
