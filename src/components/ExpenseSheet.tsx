@@ -70,8 +70,27 @@ const ExpenseSheet: React.FC = () => {
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
 
-  const [mainCategoryCode, setMainCategoryCode] = useState<string>(ACCOUNTING_CATEGORIES[0].code);
-  const [subCategoryCode, setSubCategoryCode] = useState<string>(ACCOUNTING_CATEGORIES[0].subcategories[0].code);
+  const getInitialMainCode = () => {
+    const categoryWithSubs = ACCOUNTING_CATEGORIES.find((cat) => cat.subcategories.length > 0);
+    return categoryWithSubs?.code || '5000';
+  };
+
+  const getInitialSubCode = () => {
+    const mainCode = getInitialMainCode();
+    const subs = getSubcategoriesByMainCode(mainCode);
+    if (subs.length === 0) {
+      const mainCategory = ACCOUNTING_CATEGORIES.find((c) => c.code === mainCode);
+      return mainCategory?.code || '5000';
+    }
+    const firstSub = subs[0];
+    return 'sub' in firstSub ? firstSub.sub[0]?.code : firstSub.code;
+  };
+
+  const initialMainCode = getInitialMainCode();
+  const initialSubCode = getInitialSubCode();
+
+  const [mainCategoryCode, setMainCategoryCode] = useState<string>(initialMainCode);
+  const [subCategoryCode, setSubCategoryCode] = useState<string>(initialSubCode);
   const [formData, setFormData] = useState<{
     date: string;
     category: string;
@@ -83,8 +102,8 @@ const ExpenseSheet: React.FC = () => {
     status: 'pending' | 'approved' | 'rejected';
   }>({
     date: new Date().toISOString().split('T')[0],
-    category: getCategoryNameByCode(ACCOUNTING_CATEGORIES[0].subcategories[0].code),
-    accounting_code: ACCOUNTING_CATEGORIES[0].subcategories[0].code,
+    category: getCategoryNameByCode(initialSubCode),
+    accounting_code: initialSubCode,
     vendor: '',
     description: '',
     amount: 0,
