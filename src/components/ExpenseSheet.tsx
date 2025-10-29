@@ -207,9 +207,16 @@ const ExpenseSheet: React.FC = () => {
 
   const handleEditClick = (expense: Expense) => {
     setSelectedExpense(expense);
+    const accountingCode = expense.accounting_code || expense.category;
+    const mainCode = ACCOUNTING_CATEGORIES.find((cat) =>
+      cat.subcategories.some((sub) => sub.code === accountingCode)
+    )?.code || ACCOUNTING_CATEGORIES[0].code;
+    setMainCategoryCode(mainCode);
+    setSubCategoryCode(accountingCode);
     setFormData({
       date: expense.date,
       category: expense.category,
+      accounting_code: accountingCode,
       vendor: expense.vendor,
       description: expense.description,
       amount: expense.amount,
