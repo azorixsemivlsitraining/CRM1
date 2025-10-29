@@ -815,48 +815,56 @@ const Finance: React.FC = () => {
   const downloadTaxInvoicePDF = async (invoice: TaxInvoice) => {
     try {
       const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const BRAND_GREEN = { r: 48, g: 154, b: 93 };
+      const BRAND_DARK_GREEN = { r: 34, g: 102, b: 68 };
       const TEXT_PRIMARY = { r: 45, g: 55, b: 72 };
-      const TEXT_MUTED = { r: 99, g: 110, b: 114 };
-      const BORDER_COLOR = { r: 180, g: 180, b: 180 };
+      const TEXT_MUTED = { r: 109, g: 124, b: 135 };
+      const HEADER_BG = { r: 240, g: 248, b: 244 };
+      const TABLE_HEADER_BG = { r: 48, g: 154, b: 93 };
+      const TABLE_ALT_BG = { r: 248, g: 252, b: 250 };
+      const BORDER_COLOR = { r: 200, g: 210, b: 205 };
 
-      const margin = 12;
+      const margin = 14;
       const pageWidth = doc.internal.pageSize.width;
       const pageHeight = doc.internal.pageSize.height;
 
-      doc.setDrawColor(BORDER_COLOR.r, BORDER_COLOR.g, BORDER_COLOR.b);
-      doc.setLineWidth(1);
+      // Header accent bar
+      doc.setFillColor(BRAND_GREEN.r, BRAND_GREEN.g, BRAND_GREEN.b);
+      doc.rect(0, 0, pageWidth, 8, 'F');
+
+      // Main border
+      doc.setDrawColor(BRAND_GREEN.r, BRAND_GREEN.g, BRAND_GREEN.b);
+      doc.setLineWidth(0.8);
       doc.rect(margin, margin, pageWidth - margin * 2, pageHeight - margin * 2);
 
       const LOGO_URL = 'https://cdn.builder.io/api/v1/image/assets%2F8bf52f20c3654880b140d224131cfa2e%2Ffa1e04c2340e47698e33419042fa128a?format=webp&width=800';
       const SIGNATURE_URL = 'https://cdn.builder.io/api/v1/image/assets%2F8bf52f20c3654880b140d224131cfa2e%2Fd31cd52135f84c5db35418d5a42dc0a8?format=webp&width=800';
 
       try {
-        const logoWidth = 25;
-        const logoHeight = 20;
-        doc.addImage(LOGO_URL, 'PNG', margin + 2, margin + 2, logoWidth, logoHeight);
+        const logoWidth = 28;
+        const logoHeight = 22;
+        doc.addImage(LOGO_URL, 'PNG', margin + 3, margin + 3, logoWidth, logoHeight);
       } catch (err) {
         console.error('Error loading logo:', err);
       }
 
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(11);
-      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
-      doc.text('Axiso Green Energies Private', margin + 30, margin + 5);
-      doc.text('Limited', margin + 30, margin + 11);
+      doc.setFontSize(12);
+      doc.setTextColor(BRAND_DARK_GREEN.r, BRAND_DARK_GREEN.g, BRAND_DARK_GREEN.b);
+      doc.text('Axiso Green Energies Private', margin + 34, margin + 5);
+      doc.text('Limited', margin + 34, margin + 11);
 
-      doc.setFontSize(7);
+      doc.setFontSize(7.5);
       doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
       doc.setFont('helvetica', 'normal');
-      doc.text('Telangana', margin + 30, margin + 16);
-      doc.text('India', margin + 30, margin + 19.5);
-      doc.text('GSTIN:36ABBCA4478M1Z9', margin + 30, margin + 23);
-      doc.text('admin@axisogreen.in', margin + 30, margin + 26.5);
-      doc.text('www.axisogreen.in', margin + 30, margin + 30);
+      doc.text('Telangana, India', margin + 34, margin + 17);
+      doc.text('GSTIN: 36ABBCA4478M1Z9', margin + 34, margin + 21);
+      doc.text('Email: admin@axisogreen.in | Web: www.axisogreen.in', margin + 34, margin + 25);
 
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(16);
-      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
-      doc.text('TAX INVOICE', pageWidth / 2, margin + 12, { align: 'center' });
+      doc.setFontSize(18);
+      doc.setTextColor(BRAND_GREEN.r, BRAND_GREEN.g, BRAND_GREEN.b);
+      doc.text('TAX INVOICE', pageWidth / 2, margin + 18, { align: 'center' });
 
       // Generate invoice number and date from stored data
       const invoiceNumber = `INV-${String((invoice as any).rowNumber || 1).padStart(6, '0')}`;
