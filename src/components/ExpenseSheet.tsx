@@ -194,10 +194,24 @@ const ExpenseSheet: React.FC = () => {
       .slice(0, 10);
   }, [filteredExpenses]);
 
+  const getLeafSubcategoriesByMainCode = (mainCode: string) => {
+    const subs = getSubcategoriesByMainCode(mainCode);
+    const leaves: any[] = [];
+    for (const sub of subs) {
+      if ('sub' in sub && sub.sub) {
+        leaves.push(...sub.sub);
+      } else {
+        leaves.push(sub);
+      }
+    }
+    return leaves;
+  };
+
   const handleAddClick = () => {
     setSelectedExpense(null);
     const firstMainCode = ACCOUNTING_CATEGORIES[0].code;
-    const firstSubCode = ACCOUNTING_CATEGORIES[0].subcategories[0].code;
+    const firstLeaves = getLeafSubcategoriesByMainCode(firstMainCode);
+    const firstSubCode = firstLeaves[0]?.code || '';
     setMainCategoryCode(firstMainCode);
     setSubCategoryCode(firstSubCode);
     setFormData({
