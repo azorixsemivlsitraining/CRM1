@@ -39,7 +39,7 @@ import {
 } from '@chakra-ui/react';
 import { DeleteIcon, EditIcon } from '@chakra-ui/icons';
 import { supabase } from '../lib/supabase';
-import { ACCOUNTING_CATEGORIES, getSubcategoriesByMainCode, getCategoryNameByCode, getMainCategoryByLeafCode } from '../data/accountingCategories';
+import { ACCOUNTING_CATEGORIES, getSubcategoriesByMainCode, getCategoryNameByCode, getMainCategoryByLeafCode, hasSubcategories } from '../data/accountingCategories';
 
 interface Expense {
   id: string;
