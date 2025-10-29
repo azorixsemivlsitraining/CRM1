@@ -870,50 +870,67 @@ const Finance: React.FC = () => {
       const invoiceNumber = `INV-${String((invoice as any).rowNumber || 1).padStart(6, '0')}`;
       const invoiceDate = (invoice as any).created_at ? new Date((invoice as any).created_at).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8);
-      doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
-
+      // Invoice details box
       let invoiceDetailsY = margin + 5;
-      const invoiceDetailsX = pageWidth - margin - 55;
+      const invoiceDetailsX = pageWidth - margin - 62;
+      const detailsBoxWidth = 50;
+      const detailsBoxHeight = 23;
 
-      doc.text('#', invoiceDetailsX, invoiceDetailsY);
+      doc.setFillColor(HEADER_BG.r, HEADER_BG.g, HEADER_BG.b);
+      doc.setDrawColor(BORDER_COLOR.r, BORDER_COLOR.g, BORDER_COLOR.b);
+      doc.setLineWidth(0.3);
+      doc.rect(invoiceDetailsX, invoiceDetailsY - 2, detailsBoxWidth, detailsBoxHeight, 'FD');
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7.5);
+      doc.setTextColor(BRAND_GREEN.r, BRAND_GREEN.g, BRAND_GREEN.b);
+      doc.text('Invoice #', invoiceDetailsX + 2, invoiceDetailsY + 2);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
-      doc.text(invoiceNumber, invoiceDetailsX + 20, invoiceDetailsY);
+      doc.setFontSize(8);
+      doc.text(invoiceNumber, invoiceDetailsX + 2, invoiceDetailsY + 6);
 
-      invoiceDetailsY += 5;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7.5);
+      doc.setTextColor(BRAND_GREEN.r, BRAND_GREEN.g, BRAND_GREEN.b);
+      doc.text('Invoice Date', invoiceDetailsX + 2, invoiceDetailsY + 11);
       doc.setFont('helvetica', 'normal');
-      doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
-      doc.text('Invoice Date', invoiceDetailsX, invoiceDetailsY);
-      doc.setFont('helvetica', 'bold');
       doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
-      doc.text(invoiceDate, invoiceDetailsX + 20, invoiceDetailsY);
+      doc.setFontSize(8);
+      doc.text(invoiceDate, invoiceDetailsX + 2, invoiceDetailsY + 15);
 
-      invoiceDetailsY += 5;
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
-      doc.text('Terms', invoiceDetailsX, invoiceDetailsY);
       doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7.5);
+      doc.setTextColor(BRAND_GREEN.r, BRAND_GREEN.g, BRAND_GREEN.b);
+      doc.text('Terms', invoiceDetailsX + 2, invoiceDetailsY + 20);
+      doc.setFont('helvetica', 'normal');
       doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
-      doc.text('PIA', invoiceDetailsX + 20, invoiceDetailsY);
+      doc.setFontSize(8);
+      doc.text('PIA', invoiceDetailsX + 2, invoiceDetailsY + 24);
 
-      invoiceDetailsY += 5;
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
-      doc.text('Due Date', invoiceDetailsX, invoiceDetailsY);
+      // Additional details on new line
+      invoiceDetailsY += 27;
+      doc.setFillColor(HEADER_BG.r, HEADER_BG.g, HEADER_BG.b);
+      doc.rect(invoiceDetailsX, invoiceDetailsY, detailsBoxWidth, detailsBoxHeight, 'FD');
+
       doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7.5);
+      doc.setTextColor(BRAND_GREEN.r, BRAND_GREEN.g, BRAND_GREEN.b);
+      doc.text('Due Date', invoiceDetailsX + 2, invoiceDetailsY + 4);
+      doc.setFont('helvetica', 'normal');
       doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
+      doc.setFontSize(8);
       const dueDate = (invoice as any).created_at ? new Date(new Date((invoice as any).created_at).getTime() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
-      doc.text(dueDate, invoiceDetailsX + 20, invoiceDetailsY);
+      doc.text(dueDate, invoiceDetailsX + 2, invoiceDetailsY + 8);
 
-      invoiceDetailsY += 5;
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
-      doc.text('Place of Supply', invoiceDetailsX, invoiceDetailsY);
       doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7.5);
+      doc.setTextColor(BRAND_GREEN.r, BRAND_GREEN.g, BRAND_GREEN.b);
+      doc.text('Place of Supply', invoiceDetailsX + 2, invoiceDetailsY + 13);
+      doc.setFont('helvetica', 'normal');
       doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
-      doc.text(invoice.state + ' (36)', invoiceDetailsX + 20, invoiceDetailsY);
+      doc.setFontSize(8);
+      doc.text(invoice.state + ' (36)', invoiceDetailsX + 2, invoiceDetailsY + 17);
 
       let y = margin + 45;
 
