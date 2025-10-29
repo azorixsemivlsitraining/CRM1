@@ -188,9 +188,14 @@ const ExpenseSheet: React.FC = () => {
 
   const handleAddClick = () => {
     setSelectedExpense(null);
+    const firstMainCode = ACCOUNTING_CATEGORIES[0].code;
+    const firstSubCode = ACCOUNTING_CATEGORIES[0].subcategories[0].code;
+    setMainCategoryCode(firstMainCode);
+    setSubCategoryCode(firstSubCode);
     setFormData({
       date: new Date().toISOString().split('T')[0],
-      category: EXPENSE_CATEGORIES[0],
+      category: getCategoryNameByCode(firstSubCode),
+      accounting_code: firstSubCode,
       vendor: '',
       description: '',
       amount: 0,
