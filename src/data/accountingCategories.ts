@@ -7,8 +7,16 @@ export interface AccountingCategory {
   code: string;
   name: string;
   description: string;
-  subcategories: AccountingSubcategory[];
+  subcategories: (AccountingSubcategory | AccountingCategoryGroup)[];
 }
+
+export interface AccountingCategoryGroup extends AccountingSubcategory {
+  sub: AccountingSubcategory[];
+}
+
+const isCategoryGroup = (item: AccountingSubcategory | AccountingCategoryGroup): item is AccountingCategoryGroup => {
+  return 'sub' in item;
+};
 
 export const ACCOUNTING_CATEGORIES: AccountingCategory[] = [
   {
@@ -113,9 +121,25 @@ export const ACCOUNTING_CATEGORIES: AccountingCategory[] = [
 
 export const getMainCategories = () => ACCOUNTING_CATEGORIES;
 
-export const getSubcategoriesByMainCode = (mainCode: string) => {
+export const getSubcategoriesByMainCode = (mainCode: string): (AccountingSubcategory | AccountingCategoryGroup)[] => {
   const main = ACCOUNTING_CATEGORIES.find((c) => c.code === mainCode);
   return main ? main.subcategories : [];
+};
+
+export const getAllLeafCategories = (): AccountingSubcategory[] => {
+  const leaves: AccountingSubcategory[] = [];
+
+  for (const main of ACCOUNTING_CATEGORIES) {
+    for (const sub of main.subcategories) {
+      if (isCategoryGroup(sub)) {
+        leaves.push(...sub.sub);
+      } else {
+        leaves.push(sub);
+      }
+    }
+  }
+
+  return leaves;
 };
 
 export const getCategoryNameByCode = (code: string): string => {
@@ -123,7 +147,26 @@ export const getCategoryNameByCode = (code: string): string => {
     if (main.code === code) return main.name;
     for (const sub of main.subcategories) {
       if (sub.code === code) return sub.name;
+      if (isCategoryGroup(sub)) {
+        for (const leaf of sub.sub) {
+          if (leaf.code === code) return leaf.name;
+        }
+      }
     }
   }
   return 'Unknown';
+};
+
+export const getMainCategoryByLeafCode = (code: string): string | null => {
+  for (const main of ACCOUNTING_CATEGORIES) {
+    for (const sub of main.subcategories) {
+      if (sub.code === code) return main.code;
+      if (isCategoryGroup(sub)) {
+        for (const leaf of sub.sub) {
+          if (leaf.code === code) return main.code;
+        }
+      }
+    }
+  }
+  return null;
 };
