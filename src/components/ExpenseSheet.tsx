@@ -193,6 +193,10 @@ const ExpenseSheet: React.FC = () => {
 
   const getLeafSubcategoriesByMainCode = (mainCode: string) => {
     const subs = getSubcategoriesByMainCode(mainCode);
+    if (subs.length === 0) {
+      const mainCategory = ACCOUNTING_CATEGORIES.find((c) => c.code === mainCode);
+      return mainCategory ? [{ code: mainCategory.code, name: mainCategory.name }] : [];
+    }
     const leaves: any[] = [];
     for (const sub of subs) {
       if ('sub' in sub && sub.sub) {
