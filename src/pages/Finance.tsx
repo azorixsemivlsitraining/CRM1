@@ -93,6 +93,7 @@ interface ExpenseRec {
   created_at?: string;
   date?: string;
   category?: string;
+  accounting_code?: string;
   vendor?: string;
   description?: string;
   amount: number;
