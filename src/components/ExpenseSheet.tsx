@@ -363,7 +363,7 @@ const ExpenseSheet: React.FC = () => {
         isClosable: true,
       });
 
-      fetchExpenses();
+      await fetchExpenses();
     } catch (err) {
       console.error('Error deleting expense:', err);
       toast({
