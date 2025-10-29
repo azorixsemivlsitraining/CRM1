@@ -501,14 +501,14 @@ const ExpenseSheet: React.FC = () => {
                 />
               </FormControl>
               <Select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                maxW="200px"
+                value={selectedMainCategory}
+                onChange={(e) => setSelectedMainCategory(e.target.value)}
+                maxW="280px"
               >
                 <option value="all">All Categories</option>
-                {EXPENSE_CATEGORIES.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
+                {ACCOUNTING_CATEGORIES.map((cat) => (
+                  <option key={cat.code} value={cat.code}>
+                    {cat.code} - {cat.name}
                   </option>
                 ))}
               </Select>
