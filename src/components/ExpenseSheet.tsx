@@ -664,14 +664,47 @@ const ExpenseSheet: React.FC = () => {
               </FormControl>
 
               <FormControl isRequired>
-                <FormLabel>Category</FormLabel>
+                <FormLabel>Main Category</FormLabel>
                 <Select
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  value={mainCategoryCode}
+                  onChange={(e) => {
+                    const newMainCode = e.target.value;
+                    setMainCategoryCode(newMainCode);
+                    const firstSub = getSubcategoriesByMainCode(newMainCode)[0];
+                    const newSubCode = firstSub?.code || '';
+                    setSubCategoryCode(newSubCode);
+                    setFormData({
+                      ...formData,
+                      category: getCategoryNameByCode(newSubCode),
+                      accounting_code: newSubCode,
+                    });
+                  }}
                 >
-                  {EXPENSE_CATEGORIES.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
+                  {ACCOUNTING_CATEGORIES.map((cat) => (
+                    <option key={cat.code} value={cat.code}>
+                      {cat.code} - {cat.name}
+                    </option>
+                  ))}
+                </Select>
+              </FormControl>
+
+              <FormControl isRequired>
+                <FormLabel>Subcategory</FormLabel>
+                <Select
+                  value={subCategoryCode}
+                  onChange={(e) => {
+                    const newSubCode = e.target.value;
+                    setSubCategoryCode(newSubCode);
+                    setFormData({
+                      ...formData,
+                      category: getCategoryNameByCode(newSubCode),
+                      accounting_code: newSubCode,
+                    });
+                  }}
+                >
+                  {getSubcategoriesByMainCode(mainCategoryCode).map((sub) => (
+                    <option key={sub.code} value={sub.code}>
+                      {sub.code} - {sub.name}
                     </option>
                   ))}
                 </Select>
