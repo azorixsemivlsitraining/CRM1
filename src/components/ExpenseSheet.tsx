@@ -39,11 +39,13 @@ import {
 } from '@chakra-ui/react';
 import { DeleteIcon, EditIcon } from '@chakra-ui/icons';
 import { supabase } from '../lib/supabase';
+import { ACCOUNTING_CATEGORIES, getSubcategoriesByMainCode, getCategoryNameByCode } from '../data/accountingCategories';
 
 interface Expense {
   id: string;
   date: string;
   category: string;
+  accounting_code?: string;
   vendor: string;
   description: string;
   amount: number;
@@ -53,20 +55,6 @@ interface Expense {
   created_at?: string;
   updated_at?: string;
 }
-
-const EXPENSE_CATEGORIES = [
-  'Travel & Transportation',
-  'Office Supplies',
-  'Meals & Entertainment',
-  'Utilities',
-  'Maintenance & Repairs',
-  'Software & Subscriptions',
-  'Marketing & Advertising',
-  'Professional Services',
-  'Equipment',
-  'Training & Development',
-  'Other',
-];
 
 const ExpenseSheet: React.FC = () => {
   const toast = useToast();
