@@ -932,43 +932,51 @@ const Finance: React.FC = () => {
       doc.setFontSize(8);
       doc.text(invoice.state + ' (36)', invoiceDetailsX + 2, invoiceDetailsY + 17);
 
-      let y = margin + 45;
+      let y = margin + 60;
+
+      // Bill To / Ship To section with background
+      doc.setFillColor(HEADER_BG.r, HEADER_BG.g, HEADER_BG.b);
+      doc.rect(margin, y - 5, pageWidth - margin * 2, 25, 'F');
 
       doc.setDrawColor(BORDER_COLOR.r, BORDER_COLOR.g, BORDER_COLOR.b);
-      doc.setLineWidth(0.5);
-      doc.line(margin, y - 3, pageWidth - margin, y - 3);
+      doc.setLineWidth(0.3);
+      doc.line(pageWidth / 2, y - 5, pageWidth / 2, y + 20);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(BRAND_GREEN.r, BRAND_GREEN.g, BRAND_GREEN.b);
+      doc.text('Bill To', margin + 3, y);
+      doc.text('Ship To', pageWidth / 2 + 3, y);
 
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(8);
       doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
-      doc.text('Bill To', margin + 2, y + 2);
-      doc.text('Ship To', pageWidth / 2 + 2, y + 2);
-
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
-      doc.text(invoice.customer_name, margin + 2, y + 7);
+      doc.text(invoice.customer_name, margin + 3, y + 5);
       doc.setFontSize(7);
       doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
-      const billLines = doc.splitTextToSize(invoice.place_of_supply, 50);
-      let billY = y + 11;
+      doc.setFont('helvetica', 'normal');
+      const billLines = doc.splitTextToSize(invoice.place_of_supply, 40);
+      let billY = y + 9;
       billLines.forEach((line: string) => {
-        doc.text(line, margin + 2, billY);
+        doc.text(line, margin + 3, billY);
         billY += 3;
       });
 
+      doc.setFont('helvetica', 'bold');
       doc.setFontSize(8);
       doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
-      doc.text(invoice.customer_name, pageWidth / 2 + 2, y + 7);
+      doc.text(invoice.customer_name, pageWidth / 2 + 3, y + 5);
       doc.setFontSize(7);
       doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
-      const shipLines = doc.splitTextToSize(invoice.place_of_supply, 50);
-      let shipY = y + 11;
+      doc.setFont('helvetica', 'normal');
+      const shipLines = doc.splitTextToSize(invoice.place_of_supply, 40);
+      let shipY = y + 9;
       shipLines.forEach((line: string) => {
-        doc.text(line, pageWidth / 2 + 2, shipY);
+        doc.text(line, pageWidth / 2 + 3, shipY);
         shipY += 3;
       });
 
-      y += 22;
+      y += 28;
 
       const tableTop = y;
       doc.setFillColor(220, 220, 220);
