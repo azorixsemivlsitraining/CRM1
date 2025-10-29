@@ -39,11 +39,13 @@ import {
 } from '@chakra-ui/react';
 import { DeleteIcon, EditIcon } from '@chakra-ui/icons';
 import { supabase } from '../lib/supabase';
+import { ACCOUNTING_CATEGORIES, getSubcategoriesByMainCode, getCategoryNameByCode, getMainCategoryByLeafCode, hasSubcategories } from '../data/accountingCategories';
 
 interface Expense {
   id: string;
   date: string;
   category: string;
+  accounting_code?: string;
   vendor: string;
   description: string;
   amount: number;
@@ -54,27 +56,13 @@ interface Expense {
   updated_at?: string;
 }
 
-const EXPENSE_CATEGORIES = [
-  'Travel & Transportation',
-  'Office Supplies',
-  'Meals & Entertainment',
-  'Utilities',
-  'Maintenance & Repairs',
-  'Software & Subscriptions',
-  'Marketing & Advertising',
-  'Professional Services',
-  'Equipment',
-  'Training & Development',
-  'Other',
-];
-
 const ExpenseSheet: React.FC = () => {
   const toast = useToast();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedMainCategory, setSelectedMainCategory] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
   const [sortBy, setSortBy] = useState<'date' | 'amount'>('date');
@@ -82,9 +70,31 @@ const ExpenseSheet: React.FC = () => {
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
 
+  const getInitialMainCode = () => {
+    const categoryWithSubs = ACCOUNTING_CATEGORIES.find((cat) => cat.subcategories.length > 0);
+    return categoryWithSubs?.code || '5000';
+  };
+
+  const getInitialSubCode = () => {
+    const mainCode = getInitialMainCode();
+    const subs = getSubcategoriesByMainCode(mainCode);
+    if (subs.length === 0) {
+      const mainCategory = ACCOUNTING_CATEGORIES.find((c) => c.code === mainCode);
+      return mainCategory?.code || '5000';
+    }
+    const firstSub = subs[0];
+    return 'sub' in firstSub ? firstSub.sub[0]?.code : firstSub.code;
+  };
+
+  const initialMainCode = getInitialMainCode();
+  const initialSubCode = getInitialSubCode();
+
+  const [mainCategoryCode, setMainCategoryCode] = useState<string>(initialMainCode);
+  const [subCategoryCode, setSubCategoryCode] = useState<string>(initialSubCode);
   const [formData, setFormData] = useState<{
     date: string;
     category: string;
+    accounting_code: string;
     vendor: string;
     description: string;
     amount: number;
@@ -92,7 +102,8 @@ const ExpenseSheet: React.FC = () => {
     status: 'pending' | 'approved' | 'rejected';
   }>({
     date: new Date().toISOString().split('T')[0],
-    category: EXPENSE_CATEGORIES[0],
+    category: getCategoryNameByCode(initialSubCode),
+    accounting_code: initialSubCode,
     vendor: '',
     description: '',
     amount: 0,
@@ -138,8 +149,12 @@ const ExpenseSheet: React.FC = () => {
       );
     }
 
-    if (selectedCategory !== 'all') {
-      filtered = filtered.filter((exp) => exp.category === selectedCategory);
+    if (selectedMainCategory !== 'all') {
+      filtered = filtered.filter((exp) => {
+        const code = exp.accounting_code || exp.category;
+        const mainCode = getMainCategoryByLeafCode(code);
+        return mainCode === selectedMainCategory;
+      });
     }
 
     if (selectedStatus !== 'all') {
@@ -154,7 +169,6 @@ const ExpenseSheet: React.FC = () => {
       filtered = filtered.filter((exp) => exp.date <= filterDateTo);
     }
 
-    // Sort
     filtered.sort((a, b) => {
       let aVal, bVal;
       if (sortBy === 'date') {
@@ -173,7 +187,7 @@ const ExpenseSheet: React.FC = () => {
     });
 
     return filtered;
-  }, [expenses, searchTerm, selectedCategory, selectedStatus, filterDateFrom, filterDateTo, sortBy, sortOrder]);
+  }, [expenses, searchTerm, selectedMainCategory, selectedStatus, filterDateFrom, filterDateTo, sortBy, sortOrder]);
 
   const expenseSummary = useMemo(() => {
     const total = filteredExpenses.reduce((sum, exp) => sum + (exp.amount || 0), 0);
@@ -186,19 +200,44 @@ const ExpenseSheet: React.FC = () => {
   const expensesByCategory = useMemo(() => {
     const categoryMap = new Map<string, number>();
     filteredExpenses.forEach((exp) => {
-      const current = categoryMap.get(exp.category) || 0;
-      categoryMap.set(exp.category, current + (exp.amount || 0));
+      const code = exp.accounting_code || exp.category;
+      const categoryName = getCategoryNameByCode(code);
+      const current = categoryMap.get(categoryName) || 0;
+      categoryMap.set(categoryName, current + (exp.amount || 0));
     });
     return Array.from(categoryMap.entries())
       .sort((a, b) => b[1] - a[1])
       .slice(0, 10);
   }, [filteredExpenses]);
 
+  const getLeafSubcategoriesByMainCode = (mainCode: string) => {
+    const subs = getSubcategoriesByMainCode(mainCode);
+    if (subs.length === 0) {
+      const mainCategory = ACCOUNTING_CATEGORIES.find((c) => c.code === mainCode);
+      return mainCategory ? [{ code: mainCategory.code, name: mainCategory.name }] : [];
+    }
+    const leaves: any[] = [];
+    for (const sub of subs) {
+      if ('sub' in sub && sub.sub) {
+        leaves.push(...sub.sub);
+      } else {
+        leaves.push(sub);
+      }
+    }
+    return leaves;
+  };
+
   const handleAddClick = () => {
     setSelectedExpense(null);
+    const firstMainCode = ACCOUNTING_CATEGORIES[0].code;
+    const firstLeaves = getLeafSubcategoriesByMainCode(firstMainCode);
+    const firstSubCode = firstLeaves[0]?.code || '';
+    setMainCategoryCode(firstMainCode);
+    setSubCategoryCode(firstSubCode);
     setFormData({
       date: new Date().toISOString().split('T')[0],
-      category: EXPENSE_CATEGORIES[0],
+      category: getCategoryNameByCode(firstSubCode),
+      accounting_code: firstSubCode,
       vendor: '',
       description: '',
       amount: 0,
@@ -210,9 +249,14 @@ const ExpenseSheet: React.FC = () => {
 
   const handleEditClick = (expense: Expense) => {
     setSelectedExpense(expense);
+    const accountingCode = expense.accounting_code || expense.category;
+    const mainCode = getMainCategoryByLeafCode(accountingCode) || ACCOUNTING_CATEGORIES[0].code;
+    setMainCategoryCode(mainCode);
+    setSubCategoryCode(accountingCode);
     setFormData({
       date: expense.date,
       category: expense.category,
+      accounting_code: accountingCode,
       vendor: expense.vendor,
       description: expense.description,
       amount: expense.amount,
@@ -236,12 +280,12 @@ const ExpenseSheet: React.FC = () => {
 
     try {
       if (selectedExpense) {
-        // Update
         const { error } = await supabase
           .from('expenses')
           .update({
             date: formData.date,
             category: formData.category,
+            accounting_code: formData.accounting_code,
             vendor: formData.vendor,
             description: formData.description,
             amount: formData.amount,
@@ -261,12 +305,12 @@ const ExpenseSheet: React.FC = () => {
           isClosable: true,
         });
       } else {
-        // Create
         const { error } = await supabase
           .from('expenses')
           .insert({
             date: formData.date,
             category: formData.category,
+            accounting_code: formData.accounting_code,
             vendor: formData.vendor,
             description: formData.description,
             amount: formData.amount,
@@ -319,7 +363,7 @@ const ExpenseSheet: React.FC = () => {
         isClosable: true,
       });
 
-      fetchExpenses();
+      await fetchExpenses();
     } catch (err) {
       console.error('Error deleting expense:', err);
       toast({
@@ -489,14 +533,14 @@ const ExpenseSheet: React.FC = () => {
                 />
               </FormControl>
               <Select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                maxW="200px"
+                value={selectedMainCategory}
+                onChange={(e) => setSelectedMainCategory(e.target.value)}
+                maxW="280px"
               >
                 <option value="all">All Categories</option>
-                {EXPENSE_CATEGORIES.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
+                {ACCOUNTING_CATEGORIES.map((cat) => (
+                  <option key={cat.code} value={cat.code}>
+                    {cat.code} - {cat.name}
                   </option>
                 ))}
               </Select>
@@ -561,6 +605,7 @@ const ExpenseSheet: React.FC = () => {
                 <Thead>
                   <Tr>
                     <Th>Date</Th>
+                    <Th>Code</Th>
                     <Th>Category</Th>
                     <Th>Vendor</Th>
                     <Th>Description</Th>
@@ -574,6 +619,7 @@ const ExpenseSheet: React.FC = () => {
                   {filteredExpenses.map((expense) => (
                     <Tr key={expense.id}>
                       <Td>{new Date(expense.date).toLocaleDateString()}</Td>
+                      <Td fontSize="sm" fontWeight="bold">{expense.accounting_code || 'N/A'}</Td>
                       <Td fontSize="sm">{expense.category}</Td>
                       <Td fontWeight="medium">{expense.vendor}</Td>
                       <Td fontSize="sm">{expense.description}</Td>
@@ -654,16 +700,51 @@ const ExpenseSheet: React.FC = () => {
               <FormControl isRequired>
                 <FormLabel>Category</FormLabel>
                 <Select
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  value={mainCategoryCode}
+                  onChange={(e) => {
+                    const newMainCode = e.target.value;
+                    setMainCategoryCode(newMainCode);
+                    const firstLeaves = getLeafSubcategoriesByMainCode(newMainCode);
+                    const newSubCode = firstLeaves[0]?.code || '';
+                    setSubCategoryCode(newSubCode);
+                    setFormData({
+                      ...formData,
+                      category: getCategoryNameByCode(newSubCode),
+                      accounting_code: newSubCode,
+                    });
+                  }}
                 >
-                  {EXPENSE_CATEGORIES.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
+                  {ACCOUNTING_CATEGORIES.map((cat) => (
+                    <option key={cat.code} value={cat.code}>
+                      {cat.code} - {cat.name}
                     </option>
                   ))}
                 </Select>
               </FormControl>
+
+              {hasSubcategories(mainCategoryCode) && (
+                <FormControl isRequired>
+                  <FormLabel>Subcategory</FormLabel>
+                  <Select
+                    value={subCategoryCode}
+                    onChange={(e) => {
+                      const newSubCode = e.target.value;
+                      setSubCategoryCode(newSubCode);
+                      setFormData({
+                        ...formData,
+                        category: getCategoryNameByCode(newSubCode),
+                        accounting_code: newSubCode,
+                      });
+                    }}
+                  >
+                    {getLeafSubcategoriesByMainCode(mainCategoryCode).map((sub) => (
+                      <option key={sub.code} value={sub.code}>
+                        {sub.code} - {sub.name}
+                      </option>
+                    ))}
+                  </Select>
+                </FormControl>
+              )}
 
               <FormControl isRequired>
                 <FormLabel>Vendor</FormLabel>
