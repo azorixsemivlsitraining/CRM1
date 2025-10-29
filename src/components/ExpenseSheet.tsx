@@ -240,12 +240,12 @@ const ExpenseSheet: React.FC = () => {
 
     try {
       if (selectedExpense) {
-        // Update
         const { error } = await supabase
           .from('expenses')
           .update({
             date: formData.date,
             category: formData.category,
+            accounting_code: formData.accounting_code,
             vendor: formData.vendor,
             description: formData.description,
             amount: formData.amount,
@@ -265,12 +265,12 @@ const ExpenseSheet: React.FC = () => {
           isClosable: true,
         });
       } else {
-        // Create
         const { error } = await supabase
           .from('expenses')
           .insert({
             date: formData.date,
             category: formData.category,
+            accounting_code: formData.accounting_code,
             vendor: formData.vendor,
             description: formData.description,
             amount: formData.amount,
