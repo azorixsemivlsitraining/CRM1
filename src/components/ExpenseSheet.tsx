@@ -133,11 +133,8 @@ const ExpenseSheet: React.FC = () => {
     if (selectedMainCategory !== 'all') {
       filtered = filtered.filter((exp) => {
         const code = exp.accounting_code || exp.category;
-        return ACCOUNTING_CATEGORIES.some(
-          (cat) =>
-            cat.code === selectedMainCategory &&
-            cat.subcategories.some((sub) => sub.code === code)
-        );
+        const mainCode = getMainCategoryByLeafCode(code);
+        return mainCode === selectedMainCategory;
       });
     }
 
