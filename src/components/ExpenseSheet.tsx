@@ -679,7 +679,7 @@ const ExpenseSheet: React.FC = () => {
               </FormControl>
 
               <FormControl isRequired>
-                <FormLabel>Main Category</FormLabel>
+                <FormLabel>Category</FormLabel>
                 <Select
                   value={mainCategoryCode}
                   onChange={(e) => {
@@ -703,27 +703,29 @@ const ExpenseSheet: React.FC = () => {
                 </Select>
               </FormControl>
 
-              <FormControl isRequired>
-                <FormLabel>Subcategory</FormLabel>
-                <Select
-                  value={subCategoryCode}
-                  onChange={(e) => {
-                    const newSubCode = e.target.value;
-                    setSubCategoryCode(newSubCode);
-                    setFormData({
-                      ...formData,
-                      category: getCategoryNameByCode(newSubCode),
-                      accounting_code: newSubCode,
-                    });
-                  }}
-                >
-                  {getLeafSubcategoriesByMainCode(mainCategoryCode).map((sub) => (
-                    <option key={sub.code} value={sub.code}>
-                      {sub.code} - {sub.name}
-                    </option>
-                  ))}
-                </Select>
-              </FormControl>
+              {hasSubcategories(mainCategoryCode) && (
+                <FormControl isRequired>
+                  <FormLabel>Subcategory</FormLabel>
+                  <Select
+                    value={subCategoryCode}
+                    onChange={(e) => {
+                      const newSubCode = e.target.value;
+                      setSubCategoryCode(newSubCode);
+                      setFormData({
+                        ...formData,
+                        category: getCategoryNameByCode(newSubCode),
+                        accounting_code: newSubCode,
+                      });
+                    }}
+                  >
+                    {getLeafSubcategoriesByMainCode(mainCategoryCode).map((sub) => (
+                      <option key={sub.code} value={sub.code}>
+                        {sub.code} - {sub.name}
+                      </option>
+                    ))}
+                  </Select>
+                </FormControl>
+              )}
 
               <FormControl isRequired>
                 <FormLabel>Vendor</FormLabel>
