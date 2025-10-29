@@ -70,9 +70,12 @@ const ExpenseSheet: React.FC = () => {
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
 
+  const [mainCategoryCode, setMainCategoryCode] = useState<string>(ACCOUNTING_CATEGORIES[0].code);
+  const [subCategoryCode, setSubCategoryCode] = useState<string>(ACCOUNTING_CATEGORIES[0].subcategories[0].code);
   const [formData, setFormData] = useState<{
     date: string;
     category: string;
+    accounting_code: string;
     vendor: string;
     description: string;
     amount: number;
@@ -80,7 +83,8 @@ const ExpenseSheet: React.FC = () => {
     status: 'pending' | 'approved' | 'rejected';
   }>({
     date: new Date().toISOString().split('T')[0],
-    category: EXPENSE_CATEGORIES[0],
+    category: getCategoryNameByCode(ACCOUNTING_CATEGORIES[0].subcategories[0].code),
+    accounting_code: ACCOUNTING_CATEGORIES[0].subcategories[0].code,
     vendor: '',
     description: '',
     amount: 0,
