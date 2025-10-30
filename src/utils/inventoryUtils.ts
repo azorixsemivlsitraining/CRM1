@@ -307,6 +307,51 @@ export const vehicleApi = {
   },
 };
 
+// Helper function to enrich shipment data with supplier and vehicle names
+export const enrichShipmentData = async (shipments: any[]) => {
+  try {
+    const supplierIds = [...new Set(shipments.map(s => s.supplier_id).filter(Boolean))];
+    const vehicleIds = [...new Set(shipments.map(s => s.vehicle_id).filter(Boolean))];
+
+    let suppliers: any = {};
+    let vehicles: any = {};
+
+    if (supplierIds.length > 0) {
+      const { data: suppData } = await supabase
+        .from('suppliers')
+        .select('id, supplier_name')
+        .in('id', supplierIds);
+      if (suppData) {
+        suppliers = suppData.reduce((acc: any, s: any) => {
+          acc[s.id] = s.supplier_name;
+          return acc;
+        }, {});
+      }
+    }
+
+    if (vehicleIds.length > 0) {
+      const { data: vehData } = await supabase
+        .from('vehicles')
+        .select('id, vehicle_number')
+        .in('id', vehicleIds);
+      if (vehData) {
+        vehicles = vehData.reduce((acc: any, v: any) => {
+          acc[v.id] = v.vehicle_number;
+          return acc;
+        }, {});
+      }
+    }
+
+    return shipments.map(s => ({
+      ...s,
+      supplier_name: suppliers[s.supplier_id] || 'N/A',
+      vehicle_number: vehicles[s.vehicle_id] || 'N/A',
+    }));
+  } catch (e) {
+    return shipments;
+  }
+};
+
 // REPORT OPERATIONS
 export const reportApi = {
   async getDailyShipmentReport(date: string) {
