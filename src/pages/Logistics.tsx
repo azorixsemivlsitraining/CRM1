@@ -41,12 +41,13 @@ import {
 } from '@chakra-ui/react';
 import { DeleteIcon, EditIcon, DownloadIcon } from '@chakra-ui/icons';
 import { supabase } from '../lib/supabase';
-import { 
-  inventoryApi, 
-  supplierApi, 
-  shipmentApi, 
-  vehicleApi, 
+import {
+  inventoryApi,
+  supplierApi,
+  shipmentApi,
+  vehicleApi,
   reportApi,
+  enrichShipmentData,
   InventoryItem,
   Supplier,
   Shipment,
