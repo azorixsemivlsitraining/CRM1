@@ -355,6 +355,8 @@ const ExpenseSheet: React.FC = () => {
 
       if (error) throw error;
 
+      setExpenses((prevExpenses) => prevExpenses.filter((expense) => expense.id !== id));
+
       toast({
         title: 'Success',
         description: 'Expense deleted successfully',
