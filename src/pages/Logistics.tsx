@@ -254,7 +254,8 @@ const Logistics: React.FC = () => {
     try {
       setShipmentLoading(true);
       const data = await shipmentApi.getAll();
-      setShipments(data);
+      const enrichedData = await enrichShipmentData(data);
+      setShipments(enrichedData);
     } catch (e: any) {
       toast({ title: 'Failed to load shipments', description: e?.message, status: 'error', duration: 4000, isClosable: true });
     } finally {
