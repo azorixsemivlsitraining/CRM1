@@ -204,7 +204,7 @@ export const shipmentApi = {
   async getAll() {
     const { data, error } = await supabase
       .from('shipments')
-      .select('*, vehicles(vehicle_number), suppliers(supplier_name)')
+      .select('*')
       .order('shipment_date', { ascending: false });
     if (error) throw error;
     return data as any[];
@@ -213,7 +213,7 @@ export const shipmentApi = {
   async getPending() {
     const { data, error } = await supabase
       .from('shipments')
-      .select('*, vehicles(vehicle_number), suppliers(supplier_name)')
+      .select('*')
       .in('status', ['Pending', 'Shipped', 'In Transit'])
       .order('shipment_date', { ascending: false });
     if (error) throw error;
@@ -223,7 +223,7 @@ export const shipmentApi = {
   async getByStatus(status: string) {
     const { data, error } = await supabase
       .from('shipments')
-      .select('*, vehicles(vehicle_number), suppliers(supplier_name)')
+      .select('*')
       .eq('status', status)
       .order('shipment_date', { ascending: false });
     if (error) throw error;
