@@ -61,6 +61,8 @@ interface ChitoorProject {
   project_status?: string;
   material_sent_date?: string;
   balamuragan_payment?: number;
+  lead_source?: string;
+  lead_finished_by?: string;
 }
 
 interface StatsCardProps {
@@ -130,6 +132,8 @@ const ChitoorProjects = () => {
     project_status: 'Pending',
     material_sent_date: '',
     balamuragan_payment: '',
+    lead_source: '',
+    lead_finished_by: '',
   });
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState({
@@ -315,6 +319,8 @@ const ChitoorProjects = () => {
         project_status: newProject.project_status || 'Pending',
         material_sent_date: newProject.material_sent_date || null,
         balamuragan_payment: newProject.balamuragan_payment ? parseFloat(newProject.balamuragan_payment) : null,
+        lead_source: newProject.lead_source || null,
+        lead_finished_by: newProject.lead_finished_by || null,
       };
 
       const { error } = await supabase
@@ -356,6 +362,8 @@ const ChitoorProjects = () => {
         project_status: 'Pending',
         material_sent_date: '',
         balamuragan_payment: '',
+        lead_source: '',
+        lead_finished_by: '',
       });
       setSelectedMandal('');
       setSelectedVillage('');
