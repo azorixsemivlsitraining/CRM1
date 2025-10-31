@@ -485,6 +485,7 @@ const ChitoorProjects = () => {
                       <Th fontWeight="semibold" color="gray.700">Customer Info</Th>
                       <Th fontWeight="semibold" color="gray.700">Financial</Th>
                       <Th fontWeight="semibold" color="gray.700">Timeline</Th>
+                      <Th fontWeight="semibold" color="gray.700">Lead Info</Th>
                       <Th fontWeight="semibold" color="gray.700">Status</Th>
                       <Th fontWeight="semibold" color="gray.700">Actions</Th>
                     </Tr>
@@ -571,6 +572,31 @@ const ChitoorProjects = () => {
                                   </Text>
                                 </HStack>
                               </Tooltip>
+                            )}
+                          </VStack>
+                        </Td>
+                        <Td>
+                          <VStack align="start" spacing={1}>
+                            {project.lead_source && (
+                              <HStack spacing={1}>
+                                <Text fontSize="xs" color="blue.500">🎯</Text>
+                                <Text fontSize="xs" color="blue.600" fontWeight="medium">
+                                  {project.lead_source}
+                                </Text>
+                              </HStack>
+                            )}
+                            {project.lead_finished_by && (
+                              <Tooltip label="Lead Finished By">
+                                <HStack spacing={1}>
+                                  <Text fontSize="xs" color="orange.400">⏱️</Text>
+                                  <Text fontSize="xs" color="orange.600">
+                                    {new Date(project.lead_finished_by).toLocaleDateString()}
+                                  </Text>
+                                </HStack>
+                              </Tooltip>
+                            )}
+                            {!project.lead_source && !project.lead_finished_by && (
+                              <Text fontSize="xs" color="gray.400">—</Text>
                             )}
                           </VStack>
                         </Td>
