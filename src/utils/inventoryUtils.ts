@@ -310,8 +310,8 @@ export const vehicleApi = {
 // Helper function to enrich shipment data with supplier and vehicle names
 export const enrichShipmentData = async (shipments: any[]) => {
   try {
-    const supplierIds = [...new Set(shipments.map(s => s.supplier_id).filter(Boolean))];
-    const vehicleIds = [...new Set(shipments.map(s => s.vehicle_id).filter(Boolean))];
+    const supplierIds = Array.from(new Set(shipments.map(s => s.supplier_id).filter(Boolean)));
+    const vehicleIds = Array.from(new Set(shipments.map(s => s.vehicle_id).filter(Boolean)));
 
     let suppliers: any = {};
     let vehicles: any = {};
@@ -384,7 +384,7 @@ export const reportApi = {
     if (error) throw error;
 
     const summary = (data || []).reduce((acc: any, shipment: any) => {
-      const week = new Date(shipment.shipment_date).toLocaleDateString('en-US', { week: 'long' });
+      const week = new Date(shipment.shipment_date).toLocaleDateString('en-US', { weekday: 'long' });
       if (!acc[week]) {
         acc[week] = { count: 0, shipped: 0, received: 0 };
       }
