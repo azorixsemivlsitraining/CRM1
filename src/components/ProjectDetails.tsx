@@ -95,6 +95,7 @@ interface Project {
   kwh: number;
   lead_source?: string;
   lead_finished_by?: string;
+  lead_finished_by_name?: string;
 }
 
 
@@ -164,6 +165,7 @@ const [paymentMode, setPaymentMode] = useState(() => {
     state: 'Telangana',
     lead_source: '',
     lead_finished_by: '',
+    lead_finished_by_name: '',
   });
 
   // Prefill project edit form when opening
@@ -181,6 +183,7 @@ const [paymentMode, setPaymentMode] = useState(() => {
         state: project.state || 'Telangana',
         lead_source: project.lead_source || '',
         lead_finished_by: project.lead_finished_by || '',
+        lead_finished_by_name: project.lead_finished_by_name || '',
       });
     }
     onProjectEditOpen();
@@ -249,7 +252,7 @@ const [paymentMode, setPaymentMode] = useState(() => {
     if (!project) return;
     try {
       setEditLoading(true);
-      const { name, status, project_type, proposal_amount, loan_amount, start_date, current_stage, kwh, state, lead_source, lead_finished_by } = projectEditForm;
+      const { name, status, project_type, proposal_amount, loan_amount, start_date, current_stage, kwh, state, lead_source, lead_finished_by, lead_finished_by_name } = projectEditForm;
       const { error } = await supabase
         .from('projects')
         .update({
@@ -264,6 +267,7 @@ const [paymentMode, setPaymentMode] = useState(() => {
           state: mapStateToFullName(state),
           lead_source: lead_source || null,
           lead_finished_by: lead_finished_by || null,
+          lead_finished_by_name: lead_finished_by_name || null,
         })
         .eq('id', project.id);
       if (error) throw error;
@@ -703,7 +707,12 @@ return (
             <Text><b>Start Date:</b> {project && project.start_date ? new Date(project.start_date).toLocaleDateString() : 'N/A'}</Text>
             <Text><b>Created At:</b> {project && project.created_at ? new Date(project.created_at).toLocaleDateString() : 'N/A'}</Text>
             {project?.lead_source && (<Text><b>Lead Source:</b> {project.lead_source}</Text>)}
-            {project?.lead_finished_by && (<Text><b>Lead Finished By:</b> {new Date(project.lead_finished_by).toLocaleDateString()}</Text>)}
+            {(project?.lead_finished_by || project?.lead_finished_by_name) && (
+              <>
+                {project?.lead_finished_by_name && (<Text><b>Lead Finished By Name:</b> {project.lead_finished_by_name}</Text>)}
+                {project?.lead_finished_by && (<Text><b>Lead Finished By Date:</b> {new Date(project.lead_finished_by).toLocaleDateString()}</Text>)}
+              </>
+            )}
           </VStack>
         </CardBody>
       </Card>
@@ -985,7 +994,11 @@ return (
               </Select>
             </FormControl>
             <FormControl>
-              <FormLabel>Lead Finished By</FormLabel>
+              <FormLabel>Lead Finished By Name</FormLabel>
+              <Input type="text" name="lead_finished_by_name" placeholder="Enter person's name" value={projectEditForm.lead_finished_by_name} onChange={handleProjectEditChange} />
+            </FormControl>
+            <FormControl>
+              <FormLabel>Lead Finished By Date</FormLabel>
               <Input type="date" name="lead_finished_by" value={projectEditForm.lead_finished_by} onChange={handleProjectEditChange} />
             </FormControl>
           </VStack>
