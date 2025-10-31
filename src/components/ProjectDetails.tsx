@@ -702,6 +702,8 @@ return (
             <Text><b>KWH:</b> {project ? project.kwh : ''}</Text>
             <Text><b>Start Date:</b> {project && project.start_date ? new Date(project.start_date).toLocaleDateString() : 'N/A'}</Text>
             <Text><b>Created At:</b> {project && project.created_at ? new Date(project.created_at).toLocaleDateString() : 'N/A'}</Text>
+            {project?.lead_source && (<Text><b>Lead Source:</b> {project.lead_source}</Text>)}
+            {project?.lead_finished_by && (<Text><b>Lead Finished By:</b> {new Date(project.lead_finished_by).toLocaleDateString()}</Text>)}
           </VStack>
         </CardBody>
       </Card>
