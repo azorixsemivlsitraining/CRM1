@@ -86,6 +86,7 @@ interface Project {
   kwh: number;
   lead_source?: string;
   lead_finished_by?: string;
+  lead_finished_by_name?: string;
 }
 
 // Define filter structure
@@ -158,6 +159,7 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
     kwh: '',
     lead_source: '',
     lead_finished_by: '',
+    lead_finished_by_name: '',
   });
   const [loading, setLoading] = useState(false);
   const [allProjects, setAllProjects] = useState<Project[]>([]);
@@ -438,6 +440,7 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
         kwh: parseFloat(newProject.kwh),
         lead_source: newProject.lead_source || null,
         lead_finished_by: newProject.lead_finished_by || null,
+        lead_finished_by_name: newProject.lead_finished_by_name || null,
       };
 
       const { error } = await supabase
@@ -481,6 +484,7 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
         kwh: '',
         lead_source: '',
         lead_finished_by: '',
+        lead_finished_by_name: '',
       });
       fetchProjects();
     } catch (error) {
@@ -1219,7 +1223,18 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
                 </FormControl>
 
                 <FormControl>
-                  <FormLabel fontSize="sm" fontWeight="medium">Lead Finished By</FormLabel>
+                  <FormLabel fontSize="sm" fontWeight="medium">Lead Finished By Name</FormLabel>
+                  <Input
+                    name="lead_finished_by_name"
+                    type="text"
+                    value={newProject.lead_finished_by_name}
+                    onChange={handleInputChange}
+                    placeholder="Enter person's name"
+                  />
+                </FormControl>
+
+                <FormControl>
+                  <FormLabel fontSize="sm" fontWeight="medium">Lead Finished By Date</FormLabel>
                   <Input
                     name="lead_finished_by"
                     type="date"
