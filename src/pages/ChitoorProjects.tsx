@@ -846,7 +846,7 @@ const ChitoorProjects = () => {
                 </FormControl>
 
                 <FormControl isRequired>
-                  <FormLabel fontSize="sm" fontWeight="medium">Project Cost (�����) <Text as="span" color="red.500">*</Text></FormLabel>
+                  <FormLabel fontSize="sm" fontWeight="medium">Project Cost (���) <Text as="span" color="red.500">*</Text></FormLabel>
                   <Select
                     name="project_cost"
                     value={newProject.project_cost}
@@ -950,7 +950,18 @@ const ChitoorProjects = () => {
                 </FormControl>
 
                 <FormControl>
-                  <FormLabel fontSize="sm" fontWeight="medium">Lead Finished By</FormLabel>
+                  <FormLabel fontSize="sm" fontWeight="medium">Lead Finished By Name</FormLabel>
+                  <Input
+                    name="lead_finished_by_name"
+                    type="text"
+                    value={newProject.lead_finished_by_name}
+                    onChange={handleInputChange}
+                    placeholder="Enter person's name"
+                  />
+                </FormControl>
+
+                <FormControl>
+                  <FormLabel fontSize="sm" fontWeight="medium">Lead Finished By Date</FormLabel>
                   <Input
                     name="lead_finished_by"
                     type="date"
