@@ -93,6 +93,8 @@ interface Project {
   start_date: string;
   payment_history: PaymentHistory[];
   kwh: number;
+  lead_source?: string;
+  lead_finished_by?: string;
 }
 
 
@@ -160,6 +162,8 @@ const [paymentMode, setPaymentMode] = useState(() => {
     current_stage: '',
     kwh: 0,
     state: 'Telangana',
+    lead_source: '',
+    lead_finished_by: '',
   });
 
   // Prefill project edit form when opening
@@ -175,6 +179,8 @@ const [paymentMode, setPaymentMode] = useState(() => {
         current_stage: project.current_stage || '',
         kwh: project.kwh || 0,
         state: project.state || 'Telangana',
+        lead_source: project.lead_source || '',
+        lead_finished_by: project.lead_finished_by || '',
       });
     }
     onProjectEditOpen();
@@ -233,7 +239,7 @@ const [paymentMode, setPaymentMode] = useState(() => {
     const { name, value } = e.target;
     setProjectEditForm(prev => ({
       ...prev,
-      [name]: name === 'proposal_amount' || name === 'loan_amount' || name === 'kwh'
+      [name]: (name === 'proposal_amount' || name === 'loan_amount' || name === 'kwh')
         ? (value === '' ? 0 : parseFloat(value) || 0)
         : value
     }));
@@ -243,7 +249,7 @@ const [paymentMode, setPaymentMode] = useState(() => {
     if (!project) return;
     try {
       setEditLoading(true);
-      const { name, status, project_type, proposal_amount, loan_amount, start_date, current_stage, kwh, state } = projectEditForm;
+      const { name, status, project_type, proposal_amount, loan_amount, start_date, current_stage, kwh, state, lead_source, lead_finished_by } = projectEditForm;
       const { error } = await supabase
         .from('projects')
         .update({
@@ -256,6 +262,8 @@ const [paymentMode, setPaymentMode] = useState(() => {
           current_stage,
           kwh,
           state: mapStateToFullName(state),
+          lead_source: lead_source || null,
+          lead_finished_by: lead_finished_by || null,
         })
         .eq('id', project.id);
       if (error) throw error;
