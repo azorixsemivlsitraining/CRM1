@@ -969,6 +969,23 @@ return (
               <FormLabel>KWH</FormLabel>
               <Input type="number" name="kwh" value={projectEditForm.kwh} onChange={handleProjectEditChange} />
             </FormControl>
+            <FormControl>
+              <FormLabel>Lead Source</FormLabel>
+              <Select name="lead_source" value={projectEditForm.lead_source} onChange={handleProjectEditChange}>
+                <option value="">Select lead source</option>
+                <option value="Online">Online</option>
+                <option value="Referral">Referral</option>
+                <option value="Advertisement">Advertisement</option>
+                <option value="Direct">Direct</option>
+                <option value="Social Media">Social Media</option>
+                <option value="Event">Event</option>
+                <option value="Other">Other</option>
+              </Select>
+            </FormControl>
+            <FormControl>
+              <FormLabel>Lead Finished By</FormLabel>
+              <Input type="date" name="lead_finished_by" value={projectEditForm.lead_finished_by} onChange={handleProjectEditChange} />
+            </FormControl>
           </VStack>
         </ModalBody>
         <ModalFooter>
