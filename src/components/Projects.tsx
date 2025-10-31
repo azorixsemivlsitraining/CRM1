@@ -84,6 +84,9 @@ interface Project {
   current_stage: string;
   start_date: string;
   kwh: number;
+  lead_source?: string;
+  lead_finished_by?: string;
+  lead_finished_by_name?: string;
 }
 
 // Define filter structure
@@ -154,6 +157,9 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
     loan_amount: '',
     start_date: '',
     kwh: '',
+    lead_source: '',
+    lead_finished_by: '',
+    lead_finished_by_name: '',
   });
   const [loading, setLoading] = useState(false);
   const [allProjects, setAllProjects] = useState<Project[]>([]);
@@ -432,6 +438,9 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
         current_stage: 'Advance payment done',
         start_date: startDate,
         kwh: parseFloat(newProject.kwh),
+        lead_source: newProject.lead_source || null,
+        lead_finished_by: newProject.lead_finished_by || null,
+        lead_finished_by_name: newProject.lead_finished_by_name || null,
       };
 
       const { error } = await supabase
@@ -473,6 +482,9 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
         loan_amount: '',
         start_date: '',
         kwh: '',
+        lead_source: '',
+        lead_finished_by: '',
+        lead_finished_by_name: '',
       });
       fetchProjects();
     } catch (error) {
@@ -726,6 +738,7 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
                       <Th fontWeight="semibold" color="gray.700">Customer Info</Th>
                       <Th fontWeight="semibold" color="gray.700">Financial</Th>
                       <Th fontWeight="semibold" color="gray.700">Timeline</Th>
+                      <Th fontWeight="semibold" color="gray.700">Lead Info</Th>
                       <Th fontWeight="semibold" color="gray.700">Status</Th>
                       <Th fontWeight="semibold" color="gray.700">Actions</Th>
                     </Tr>
@@ -812,10 +825,44 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
                           </VStack>
                         </Td>
                         <Td>
-                          <Badge 
-                            colorScheme={getStatusColor(project.status)} 
-                            px={3} 
-                            py={1} 
+                          <VStack align="start" spacing={1}>
+                            {project.lead_source && (
+                              <HStack spacing={1}>
+                                <Text fontSize="xs" color="purple.500">🎯</Text>
+                                <Text fontSize="xs" color="purple.600" fontWeight="medium">
+                                  {project.lead_source}
+                                </Text>
+                              </HStack>
+                            )}
+                            {(project.lead_finished_by || project.lead_finished_by_name) && (
+                              <Tooltip label="Lead Finished By">
+                                <VStack align="start" spacing={0}>
+                                  {project.lead_finished_by_name && (
+                                    <Text fontSize="xs" color="purple.600" fontWeight="medium">
+                                      👤 {project.lead_finished_by_name}
+                                    </Text>
+                                  )}
+                                  {project.lead_finished_by && (
+                                    <HStack spacing={1}>
+                                      <Text fontSize="xs" color="orange.400">⏱️</Text>
+                                      <Text fontSize="xs" color="orange.600">
+                                        {new Date(project.lead_finished_by).toLocaleDateString()}
+                                      </Text>
+                                    </HStack>
+                                  )}
+                                </VStack>
+                              </Tooltip>
+                            )}
+                            {!project.lead_source && !project.lead_finished_by && !project.lead_finished_by_name && (
+                              <Text fontSize="xs" color="gray.400">—</Text>
+                            )}
+                          </VStack>
+                        </Td>
+                        <Td>
+                          <Badge
+                            colorScheme={getStatusColor(project.status)}
+                            px={3}
+                            py={1}
                             borderRadius="full"
                             fontSize="xs"
                           >
@@ -867,7 +914,7 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
               </TableContainer>
             ) : (
               <Flex direction="column" align="center" py={16}>
-                <Text fontSize="6xl" color="gray.300" mb={4}>📊</Text>
+                <Text fontSize="6xl" color="gray.300" mb={4}>��</Text>
                 <Text color="gray.500" fontSize="lg" fontWeight="medium" mb={2}>
                   {searchTerm || activeFilters.length > 0 ? 'No projects match your filters' : 'No projects found'}
                 </Text>
@@ -1163,6 +1210,45 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
                     value={newProject.kwh}
                     onChange={handleInputChange}
                     placeholder="0"
+                  />
+                </FormControl>
+
+                <FormControl>
+                  <FormLabel fontSize="sm" fontWeight="medium">Lead Source</FormLabel>
+                  <Select
+                    name="lead_source"
+                    value={newProject.lead_source}
+                    onChange={handleInputChange}
+                    placeholder="Select lead source"
+                  >
+                    <option value="Online">Online</option>
+                    <option value="Referral">Referral</option>
+                    <option value="Advertisement">Advertisement</option>
+                    <option value="Direct">Direct</option>
+                    <option value="Social Media">Social Media</option>
+                    <option value="Event">Event</option>
+                    <option value="Other">Other</option>
+                  </Select>
+                </FormControl>
+
+                <FormControl>
+                  <FormLabel fontSize="sm" fontWeight="medium">Lead Finished By Name</FormLabel>
+                  <Input
+                    name="lead_finished_by_name"
+                    type="text"
+                    value={newProject.lead_finished_by_name}
+                    onChange={handleInputChange}
+                    placeholder="Enter person's name"
+                  />
+                </FormControl>
+
+                <FormControl>
+                  <FormLabel fontSize="sm" fontWeight="medium">Lead Finished By Date</FormLabel>
+                  <Input
+                    name="lead_finished_by"
+                    type="date"
+                    value={newProject.lead_finished_by}
+                    onChange={handleInputChange}
                   />
                 </FormControl>
               </SimpleGrid>
