@@ -84,6 +84,8 @@ interface Project {
   current_stage: string;
   start_date: string;
   kwh: number;
+  lead_source?: string;
+  lead_finished_by?: string;
 }
 
 // Define filter structure
@@ -154,6 +156,8 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
     loan_amount: '',
     start_date: '',
     kwh: '',
+    lead_source: '',
+    lead_finished_by: '',
   });
   const [loading, setLoading] = useState(false);
   const [allProjects, setAllProjects] = useState<Project[]>([]);
@@ -432,6 +436,8 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
         current_stage: 'Advance payment done',
         start_date: startDate,
         kwh: parseFloat(newProject.kwh),
+        lead_source: newProject.lead_source || null,
+        lead_finished_by: newProject.lead_finished_by || null,
       };
 
       const { error } = await supabase
@@ -473,6 +479,8 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
         loan_amount: '',
         start_date: '',
         kwh: '',
+        lead_source: '',
+        lead_finished_by: '',
       });
       fetchProjects();
     } catch (error) {
