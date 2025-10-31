@@ -589,17 +589,26 @@ const ChitoorProjects = () => {
                                 </Text>
                               </HStack>
                             )}
-                            {project.lead_finished_by && (
+                            {(project.lead_finished_by || project.lead_finished_by_name) && (
                               <Tooltip label="Lead Finished By">
-                                <HStack spacing={1}>
-                                  <Text fontSize="xs" color="orange.400">⏱️</Text>
-                                  <Text fontSize="xs" color="orange.600">
-                                    {new Date(project.lead_finished_by).toLocaleDateString()}
-                                  </Text>
-                                </HStack>
+                                <VStack align="start" spacing={0}>
+                                  {project.lead_finished_by_name && (
+                                    <Text fontSize="xs" color="purple.600" fontWeight="medium">
+                                      👤 {project.lead_finished_by_name}
+                                    </Text>
+                                  )}
+                                  {project.lead_finished_by && (
+                                    <HStack spacing={1}>
+                                      <Text fontSize="xs" color="orange.400">⏱️</Text>
+                                      <Text fontSize="xs" color="orange.600">
+                                        {new Date(project.lead_finished_by).toLocaleDateString()}
+                                      </Text>
+                                    </HStack>
+                                  )}
+                                </VStack>
                               </Tooltip>
                             )}
-                            {!project.lead_source && !project.lead_finished_by && (
+                            {!project.lead_source && !project.lead_finished_by && !project.lead_finished_by_name && (
                               <Text fontSize="xs" color="gray.400">—</Text>
                             )}
                           </VStack>
