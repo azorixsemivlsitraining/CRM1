@@ -62,6 +62,8 @@ interface ChitoorProject {
   created_at?: string;
   edited_by?: string | null;
   edited_at?: string | null;
+  lead_source?: string;
+  lead_finished_by?: string;
 }
 
 interface PaymentHistory {
@@ -104,6 +106,8 @@ const ChitoorProjectDetails = () => {
     subsidy_scope: '',
     material_sent_date: '',
     project_status: '' as string | undefined,
+    lead_source: '',
+    lead_finished_by: '',
   });
 
   const location = useLocation();
@@ -234,6 +238,8 @@ const ChitoorProjectDetails = () => {
           subsidy_scope: projectData.subsidy_scope || '',
           material_sent_date: projectData.material_sent_date ? new Date(projectData.material_sent_date).toISOString().split('T')[0] : '',
           project_status: projectData.project_status || 'Pending',
+          lead_source: projectData.lead_source || '',
+          lead_finished_by: projectData.lead_finished_by ? new Date(projectData.lead_finished_by).toISOString().split('T')[0] : '',
         });
 
         // Fetch associated images for this project
@@ -1187,6 +1193,32 @@ const ChitoorProjectDetails = () => {
                   ))}
                 </Select>
               </FormControl>
+
+              <FormControl>
+                <FormLabel>Lead Source</FormLabel>
+                <Select
+                  value={projectFormData.lead_source}
+                  onChange={(e) => setProjectFormData(prev => ({ ...prev, lead_source: e.target.value }))}
+                >
+                  <option value="">Select lead source</option>
+                  <option value="Online">Online</option>
+                  <option value="Referral">Referral</option>
+                  <option value="Advertisement">Advertisement</option>
+                  <option value="Direct">Direct</option>
+                  <option value="Social Media">Social Media</option>
+                  <option value="Event">Event</option>
+                  <option value="Other">Other</option>
+                </Select>
+              </FormControl>
+
+              <FormControl>
+                <FormLabel>Lead Finished By</FormLabel>
+                <Input
+                  type="date"
+                  value={projectFormData.lead_finished_by}
+                  onChange={(e) => setProjectFormData(prev => ({ ...prev, lead_finished_by: e.target.value }))}
+                />
+              </FormControl>
             </VStack>
           </ModalBody>
           <ModalFooter>
@@ -1201,6 +1233,8 @@ const ChitoorProjectDetails = () => {
                     project_cost: projectFormData.project_cost,
                     subsidy_scope: projectFormData.subsidy_scope || null,
                     project_status: projectFormData.project_status || null,
+                    lead_source: projectFormData.lead_source || null,
+                    lead_finished_by: projectFormData.lead_finished_by || null,
                   };
                   if (projectFormData.material_sent_date) {
                     updates.material_sent_date = new Date(projectFormData.material_sent_date).toISOString();
