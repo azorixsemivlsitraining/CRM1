@@ -900,6 +900,34 @@ const ChitoorProjects = () => {
                     placeholder="0"
                   />
                 </FormControl>
+
+                <FormControl>
+                  <FormLabel fontSize="sm" fontWeight="medium">Lead Source</FormLabel>
+                  <Select
+                    name="lead_source"
+                    value={newProject.lead_source}
+                    onChange={handleInputChange}
+                    placeholder="Select lead source"
+                  >
+                    <option value="Online">Online</option>
+                    <option value="Referral">Referral</option>
+                    <option value="Advertisement">Advertisement</option>
+                    <option value="Direct">Direct</option>
+                    <option value="Social Media">Social Media</option>
+                    <option value="Event">Event</option>
+                    <option value="Other">Other</option>
+                  </Select>
+                </FormControl>
+
+                <FormControl>
+                  <FormLabel fontSize="sm" fontWeight="medium">Lead Finished By</FormLabel>
+                  <Input
+                    name="lead_finished_by"
+                    type="date"
+                    value={newProject.lead_finished_by}
+                    onChange={handleInputChange}
+                  />
+                </FormControl>
               </SimpleGrid>
 
               <Divider />
