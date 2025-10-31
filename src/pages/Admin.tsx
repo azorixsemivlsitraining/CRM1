@@ -132,7 +132,7 @@ const AdminDashboard = () => {
   const handleCreateUser = async () => {
     try {
       if (!newUser.email || !newUser.password) {
-        toast({ title: 'Missing details', description: 'Email and password are required', status: 'warning', duration: 4000, isClosable: true });
+        toast({ title: 'Missing details', description: 'Email , password are required', status: 'warning', duration: 4000, isClosable: true });
         return;
       }
       setLoading(true);
