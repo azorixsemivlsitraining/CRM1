@@ -64,6 +64,7 @@ interface ChitoorProject {
   edited_at?: string | null;
   lead_source?: string;
   lead_finished_by?: string;
+  lead_finished_by_name?: string;
 }
 
 interface PaymentHistory {
@@ -108,6 +109,7 @@ const ChitoorProjectDetails = () => {
     project_status: '' as string | undefined,
     lead_source: '',
     lead_finished_by: '',
+    lead_finished_by_name: '',
   });
 
   const location = useLocation();
@@ -240,6 +242,7 @@ const ChitoorProjectDetails = () => {
           project_status: projectData.project_status || 'Pending',
           lead_source: projectData.lead_source || '',
           lead_finished_by: projectData.lead_finished_by ? new Date(projectData.lead_finished_by).toISOString().split('T')[0] : '',
+          lead_finished_by_name: projectData.lead_finished_by_name || '',
         });
 
         // Fetch associated images for this project
@@ -1212,7 +1215,17 @@ const ChitoorProjectDetails = () => {
               </FormControl>
 
               <FormControl>
-                <FormLabel>Lead Finished By</FormLabel>
+                <FormLabel>Lead Finished By Name</FormLabel>
+                <Input
+                  type="text"
+                  placeholder="Enter person's name"
+                  value={projectFormData.lead_finished_by_name}
+                  onChange={(e) => setProjectFormData(prev => ({ ...prev, lead_finished_by_name: e.target.value }))}
+                />
+              </FormControl>
+
+              <FormControl>
+                <FormLabel>Lead Finished By Date</FormLabel>
                 <Input
                   type="date"
                   value={projectFormData.lead_finished_by}
@@ -1235,6 +1248,7 @@ const ChitoorProjectDetails = () => {
                     project_status: projectFormData.project_status || null,
                     lead_source: projectFormData.lead_source || null,
                     lead_finished_by: projectFormData.lead_finished_by || null,
+                    lead_finished_by_name: projectFormData.lead_finished_by_name || null,
                   };
                   if (projectFormData.material_sent_date) {
                     updates.material_sent_date = new Date(projectFormData.material_sent_date).toISOString();
