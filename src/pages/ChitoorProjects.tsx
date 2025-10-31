@@ -63,6 +63,7 @@ interface ChitoorProject {
   balamuragan_payment?: number;
   lead_source?: string;
   lead_finished_by?: string;
+  lead_finished_by_name?: string;
 }
 
 interface StatsCardProps {
@@ -134,6 +135,7 @@ const ChitoorProjects = () => {
     balamuragan_payment: '',
     lead_source: '',
     lead_finished_by: '',
+    lead_finished_by_name: '',
   });
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState({
@@ -321,6 +323,7 @@ const ChitoorProjects = () => {
         balamuragan_payment: newProject.balamuragan_payment ? parseFloat(newProject.balamuragan_payment) : null,
         lead_source: newProject.lead_source || null,
         lead_finished_by: newProject.lead_finished_by || null,
+        lead_finished_by_name: newProject.lead_finished_by_name || null,
       };
 
       const { error } = await supabase
@@ -364,6 +367,7 @@ const ChitoorProjects = () => {
         balamuragan_payment: '',
         lead_source: '',
         lead_finished_by: '',
+        lead_finished_by_name: '',
       });
       setSelectedMandal('');
       setSelectedVillage('');
@@ -842,7 +846,7 @@ const ChitoorProjects = () => {
                 </FormControl>
 
                 <FormControl isRequired>
-                  <FormLabel fontSize="sm" fontWeight="medium">Project Cost (���) <Text as="span" color="red.500">*</Text></FormLabel>
+                  <FormLabel fontSize="sm" fontWeight="medium">Project Cost (�����) <Text as="span" color="red.500">*</Text></FormLabel>
                   <Select
                     name="project_cost"
                     value={newProject.project_cost}
