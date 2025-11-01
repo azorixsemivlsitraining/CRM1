@@ -24,6 +24,7 @@ import {
   Divider,
 } from '@chakra-ui/react';
 import ChitoorProjectsTile from '../components/ChitoorProjectsTile';
+import SalesTile from '../components/SalesTile';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
