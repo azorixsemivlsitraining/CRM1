@@ -40,6 +40,7 @@ const tiles: Tile[] = [
   { label: 'Projects', description: 'Track and manage all projects', icon: '📈', to: '/projects' },
   { label: 'Chitoor Projects', description: 'Dedicated dashboard for Chitoor initiatives', icon: '🏗️', to: '/projects/chitoor' },
   { label: 'Reports', description: 'Insights and analytics', icon: '📑', to: '/reports' },
+  { label: 'Sales', description: 'Manage leads and sales pipeline', icon: '💼', to: '/sales' },
   { label: 'Service Tickets', description: 'Track and resolve issues', icon: '🎫', to: '/service-tickets' },
   { label: 'Finance', description: 'Billing, payments and receipts', icon: '💰', to: '/finance' },
   { label: 'HR', description: 'User access and team management', icon: '👥', to: '/hr' },
