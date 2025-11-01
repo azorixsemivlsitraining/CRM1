@@ -59,7 +59,7 @@ const Welcome: React.FC = () => {
 
   const operationsModules: Tile[] = [
     { label: 'Stock Warehouse', description: 'Inventory and stock management', icon: '🏭', to: '/stock' },
-    { label: 'Procurement', description: 'Purchase orders and suppliers', icon: '🧾', to: '/procurement' },
+    { label: 'Procurement', description: 'Purchase orders and suppliers', icon: '����', to: '/procurement' },
     { label: 'Logistics', description: 'Dispatches and deliveries', icon: '🚚', to: '/logistics' },
     { label: 'Modules & Inventory', description: 'Module listings and intake', icon: '📦', to: '/logistics/modules' },
   ];
@@ -76,6 +76,20 @@ const Welcome: React.FC = () => {
           accentColor="green.600"
           onNavigateToFull={() => handleOpenPath('/projects/chitoor')}
           canApprove={Boolean(isAdmin)}
+        />
+      );
+    }
+
+    if (tile.label === 'Sales') {
+      return (
+        <SalesTile
+          key={tile.label}
+          isMobile={isMobileVariant}
+          cardBg={cardBg}
+          borderColor={borderColor}
+          titleColor={titleColor}
+          accentColor="green.600"
+          onNavigateToFull={() => handleOpenPath('/sales')}
         />
       );
     }
