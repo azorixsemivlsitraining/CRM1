@@ -1,28 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
-let supabaseUrl = process.env.REACT_APP_SUPABASE_URL || '';
-let supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY || '';
-let configLoadPromise: Promise<void> | null = null;
-
-// Load configuration from runtime config file
-async function loadConfig() {
-  try {
-    const response = await fetch('/config.json');
-    if (response.ok) {
-      const config = await response.json();
-      if (config.supabase?.url) supabaseUrl = config.supabase.url;
-      if (config.supabase?.anonKey) supabaseAnonKey = config.supabase.anonKey;
-      console.log('Supabase config loaded from runtime config');
-    }
-  } catch (error) {
-    console.warn('Failed to load runtime config, will use environment variables:', error);
-  }
-}
-
-// Start loading config immediately
-if (!configLoadPromise) {
-  configLoadPromise = loadConfig();
-}
+const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY || '';
 
 const createUnconfiguredSupabase = () => {
   const error = new Error(
@@ -80,31 +59,8 @@ const createUnconfiguredSupabase = () => {
   return mock;
 };
 
-let supabaseClient: any = null;
+export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 
-const getSupabaseClient = (): any => {
-  if (!supabaseClient) {
-    if (supabaseUrl && supabaseAnonKey) {
-      supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
-    } else {
-      supabaseClient = createUnconfiguredSupabase();
-    }
-  }
-  return supabaseClient;
-};
-
-export const isSupabaseConfigured = () => Boolean(supabaseUrl && supabaseAnonKey);
-
-// Create a proxy that lazily initializes the client
-export const supabase = new Proxy({} as any, {
-  get: (_, prop: string | symbol) => {
-    const client = getSupabaseClient();
-    const value = client[prop];
-    if (typeof value === 'function') {
-      return value.bind(client);
-    }
-    return value;
-  },
-}) as unknown as ReturnType<typeof createClient>;
-
-export { loadConfig };
+export const supabase = isSupabaseConfigured
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : createUnconfiguredSupabase();
