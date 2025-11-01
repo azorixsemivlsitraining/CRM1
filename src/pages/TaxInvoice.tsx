@@ -42,6 +42,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogOverlay,
+  Image,
 } from '@chakra-ui/react';
 import { DeleteIcon, EditIcon, DownloadIcon } from '@chakra-ui/icons';
 import jsPDF from 'jspdf';
@@ -633,6 +634,8 @@ const TaxInvoice: React.FC = () => {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure();
+  const { isOpen: isPreviewOpen, onOpen: onPreviewOpen, onClose: onPreviewClose } = useDisclosure();
+  const [previewInvoice, setPreviewInvoice] = useState<TaxInvoiceData | null>(null);
   const cancelRef = React.useRef<HTMLButtonElement>(null);
   const { isFinance, isAdmin } = useAuth();
   const toast = useToast();
@@ -1039,6 +1042,9 @@ const TaxInvoice: React.FC = () => {
                             variant="outline"
                             onClick={() => handleDownloadPDF(invoice)}
                           />
+                          <Button size="sm" colorScheme="green" variant="outline" onClick={() => { setPreviewInvoice(invoice); onPreviewOpen(); }}>
+                            Preview
+                          </Button>
                           <IconButton
                             aria-label="Edit"
                             icon={<EditIcon />}
@@ -1075,6 +1081,172 @@ const TaxInvoice: React.FC = () => {
           </TableContainer>
         </CardBody>
       </Card>
+
+      {/* Preview Modal */}
+      <Modal isOpen={isPreviewOpen} onClose={onPreviewClose} size="6xl">
+        <ModalOverlay />
+        <ModalContent maxH="90vh" overflowY="auto">
+          <ModalHeader>Invoice Preview</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            {previewInvoice && (
+              <Box bg="white" border="1px solid" borderColor="gray.200" borderRadius="md" p={6}>
+                <Flex justify="space-between" align="flex-start" mb={4}>
+                  <HStack align="flex-start" spacing={4}>
+                    <Image src={LOGO_URL} alt="Logo" boxSize="60px" objectFit="contain" />
+                    <Box>
+                      <Heading size="sm" color="green.600">{COMPANY_INFO.name}</Heading>
+                      <Text fontSize="sm">GSTIN {COMPANY_INFO.gstin}</Text>
+                      <Text fontSize="sm">{COMPANY_INFO.email}</Text>
+                      <Text fontSize="sm">{COMPANY_INFO.website}</Text>
+                    </Box>
+                  </HStack>
+                  <Heading size="md" color="green.600">TAX INVOICE</Heading>
+                </Flex>
+
+                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={3} mb={4}>
+                  <Box border="1px solid" borderColor="gray.300" borderRadius="md">
+                    <Flex bg="green.600" color="white" px={3} py={2} borderTopRadius="md"><Text fontWeight="semibold">Bill To</Text></Flex>
+                    <Box p={3}>
+                      <Text fontWeight="semibold">{previewInvoice.bill_to_name || '—'}</Text>
+                      <Text fontSize="sm" whiteSpace="pre-wrap">{previewInvoice.bill_to_address || '—'}</Text>
+                    </Box>
+                  </Box>
+                  <Box border="1px solid" borderColor="gray.300" borderRadius="md">
+                    <Flex bg="green.600" color="white" px={3} py={2} borderTopRadius="md"><Text fontWeight="semibold">Ship To</Text></Flex>
+                    <Box p={3}>
+                      <Text fontWeight="semibold">{previewInvoice.ship_to_name || '—'}</Text>
+                      <Text fontSize="sm" whiteSpace="pre-wrap">{previewInvoice.ship_to_address || '—'}</Text>
+                    </Box>
+                  </Box>
+                </SimpleGrid>
+
+                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={3} mb={4}>
+                  <Box>
+                    <Table size="sm" variant="simple">
+                      <Tbody>
+                        <Tr><Td width="50%">#</Td><Td fontWeight="bold">{previewInvoice.gst_number}</Td></Tr>
+                        <Tr><Td>Place Of Supply</Td><Td fontWeight="bold">{previewInvoice.place_of_supply}</Td></Tr>
+                      </Tbody>
+                    </Table>
+                  </Box>
+                  <Box>
+                    <Table size="sm" variant="simple">
+                      <Tbody>
+                        <Tr><Td width="50%">#</Td><Td fontWeight="bold">{previewInvoice.invoice_number}</Td></Tr>
+                        <Tr><Td>Invoice Date</Td><Td fontWeight="bold">{new Date(previewInvoice.invoice_date).toLocaleDateString('en-GB')}</Td></Tr>
+                        <Tr><Td>Terms</Td><Td fontWeight="bold">PIA</Td></Tr>
+                        <Tr><Td>Due Date</Td><Td fontWeight="bold">{new Date(previewInvoice.invoice_date).toLocaleDateString('en-GB')}</Td></Tr>
+                      </Tbody>
+                    </Table>
+                  </Box>
+                </SimpleGrid>
+
+                <TableContainer border="1px solid" borderColor="gray.300" borderRadius="md" mb={4}>
+                  <Table size="sm">
+                    <Thead bg="green.600">
+                      <Tr>
+                        <Th color="white">#</Th>
+                        <Th color="white">Item & Description</Th>
+                        <Th color="white">HSN/SAC</Th>
+                        <Th color="white">Qty</Th>
+                        <Th color="white" isNumeric>Rate</Th>
+                        <Th color="white" isNumeric>CGST</Th>
+                        <Th color="white" isNumeric>SGST</Th>
+                        <Th color="white" isNumeric>Amount</Th>
+                      </Tr>
+                    </Thead>
+                    <Tbody>
+                      {previewInvoice.items.map((it, idx) => {
+                        const base = it.quantity * it.rate;
+                        const cgst = base * (it.cgst_rate/100);
+                        const sgst = base * (it.sgst_rate/100);
+                        const amt = base + cgst + sgst;
+                        return (
+                          <Tr key={it.id}>
+                            <Td>{idx+1}</Td>
+                            <Td>
+                              <Text>Renewable Energy Devices and its Spare Parts Design, Engineering, Supply</Text>
+                              {it.subItems && it.subItems.length > 0 && (
+                                <VStack align="start" spacing={1} mt={2}>
+                                  {it.subItems.map(sub => (
+                                    <Text key={sub.id} fontSize="xs">• {sub.description}</Text>
+                                  ))}
+                                </VStack>
+                              )}
+                            </Td>
+                            <Td>{it.hsn_code}</Td>
+                            <Td>{it.quantity}</Td>
+                            <Td isNumeric>{base.toFixed(2)}</Td>
+                            <Td isNumeric>{`${it.cgst_rate}% ${cgst.toFixed(2)}`}</Td>
+                            <Td isNumeric>{`${it.sgst_rate}% ${sgst.toFixed(2)}`}</Td>
+                            <Td isNumeric>{amt.toFixed(2)}</Td>
+                          </Tr>
+                        );
+                      })}
+                    </Tbody>
+                  </Table>
+                </TableContainer>
+
+                {(() => {
+                  const totals = previewInvoice.items.reduce((acc, it) => {
+                    const base = it.quantity * it.rate;
+                    const cgst = base * (it.cgst_rate/100);
+                    const sgst = base * (it.sgst_rate/100);
+                    acc.subtotal += base; acc.cgst += cgst; acc.sgst += sgst; acc.total += base+cgst+sgst; return acc;
+                  }, {subtotal:0, cgst:0, sgst:0, total:0});
+                  return (
+                    <Flex justify="flex-end" mb={4}>
+                      <Box w={{ base: '100%', md: '400px' }} border="1px solid" borderColor="gray.300" borderRadius="md">
+                        <VStack spacing={0} align="stretch">
+                          <Flex px={3} py={2} justify="space-between"><Text>Sub Total</Text><Text>₹ {totals.subtotal.toFixed(2)}</Text></Flex>
+                          <Flex px={3} py={2} justify="space-between"><Text>CGST ({previewInvoice.items[0]?.cgst_rate || 0}%)</Text><Text>₹ {totals.cgst.toFixed(2)}</Text></Flex>
+                          <Flex px={3} py={2} justify="space-between"><Text>SGST ({previewInvoice.items[0]?.sgst_rate || 0}%)</Text><Text>₹ {totals.sgst.toFixed(2)}</Text></Flex>
+                          <Flex px={3} py={2} justify="space-between" bg="green.50" fontWeight="bold"><Text>Total</Text><Text>₹ {totals.total.toFixed(2)}</Text></Flex>
+                        </VStack>
+                      </Box>
+                    </Flex>
+                  );
+                })()}
+
+                <Box mb={3}>
+                  <Text fontWeight="semibold" color="green.600">Total In Words</Text>
+                  <Text fontSize="sm">Indian Rupee {convertNumberToWords(Math.floor(previewInvoice.items.reduce((s,i)=>s+i.quantity*i.rate*(1+(i.cgst_rate+i.sgst_rate)/100),0)))} Only</Text>
+                </Box>
+
+                {previewInvoice.notes && (
+                  <Box mb={3}>
+                    <Text fontWeight="semibold" color="green.600">Notes</Text>
+                    <Text whiteSpace="pre-wrap" fontSize="sm">{previewInvoice.notes}</Text>
+                  </Box>
+                )}
+                {previewInvoice.terms_and_conditions && (
+                  <Box>
+                    <Text fontWeight="semibold" color="green.600">Terms & Conditions</Text>
+                    <Text whiteSpace="pre-wrap" fontSize="sm">{previewInvoice.terms_and_conditions}</Text>
+                  </Box>
+                )}
+
+                <Flex justify="space-between" mt={8}>
+                  <Box textAlign="center">
+                    <Box borderTop="1px solid" borderColor="gray.400" w="160px" mx="auto" h="0" />
+                    <Text mt={2} fontSize="sm">Authorized Signature</Text>
+                  </Box>
+                  <Box textAlign="center">
+                    <Text fontSize="sm" mb={2}>For AXISO GREEN ENERGIES PVT. LTD.</Text>
+                    <Image src={STAMP_URL} alt="stamp" h="50px" objectFit="contain" mx="auto" />
+                    <Box borderTop="1px solid" borderColor="gray.400" w="160px" mx="auto" h="0" mt={2} />
+                    <Text mt={2} fontSize="sm">Manager</Text>
+                  </Box>
+                </Flex>
+              </Box>
+            )}
+          </ModalBody>
+          <ModalFooter>
+            <Button onClick={onPreviewClose}>Close</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
 
       {/* Create/Edit Modal */}
       <Modal isOpen={isOpen} onClose={onClose} size="4xl">

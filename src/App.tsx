@@ -24,6 +24,7 @@ import Procurement from './pages/Procurement';
 import HR from './pages/HR';
 import UsersManagement from './pages/UsersManagement';
 import ResetPassword from './pages/ResetPassword';
+import Sales from './pages/Sales';
 import PrivateRoute from './components/PrivateRoute';
 import Layout from './components/Layout';
 import ModuleGuard from './components/ModuleGuard';
@@ -223,6 +224,18 @@ const App: React.FC = () => {
                     <ModuleGuard moduleKey="projects">
                       <Layout>
                         <ProjectDetails />
+                      </Layout>
+                    </ModuleGuard>
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/sales"
+                element={
+                  <PrivateRoute>
+                    <ModuleGuard moduleKey="sales">
+                      <Layout>
+                        <Sales />
                       </Layout>
                     </ModuleGuard>
                   </PrivateRoute>
