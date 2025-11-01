@@ -73,30 +73,24 @@ const createUnconfiguredSupabase = () => {
   return mock;
 };
 
-let supabaseClient: any = null;
-let configLoaded = false;
+let supabaseClient: any = supabaseUrl && supabaseAnonKey
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : createUnconfiguredSupabase();
 
-const initializeSupabase = () => {
-  if (configLoaded) return supabaseClient;
-
-  configLoaded = true;
-
+async function reloadSupabaseClient() {
   if (supabaseUrl && supabaseAnonKey) {
     supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
-  } else {
-    supabaseClient = createUnconfiguredSupabase();
   }
-
-  return supabaseClient;
-};
+}
 
 export const isSupabaseConfigured = () => Boolean(supabaseUrl && supabaseAnonKey);
 
-export const supabase = new Proxy({}, {
-  get: (_target, prop) => {
-    const client = initializeSupabase();
-    return (client as any)[prop];
-  },
-});
+// Wrap loadConfig to also reload the client
+const originalLoadConfig = loadConfig;
+export async function initLoadConfig() {
+  await originalLoadConfig();
+  await reloadSupabaseClient();
+}
 
-export { loadConfig };
+// Export supabase client with proper typing
+export const supabase = supabaseClient;
