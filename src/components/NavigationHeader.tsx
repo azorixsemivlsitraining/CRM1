@@ -50,7 +50,7 @@ const NavButton: React.FC<NavButtonProps> = ({ icon, label, to, isActive }) => {
   );
 };
 
-const NavigationHeader = () => {
+const NavigationHeader: React.FC<{ title?: string }> = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
