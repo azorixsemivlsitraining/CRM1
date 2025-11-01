@@ -24,6 +24,7 @@ import {
   Divider,
 } from '@chakra-ui/react';
 import ChitoorProjectsTile from '../components/ChitoorProjectsTile';
+import SalesTile from '../components/SalesTile';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -39,6 +40,7 @@ const tiles: Tile[] = [
   { label: 'Projects', description: 'Track and manage all projects', icon: '📈', to: '/projects' },
   { label: 'Chitoor Projects', description: 'Dedicated dashboard for Chitoor initiatives', icon: '🏗️', to: '/projects/chitoor' },
   { label: 'Reports', description: 'Insights and analytics', icon: '📑', to: '/reports' },
+  { label: 'Sales', description: 'Manage leads and sales pipeline', icon: '💼', to: '/sales' },
   { label: 'Service Tickets', description: 'Track and resolve issues', icon: '🎫', to: '/service-tickets' },
   { label: 'Finance', description: 'Billing, payments and receipts', icon: '💰', to: '/finance' },
   { label: 'HR', description: 'User access and team management', icon: '👥', to: '/hr' },
@@ -74,6 +76,20 @@ const Welcome: React.FC = () => {
           accentColor="green.600"
           onNavigateToFull={() => handleOpenPath('/projects/chitoor')}
           canApprove={Boolean(isAdmin)}
+        />
+      );
+    }
+
+    if (tile.label === 'Sales') {
+      return (
+        <SalesTile
+          key={tile.label}
+          isMobile={isMobileVariant}
+          cardBg={cardBg}
+          borderColor={borderColor}
+          titleColor={titleColor}
+          accentColor="green.600"
+          onNavigateToFull={() => handleOpenPath('/sales')}
         />
       );
     }
@@ -131,7 +147,8 @@ const Welcome: React.FC = () => {
   const getKeyFromPath = (path: string) => {
     if (path.startsWith('/dashboard')) return 'dashboard';
     if (path.startsWith('/projects')) return 'projects';
-    if (path.startsWith('/reports')) return 'sales';
+    if (path.startsWith('/reports')) return 'reports';
+    if (path.startsWith('/sales')) return 'sales';
     if (path.startsWith('/service-tickets')) return 'serviceTickets';
     if (path.startsWith('/finance') || path.startsWith('/payments')) return 'finance';
     if (path.startsWith('/hr')) return 'hr';
