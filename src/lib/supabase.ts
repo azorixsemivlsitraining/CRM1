@@ -81,14 +81,8 @@ const createUnconfiguredSupabase = () => {
 };
 
 let supabaseClient: any = null;
-let configLoaded = false;
 
-const getSupabaseClient = async (): Promise<any> => {
-  // Wait for config to load
-  if (configLoadPromise) {
-    await configLoadPromise;
-  }
-
+const getSupabaseClient = (): any => {
   if (!supabaseClient) {
     if (supabaseUrl && supabaseAnonKey) {
       supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
@@ -101,18 +95,15 @@ const getSupabaseClient = async (): Promise<any> => {
 
 export const isSupabaseConfigured = () => Boolean(supabaseUrl && supabaseAnonKey);
 
-// Create a proxy that handles async initialization
+// Create a proxy that lazily initializes the client
 export const supabase = new Proxy({} as any, {
   get: (_, prop: string | symbol) => {
-    // Return a function that waits for initialization
-    return async (...args: any[]) => {
-      const client = await getSupabaseClient();
-      const value = client[prop];
-      if (typeof value === 'function') {
-        return value.apply(client, args);
-      }
-      return value;
-    };
+    const client = getSupabaseClient();
+    const value = client[prop];
+    if (typeof value === 'function') {
+      return value.bind(client);
+    }
+    return value;
   },
 }) as unknown as ReturnType<typeof createClient>;
 
