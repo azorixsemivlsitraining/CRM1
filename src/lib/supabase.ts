@@ -105,6 +105,6 @@ export const supabase = new Proxy({} as any, {
     }
     return value;
   },
-});
+}) as unknown as ReturnType<typeof createClient>;
 
 export { wrappedLoadConfig as loadConfig };
