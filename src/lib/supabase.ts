@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
-let supabaseUrl = '';
-let supabaseAnonKey = '';
+let supabaseUrl = process.env.REACT_APP_SUPABASE_URL || '';
+let supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY || '';
 
 // Load configuration from runtime config file
 async function loadConfig() {
@@ -9,14 +9,11 @@ async function loadConfig() {
     const response = await fetch('/config.json');
     if (response.ok) {
       const config = await response.json();
-      supabaseUrl = config.supabase?.url || '';
-      supabaseAnonKey = config.supabase?.anonKey || '';
+      supabaseUrl = config.supabase?.url || supabaseUrl;
+      supabaseAnonKey = config.supabase?.anonKey || supabaseAnonKey;
     }
   } catch (error) {
     console.warn('Failed to load runtime config:', error);
-    // Fall back to environment variables if available
-    supabaseUrl = process.env.REACT_APP_SUPABASE_URL || '';
-    supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY || '';
   }
 }
 
