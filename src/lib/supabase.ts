@@ -73,24 +73,38 @@ const createUnconfiguredSupabase = () => {
   return mock;
 };
 
-let supabaseClient: any = supabaseUrl && supabaseAnonKey
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : createUnconfiguredSupabase();
+let supabaseClient: any = null;
 
-async function reloadSupabaseClient() {
-  if (supabaseUrl && supabaseAnonKey) {
-    supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+const getSupabaseClient = (): any => {
+  if (!supabaseClient) {
+    if (supabaseUrl && supabaseAnonKey) {
+      supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+    } else {
+      supabaseClient = createUnconfiguredSupabase();
+    }
   }
-}
+  return supabaseClient;
+};
+
+const originalLoadConfig = loadConfig;
+const wrappedLoadConfig = async () => {
+  await originalLoadConfig();
+  // Reset client so it gets recreated with new config on next access
+  supabaseClient = null;
+};
 
 export const isSupabaseConfigured = () => Boolean(supabaseUrl && supabaseAnonKey);
 
-// Wrap loadConfig to also reload the client
-const originalLoadConfig = loadConfig;
-export async function initLoadConfig() {
-  await originalLoadConfig();
-  await reloadSupabaseClient();
-}
+export const supabase = new Proxy({} as any, {
+  get: (_, prop: string | symbol) => {
+    const client = getSupabaseClient();
+    const value = client[prop];
+    // Return bound methods so 'this' context is preserved
+    if (typeof value === 'function') {
+      return value.bind(client);
+    }
+    return value;
+  },
+});
 
-// Export supabase client with proper typing
-export const supabase = supabaseClient;
+export { wrappedLoadConfig as loadConfig };
