@@ -136,6 +136,11 @@ const Sales: React.FC = () => {
     email: '',
     phone: '',
   });
+  const [newSourceData, setNewSourceData] = useState({
+    name: '',
+    icon: '',
+    color: '',
+  });
 
   const fetchData = useCallback(async () => {
     if (!isSupabaseConfigured) return;
@@ -243,6 +248,32 @@ const Sales: React.FC = () => {
       console.error('Failed to add sales person', error);
       toast({
         title: 'Failed to add sales person',
+        description: formatSupabaseError(error),
+        status: 'error',
+        duration: 4000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const handleAddSource = async () => {
+    if (!newSourceData.name.trim()) {
+      toast({ title: 'Please enter source name', status: 'warning' });
+      return;
+    }
+
+    try {
+      const { error } = await supabase.from('lead_sources').insert([newSourceData]);
+
+      if (error) throw error;
+
+      toast({ title: 'Lead source added successfully', status: 'success', duration: 3000 });
+      setNewSourceData({ name: '', icon: '', color: '' });
+      await fetchData();
+    } catch (error: any) {
+      console.error('Failed to add lead source', error);
+      toast({
+        title: 'Failed to add lead source',
         description: formatSupabaseError(error),
         status: 'error',
         duration: 4000,
@@ -416,6 +447,10 @@ const Sales: React.FC = () => {
           <Tab>Pipeline View</Tab>
           <Tab>Lead List</Tab>
           <Tab>Sales Persons</Tab>
+          <Tab>Add Lead</Tab>
+          <Tab>Assign Leads</Tab>
+          <Tab>Lead Sources</Tab>
+          <Tab>Add Sales Person</Tab>
         </TabList>
 
         <TabPanels>
@@ -608,6 +643,204 @@ const Sales: React.FC = () => {
                 </Tbody>
               </Table>
             </TableContainer>
+          </TabPanel>
+          {/* Add Lead Tab */}
+          <TabPanel>
+            <Box bg={cardBg} border="1px solid" borderColor={borderColor} borderRadius="lg" p={4}>
+              <VStack spacing={4} align="stretch">
+                <FormControl isRequired>
+                  <FormLabel>Customer Name</FormLabel>
+                  <Input
+                    placeholder="Enter customer name"
+                    value={newLeadData.customer_name}
+                    onChange={(e) => setNewLeadData({ ...newLeadData, customer_name: e.target.value })}
+                  />
+                </FormControl>
+                <FormControl>
+                  <FormLabel>Phone</FormLabel>
+                  <Input
+                    placeholder="Enter phone number"
+                    value={newLeadData.customer_phone}
+                    onChange={(e) => setNewLeadData({ ...newLeadData, customer_phone: e.target.value })}
+                  />
+                </FormControl>
+                <FormControl>
+                  <FormLabel>Email</FormLabel>
+                  <Input
+                    placeholder="Enter email"
+                    type="email"
+                    value={newLeadData.customer_email}
+                    onChange={(e) => setNewLeadData({ ...newLeadData, customer_email: e.target.value })}
+                  />
+                </FormControl>
+                <FormControl>
+                  <FormLabel>Location</FormLabel>
+                  <Input
+                    placeholder="Enter location"
+                    value={newLeadData.location}
+                    onChange={(e) => setNewLeadData({ ...newLeadData, location: e.target.value })}
+                  />
+                </FormControl>
+                <FormControl>
+                  <FormLabel>Lead Source</FormLabel>
+                  <Select
+                    value={newLeadData.source_id}
+                    onChange={(e) => setNewLeadData({ ...newLeadData, source_id: e.target.value })}
+                  >
+                    <option value="">Select source</option>
+                    {sources.map((source) => (
+                      <option key={source.id} value={source.id}>
+                        {source.icon} {source.name}
+                      </option>
+                    ))}
+                  </Select>
+                </FormControl>
+                <FormControl>
+                  <FormLabel>Assign To Sales Person</FormLabel>
+                  <Select
+                    value={newLeadData.assigned_to}
+                    onChange={(e) => setNewLeadData({ ...newLeadData, assigned_to: e.target.value })}
+                  >
+                    <option value="">Select sales person</option>
+                    {salesPersons.map((person) => (
+                      <option key={person.id} value={person.id}>
+                        {person.name}
+                      </option>
+                    ))}
+                  </Select>
+                </FormControl>
+                <HStack>
+                  <Button colorScheme="green" onClick={handleAddLead}>Add Lead</Button>
+                </HStack>
+              </VStack>
+            </Box>
+          </TabPanel>
+
+          {/* Assign Leads Tab */}
+          <TabPanel>
+            <TableContainer border="1px solid" borderColor={borderColor} borderRadius="lg">
+              <Table variant="simple" size="sm">
+                <Thead bg="gray.50">
+                  <Tr>
+                    <Th>Customer</Th>
+                    <Th>Assign To</Th>
+                  </Tr>
+                </Thead>
+                <Tbody>
+                  {leads.map((lead) => (
+                    <Tr key={lead.id}>
+                      <Td fontWeight="medium">{lead.customer_name}</Td>
+                      <Td>
+                        <Select
+                          value={lead.assigned_to || ''}
+                          placeholder="Select sales person"
+                          onChange={(e) => handleAssignLead(lead.id, e.target.value)}
+                        >
+                          {salesPersons.map((person) => (
+                            <option key={person.id} value={person.id}>
+                              {person.name}
+                            </option>
+                          ))}
+                        </Select>
+                      </Td>
+                    </Tr>
+                  ))}
+                </Tbody>
+              </Table>
+            </TableContainer>
+          </TabPanel>
+
+          {/* Lead Sources Tab */}
+          <TabPanel>
+            <VStack spacing={6} align="stretch">
+              <Box bg={cardBg} border="1px solid" borderColor={borderColor} borderRadius="lg" p={4}>
+                <Heading size="sm" color="green.600" mb={3}>Add Lead Source</Heading>
+                <VStack spacing={4} align="stretch">
+                  <FormControl isRequired>
+                    <FormLabel>Name</FormLabel>
+                    <Input
+                      placeholder="Enter source name"
+                      value={newSourceData.name}
+                      onChange={(e) => setNewSourceData({ ...newSourceData, name: e.target.value })}
+                    />
+                  </FormControl>
+                  <FormControl>
+                    <FormLabel>Icon</FormLabel>
+                    <Input
+                      placeholder="e.g. 📣"
+                      value={newSourceData.icon}
+                      onChange={(e) => setNewSourceData({ ...newSourceData, icon: e.target.value })}
+                    />
+                  </FormControl>
+                  <FormControl>
+                    <FormLabel>Color</FormLabel>
+                    <Input
+                      placeholder="e.g. green, blue"
+                      value={newSourceData.color}
+                      onChange={(e) => setNewSourceData({ ...newSourceData, color: e.target.value })}
+                    />
+                  </FormControl>
+                  <Button colorScheme="green" onClick={handleAddSource}>Add Source</Button>
+                </VStack>
+              </Box>
+
+              <TableContainer border="1px solid" borderColor={borderColor} borderRadius="lg">
+                <Table variant="simple" size="sm">
+                  <Thead bg="gray.50">
+                    <Tr>
+                      <Th>Name</Th>
+                      <Th>Icon</Th>
+                      <Th>Color</Th>
+                    </Tr>
+                  </Thead>
+                  <Tbody>
+                    {sources.map((source) => (
+                      <Tr key={source.id}>
+                        <Td fontWeight="medium">{source.name}</Td>
+                        <Td>{source.icon || '—'}</Td>
+                        <Td>{source.color || '—'}</Td>
+                      </Tr>
+                    ))}
+                  </Tbody>
+                </Table>
+              </TableContainer>
+            </VStack>
+          </TabPanel>
+
+          {/* Add Sales Person Tab */}
+          <TabPanel>
+            <Box bg={cardBg} border="1px solid" borderColor={borderColor} borderRadius="lg" p={4}>
+              <VStack spacing={4} align="stretch">
+                <FormControl isRequired>
+                  <FormLabel>Name</FormLabel>
+                  <Input
+                    placeholder="Enter name"
+                    value={newPersonData.name}
+                    onChange={(e) => setNewPersonData({ ...newPersonData, name: e.target.value })}
+                  />
+                </FormControl>
+                <FormControl>
+                  <FormLabel>Email</FormLabel>
+                  <Input
+                    placeholder="Enter email"
+                    type="email"
+                    value={newPersonData.email}
+                    onChange={(e) => setNewPersonData({ ...newPersonData, email: e.target.value })}
+                  />
+                </FormControl>
+                <FormControl>
+                  <FormLabel>Phone</FormLabel>
+                  <Input
+                    placeholder="Enter phone"
+                    value={newPersonData.phone}
+                    onChange={(e) => setNewPersonData({ ...newPersonData, phone: e.target.value })}
+                  />
+                </FormControl>
+                <HStack>
+                  <Button colorScheme="purple" onClick={handleAddPerson}>Add Person</Button>
+                </HStack>
+              </VStack>
+            </Box>
           </TabPanel>
         </TabPanels>
       </Tabs>
