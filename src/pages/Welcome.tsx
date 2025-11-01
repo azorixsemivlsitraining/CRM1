@@ -59,7 +59,7 @@ const Welcome: React.FC = () => {
 
   const operationsModules: Tile[] = [
     { label: 'Stock Warehouse', description: 'Inventory and stock management', icon: '🏭', to: '/stock' },
-    { label: 'Procurement', description: 'Purchase orders and suppliers', icon: '����', to: '/procurement' },
+    { label: 'Procurement', description: 'Purchase orders and suppliers', icon: '🧾', to: '/procurement' },
     { label: 'Logistics', description: 'Dispatches and deliveries', icon: '🚚', to: '/logistics' },
     { label: 'Modules & Inventory', description: 'Module listings and intake', icon: '📦', to: '/logistics/modules' },
   ];
@@ -147,7 +147,8 @@ const Welcome: React.FC = () => {
   const getKeyFromPath = (path: string) => {
     if (path.startsWith('/dashboard')) return 'dashboard';
     if (path.startsWith('/projects')) return 'projects';
-    if (path.startsWith('/reports')) return 'sales';
+    if (path.startsWith('/reports')) return 'reports';
+    if (path.startsWith('/sales')) return 'sales';
     if (path.startsWith('/service-tickets')) return 'serviceTickets';
     if (path.startsWith('/finance') || path.startsWith('/payments')) return 'finance';
     if (path.startsWith('/hr')) return 'hr';
