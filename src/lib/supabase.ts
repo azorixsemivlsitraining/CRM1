@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 
 let supabaseUrl = process.env.REACT_APP_SUPABASE_URL || '';
 let supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY || '';
+let configLoadPromise: Promise<void> | null = null;
 
 // Load configuration from runtime config file
 async function loadConfig() {
@@ -9,12 +10,18 @@ async function loadConfig() {
     const response = await fetch('/config.json');
     if (response.ok) {
       const config = await response.json();
-      supabaseUrl = config.supabase?.url || supabaseUrl;
-      supabaseAnonKey = config.supabase?.anonKey || supabaseAnonKey;
+      if (config.supabase?.url) supabaseUrl = config.supabase.url;
+      if (config.supabase?.anonKey) supabaseAnonKey = config.supabase.anonKey;
+      console.log('Supabase config loaded from runtime config');
     }
   } catch (error) {
-    console.warn('Failed to load runtime config:', error);
+    console.warn('Failed to load runtime config, will use environment variables:', error);
   }
+}
+
+// Start loading config immediately
+if (!configLoadPromise) {
+  configLoadPromise = loadConfig();
 }
 
 const createUnconfiguredSupabase = () => {
