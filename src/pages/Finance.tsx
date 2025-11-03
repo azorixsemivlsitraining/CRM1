@@ -862,7 +862,7 @@ const Finance: React.FC = () => {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(18);
       doc.setTextColor(BRAND_GREEN.r, BRAND_GREEN.g, BRAND_GREEN.b);
-      doc.text('TAX INVOICE', pageWidth / 2, margin + 18, { align: 'center' });
+      doc.text('TAX INVOICE', pageWidth - margin - 2, margin + 18, { align: 'right' });
 
       // Numbers and dates
       const invoiceNumber = `INV-${String((invoice as any).rowNumber || 1).padStart(6, '0')}`;
@@ -883,7 +883,7 @@ const Finance: React.FC = () => {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(7.5);
       doc.setTextColor(BRAND_GREEN.r, BRAND_GREEN.g, BRAND_GREEN.b);
-      doc.text('Invoice #', detailsX + 2, detailsY + 2);
+      doc.text('#', detailsX + 2, detailsY + 2);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
       doc.setFontSize(8);
@@ -924,7 +924,7 @@ const Finance: React.FC = () => {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(7.5);
       doc.setTextColor(BRAND_GREEN.r, BRAND_GREEN.g, BRAND_GREEN.b);
-      doc.text('Place of Supply', detailsX + 2, detailsY + 13);
+      doc.text('Place Of Supply', detailsX + 2, detailsY + 13);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
       doc.setFontSize(8);
