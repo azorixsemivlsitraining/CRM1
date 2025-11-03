@@ -988,6 +988,8 @@ const Finance: React.FC = () => {
       doc.text('Amt', margin + 190, tableTop + 4.5);
       doc.text('Amount', margin + 200, tableTop + 4.5);
 
+      const fmtINR = (n: number) => (n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
       y = tableTop + 7;
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8);
@@ -1012,12 +1014,12 @@ const Finance: React.FC = () => {
         const h = Math.max(4, wrapped.length * 4);
         doc.text(String(item.hsn || ''), margin + 90, rowY);
         doc.text((item.quantity || 0).toFixed(2), margin + 115, rowY);
-        doc.text((item.rate || 0).toFixed(2), margin + 130, rowY);
+        doc.text(fmtINR(item.rate || 0), margin + 130, rowY);
         doc.text(String((item.cgst_percent || 0).toFixed(0)), margin + 150, rowY);
-        doc.text(cgstAmt.toFixed(2), margin + 165, rowY);
+        doc.text(fmtINR(cgstAmt), margin + 165, rowY);
         doc.text(String((item.sgst_percent || 0).toFixed(0)), margin + 175, rowY);
-        doc.text(sgstAmt.toFixed(2), margin + 190, rowY);
-        doc.text((amount + cgstAmt + sgstAmt).toFixed(2), margin + 200, rowY);
+        doc.text(fmtINR(sgstAmt), margin + 190, rowY);
+        doc.text(fmtINR(amount), margin + 200, rowY);
 
         y += h + 1.5;
       });
@@ -1034,26 +1036,21 @@ const Finance: React.FC = () => {
       doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
       doc.text('Sub Total', totalsX, y);
       doc.setFont('helvetica', 'normal');
-      doc.text('₹' + subTotal.toFixed(2), pageWidth - margin - 8, y, { align: 'right' });
+      doc.text(fmtINR(subTotal), pageWidth - margin - 8, y, { align: 'right' });
 
-      const printTaxGroup = (labelPrefix: string, map: Map<number, number>) => {
-        const rates = Array.from(map.keys()).filter((r) => r > 0).sort((a, b) => a - b);
-        let localY = y;
-        rates.forEach((rate, i) => {
-          localY += 5;
-          doc.setFont('helvetica', 'bold');
-          doc.text(`${labelPrefix}${rate} (${rate}%)`, totalsX, localY);
-          doc.setFont('helvetica', 'normal');
-          doc.text('₹' + (map.get(rate) || 0).toFixed(2), pageWidth - margin - 8, localY, { align: 'right' });
-        });
-        return y + rates.length * 5;
-      };
+      // Always show CGST6, SGST6, CGST9, SGST9
+      const cgst6 = +(cgstByRate.get(6) || 0);
+      const sgst6 = +(sgstByRate.get(6) || 0);
+      const cgst9 = +(cgstByRate.get(9) || 0);
+      const sgst9 = +(sgstByRate.get(9) || 0);
 
-      y = printTaxGroup('CGST', cgstByRate);
-      y = printTaxGroup('SGST', sgstByRate);
+      y += 5; doc.setFont('helvetica', 'bold'); doc.text('CGST6 (6%)', totalsX, y); doc.setFont('helvetica', 'normal'); doc.text(fmtINR(cgst6), pageWidth - margin - 8, y, { align: 'right' });
+      y += 5; doc.setFont('helvetica', 'bold'); doc.text('SGST6 (6%)', totalsX, y); doc.setFont('helvetica', 'normal'); doc.text(fmtINR(sgst6), pageWidth - margin - 8, y, { align: 'right' });
+      y += 5; doc.setFont('helvetica', 'bold'); doc.text('CGST9 (9%)', totalsX, y); doc.setFont('helvetica', 'normal'); doc.text(fmtINR(cgst9), pageWidth - margin - 8, y, { align: 'right' });
+      y += 5; doc.setFont('helvetica', 'bold'); doc.text('SGST9 (9%)', totalsX, y); doc.setFont('helvetica', 'normal'); doc.text(fmtINR(sgst9), pageWidth - margin - 8, y, { align: 'right' });
 
-      const totalCGST = Array.from(cgstByRate.values()).reduce((a, b) => a + b, 0);
-      const totalSGST = Array.from(sgstByRate.values()).reduce((a, b) => a + b, 0);
+      const totalCGST = cgst6 + cgst9;
+      const totalSGST = sgst6 + sgst9;
       const grandTotal = subTotal + totalCGST + totalSGST;
 
       // Total bar
@@ -1065,7 +1062,7 @@ const Finance: React.FC = () => {
       doc.setFontSize(10);
       doc.setTextColor(255, 255, 255);
       doc.text('Total Rs.', totalsX, y);
-      doc.text('₹' + grandTotal.toFixed(2), pageWidth - margin - 8, y, { align: 'right' });
+      doc.text(fmtINR(grandTotal), pageWidth - margin - 8, y, { align: 'right' });
 
       // Payment made / Balance due
       const paid = invoice.amount_paid || 0;
@@ -1076,15 +1073,15 @@ const Finance: React.FC = () => {
       doc.text('Payment Made (-)', totalsX, y);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(200, 0, 0);
-      doc.text('₹' + paid.toFixed(2), pageWidth - margin - 8, y, { align: 'right' });
+      doc.text(fmtINR(paid), pageWidth - margin - 8, y, { align: 'right' });
 
       const balance = Math.max(0, grandTotal - paid);
       y += 5;
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
-      doc.text('Balance Due', totalsX, y);
+      doc.text('Balance Due Rs.', totalsX, y);
       doc.setFont('helvetica', 'normal');
-      doc.text('₹' + balance.toFixed(2), pageWidth - margin - 8, y, { align: 'right' });
+      doc.text(fmtINR(balance), pageWidth - margin - 8, y, { align: 'right' });
 
       // Amount in words
       y += 10;
