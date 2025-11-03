@@ -918,7 +918,7 @@ const Finance: React.FC = () => {
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
       doc.setFontSize(8);
-      const dueDate = new Date(created.getTime() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      const dueDate = invoiceDate;
       doc.text(dueDate, detailsX + 2, detailsY + 8);
 
       doc.setFont('helvetica', 'bold');
