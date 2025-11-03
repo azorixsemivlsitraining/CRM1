@@ -819,19 +819,15 @@ const Finance: React.FC = () => {
       const BRAND_DARK_GREEN = { r: 34, g: 102, b: 68 };
       const TEXT_PRIMARY = { r: 45, g: 55, b: 72 };
       const TEXT_MUTED = { r: 109, g: 124, b: 135 };
-      const HEADER_BG = { r: 240, g: 248, b: 244 };
-      const BORDER_COLOR = { r: 200, g: 210, b: 205 };
+      const HEADER_BG = { r: 242, g: 242, b: 242 };
+      const BORDER_COLOR = { r: 190, g: 190, b: 190 };
 
       const margin = 14;
       const pageWidth = doc.internal.pageSize.width;
       const pageHeight = doc.internal.pageSize.height;
 
-      // Header accent bar
-      doc.setFillColor(BRAND_GREEN.r, BRAND_GREEN.g, BRAND_GREEN.b);
-      doc.rect(0, 0, pageWidth, 8, 'F');
-
-      // Main border
-      doc.setDrawColor(BRAND_GREEN.r, BRAND_GREEN.g, BRAND_GREEN.b);
+      // Main border (neutral gray, no top accent)
+      doc.setDrawColor(180, 180, 180);
       doc.setLineWidth(0.8);
       doc.rect(margin, margin, pageWidth - margin * 2, pageHeight - margin * 2);
 
@@ -848,7 +844,7 @@ const Finance: React.FC = () => {
 
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(12);
-      doc.setTextColor(BRAND_DARK_GREEN.r, BRAND_DARK_GREEN.g, BRAND_DARK_GREEN.b);
+      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
       doc.text('Axiso Green Energies Private', margin + 34, margin + 5);
       doc.text('Limited', margin + 34, margin + 11);
 
@@ -861,7 +857,7 @@ const Finance: React.FC = () => {
 
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(18);
-      doc.setTextColor(BRAND_GREEN.r, BRAND_GREEN.g, BRAND_GREEN.b);
+      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
       doc.text('TAX INVOICE', pageWidth - margin - 2, margin + 18, { align: 'right' });
 
       // Numbers and dates
@@ -880,55 +876,23 @@ const Finance: React.FC = () => {
       doc.setLineWidth(0.3);
       doc.rect(detailsX, detailsY - 2, boxW, boxH, 'FD');
 
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(7.5);
-      doc.setTextColor(BRAND_GREEN.r, BRAND_GREEN.g, BRAND_GREEN.b);
-      doc.text('#', detailsX + 2, detailsY + 2);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
-      doc.setFontSize(8);
-      doc.text(invoiceNumber, detailsX + 2, detailsY + 6);
-
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(7.5);
-      doc.setTextColor(BRAND_GREEN.r, BRAND_GREEN.g, BRAND_GREEN.b);
-      doc.text('Invoice Date', detailsX + 2, detailsY + 11);
       doc.setFont('helvetica', 'normal');
-      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
       doc.setFontSize(8);
-      doc.text(invoiceDate, detailsX + 2, detailsY + 15);
-
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(7.5);
-      doc.setTextColor(BRAND_GREEN.r, BRAND_GREEN.g, BRAND_GREEN.b);
-      doc.text('Terms', detailsX + 2, detailsY + 20);
-      doc.setFont('helvetica', 'normal');
       doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
-      doc.setFontSize(8);
-      doc.text('PIA', detailsX + 2, detailsY + 24);
+      doc.text(`# : ${invoiceNumber}`, detailsX + 2, detailsY + 6);
+      doc.text(`Invoice Date : ${invoiceDate}`, detailsX + 2, detailsY + 11);
+      doc.text('Terms : PIA', detailsX + 2, detailsY + 16);
 
       detailsY += 27;
       doc.setFillColor(HEADER_BG.r, HEADER_BG.g, HEADER_BG.b);
       doc.rect(detailsX, detailsY, boxW, boxH, 'FD');
 
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(7.5);
-      doc.setTextColor(BRAND_GREEN.r, BRAND_GREEN.g, BRAND_GREEN.b);
-      doc.text('Due Date', detailsX + 2, detailsY + 4);
       doc.setFont('helvetica', 'normal');
-      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
       doc.setFontSize(8);
+      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
       const dueDate = invoiceDate;
-      doc.text(dueDate, detailsX + 2, detailsY + 8);
-
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(7.5);
-      doc.setTextColor(BRAND_GREEN.r, BRAND_GREEN.g, BRAND_GREEN.b);
-      doc.text('Place Of Supply', detailsX + 2, detailsY + 13);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
-      doc.setFontSize(8);
-      doc.text(invoice.state + ' (36)', detailsX + 2, detailsY + 17);
+      doc.text(`Due Date : ${dueDate}`, detailsX + 2, detailsY + 8);
+      doc.text(`Place Of Supply : ${invoice.state} (36)`, detailsX + 2, detailsY + 17);
 
       let y = margin + 60;
 
@@ -941,7 +905,7 @@ const Finance: React.FC = () => {
 
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(8);
-      doc.setTextColor(BRAND_GREEN.r, BRAND_GREEN.g, BRAND_GREEN.b);
+      doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
       doc.text('Bill To', margin + 3, y);
       doc.text('Ship To', pageWidth / 2 + 3, y);
 
