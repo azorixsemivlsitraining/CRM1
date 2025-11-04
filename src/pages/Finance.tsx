@@ -827,20 +827,28 @@ const Finance: React.FC = () => {
 
       let yPos = margin;
 
+      // Add logo
+      try {
+        const logoData = await fetchImageAsDataURL(LOGO_URL);
+        if (logoData) {
+          doc.addImage(logoData, 'PNG', margin, yPos, 18, 18);
+        }
+      } catch (err) {
+        console.error('Error loading logo:', err);
+      }
+
+      // Company info next to logo
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(13);
+      doc.setFontSize(12);
       doc.setTextColor(BRAND_GREEN.r, BRAND_GREEN.g, BRAND_GREEN.b);
-      doc.text('Axiso Green Energies Private Limited', margin, yPos);
+      doc.text('Axiso Green Energies Private Limited', margin + 22, yPos);
 
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8);
+      doc.setFontSize(7.5);
       doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
-      yPos += 5;
-      doc.text('Telangana', margin, yPos);
-      doc.text('India', margin, yPos + 3);
-      doc.text('GSTIN 36ABBCA4478M1Z9', margin, yPos + 6);
-      doc.text('admin@axisogreen.in', margin, yPos + 9);
-      doc.text('www.axisogreen.in', margin, yPos + 12);
+      doc.text('Telangana, India', margin + 22, yPos + 5);
+      doc.text('GSTIN 36ABBCA4478M1Z9', margin + 22, yPos + 9);
+      doc.text('admin@axisogreen.in', margin + 22, yPos + 12);
 
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(16);
