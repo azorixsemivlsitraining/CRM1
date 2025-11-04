@@ -895,29 +895,29 @@ const Finance: React.FC = () => {
       doc.rect(billToX, yPos, billToW, 5, 'F');
       doc.setTextColor(255, 255, 255);
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(8);
-      doc.text('Bill To', billToX + 2, yPos + 3.5);
+      doc.setFontSize(7.5);
+      doc.text('Bill To', billToX + 2, yPos + 3);
 
       doc.setFillColor(BRAND_GREEN.r, BRAND_GREEN.g, BRAND_GREEN.b);
       doc.rect(shipToX, yPos, billToW, 5, 'F');
-      doc.text('Ship To', shipToX + 2, yPos + 3.5);
+      doc.text('Ship To', shipToX + 2, yPos + 3);
 
-      yPos += 5;
+      yPos += 6;
 
       doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7.5);
+      doc.setFontSize(7);
       const billToName = invoice.customer_name || 'Mrs. Tanuja j';
       const billToAddr = invoice.place_of_supply || 'Hno 15-1/22/1,sai Srinivasa Nagar I, Dammaiguda, Keesara 500083 India';
       doc.text(billToName, billToX + 2, yPos);
       const billLines = doc.splitTextToSize(billToAddr, billToW - 4);
-      doc.text(billLines, billToX + 2, yPos + 4, { maxWidth: billToW - 4 });
+      doc.text(billLines, billToX + 2, yPos + 3.5, { maxWidth: billToW - 4 });
 
       doc.text(billToName, shipToX + 2, yPos);
       const shipLines = doc.splitTextToSize(billToAddr, billToW - 4);
-      doc.text(shipLines, shipToX + 2, yPos + 4, { maxWidth: billToW - 4 });
+      doc.text(shipLines, shipToX + 2, yPos + 3.5, { maxWidth: billToW - 4 });
 
-      yPos += 18;
+      yPos += 15;
 
       doc.setFillColor(BRAND_GREEN.r, BRAND_GREEN.g, BRAND_GREEN.b);
       doc.setTextColor(255, 255, 255);
