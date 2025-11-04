@@ -853,9 +853,9 @@ const Finance: React.FC = () => {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(16);
       doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
-      doc.text('TAX INVOICE', pageWidth - margin, yPos, { align: 'right' });
+      doc.text('TAX INVOICE', pageWidth - margin, yPos + 2, { align: 'right' });
 
-      yPos += 18;
+      yPos += 22;
 
       const invoiceNumber = `INV-${String((invoice as any).rowNumber || 1).padStart(6, '0')}`;
       const created = (invoice as any).created_at ? new Date((invoice as any).created_at) : new Date();
