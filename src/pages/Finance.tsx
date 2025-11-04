@@ -1104,26 +1104,36 @@ const Finance: React.FC = () => {
         yPos += wrappedLines.length * 2 + 1;
       });
 
-      yPos = pageHeight - 15;
+      yPos = pageHeight - 28;
+
+      // Add stamp
+      try {
+        const stampData = await fetchImageAsDataURL(FOOTER_SIGN_STAMP_URL);
+        if (stampData) {
+          doc.addImage(stampData, 'PNG', pageWidth - margin - 35, yPos - 8, 30, 16);
+        }
+      } catch (err) {
+        console.error('Error loading stamp:', err);
+      }
 
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(6.5);
+      doc.setFontSize(6);
       doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
 
       doc.setDrawColor(BORDER_COLOR.r, BORDER_COLOR.g, BORDER_COLOR.b);
       doc.setLineWidth(0.3);
       doc.line(margin, yPos, margin + 30, yPos);
-      doc.text('Authorized Signature', margin + 15, yPos + 3, { align: 'center' });
+      doc.text('Authorized Signature', margin + 15, yPos + 2, { align: 'center' });
 
       const signRightX = pageWidth - margin - 50;
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(7);
-      doc.text('For AXISO GREEN ENERGIES PVT. LTD.', signRightX, yPos - 3);
+      doc.setFontSize(6.5);
+      doc.text('For AXISO GREEN ENERGIES PVT. LTD.', signRightX, yPos - 8);
 
       doc.setFont('helvetica', 'normal');
-      doc.line(signRightX, yPos, signRightX + 40, yPos);
-      doc.setFontSize(6.5);
-      doc.text('Manager', signRightX + 20, yPos + 3, { align: 'center' });
+      doc.line(signRightX, yPos, signRightX + 35, yPos);
+      doc.setFontSize(6);
+      doc.text('Manager', signRightX + 17.5, yPos + 2, { align: 'center' });
 
       doc.save(`Tax_Invoice_${invoiceNumber}.pdf`);
     } catch (error) {
