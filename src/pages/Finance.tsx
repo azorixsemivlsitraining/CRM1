@@ -861,29 +861,31 @@ const Finance: React.FC = () => {
       const created = (invoice as any).created_at ? new Date((invoice as any).created_at) : new Date();
       const invoiceDate = created.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
+      yPos += 2;
+
       const leftBoxX = margin;
       const leftBoxW = contentWidth / 2 - 1;
       doc.setDrawColor(BORDER_COLOR.r, BORDER_COLOR.g, BORDER_COLOR.b);
       doc.setLineWidth(0.5);
-      doc.rect(leftBoxX, yPos, leftBoxW, 24);
+      doc.rect(leftBoxX, yPos, leftBoxW, 20);
 
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8);
+      doc.setFontSize(7.5);
       doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
-      doc.text('# : INV-000042', leftBoxX + 2, yPos + 5);
-      doc.text('Terms : PIA', leftBoxX + 2, yPos + 10);
-      doc.text('Place Of Supply : Telangana (36)', leftBoxX + 2, yPos + 15);
+      doc.text('# : ' + invoiceNumber, leftBoxX + 2, yPos + 4);
+      doc.text('Terms : PIA', leftBoxX + 2, yPos + 8);
+      doc.text('Place Of Supply : Telangana (36)', leftBoxX + 2, yPos + 12);
 
       const rightBoxX = margin + leftBoxW + 2;
-      doc.rect(rightBoxX, yPos, leftBoxW, 24);
+      doc.rect(rightBoxX, yPos, leftBoxW, 20);
 
-      doc.text(`Invoice Date : ${invoiceDate}`, rightBoxX + 2, yPos + 5);
+      doc.text(`Invoice Date : ${invoiceDate}`, rightBoxX + 2, yPos + 4);
       const dueDate = new Date(created);
       dueDate.setDate(dueDate.getDate() + 45);
       const dueDateStr = dueDate.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
-      doc.text(`Due Date : ${dueDateStr}`, rightBoxX + 2, yPos + 10);
+      doc.text(`Due Date : ${dueDateStr}`, rightBoxX + 2, yPos + 8);
 
-      yPos += 26;
+      yPos += 22;
 
       const billToX = margin;
       const billToW = contentWidth / 2 - 1;
