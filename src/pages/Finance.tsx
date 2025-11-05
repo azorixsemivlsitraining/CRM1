@@ -817,7 +817,7 @@ const Finance: React.FC = () => {
       const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
       const pageWidth = doc.internal.pageSize.width;
       const pageHeight = doc.internal.pageSize.height;
-      const margin = 10;
+      const margin = 12;
       const contentWidth = pageWidth - 2 * margin;
 
       const BRAND_GREEN = { r: 60, g: 100, b: 60 };
@@ -831,7 +831,7 @@ const Finance: React.FC = () => {
       try {
         const logoData = await fetchImageAsDataURL(LOGO_URL);
         if (logoData) {
-          doc.addImage(logoData, 'PNG', margin, yPos, 18, 18);
+          doc.addImage(logoData, 'PNG', margin, yPos, 16, 16);
         }
       } catch (err) {
         console.error('Error loading logo:', err);
@@ -839,85 +839,85 @@ const Finance: React.FC = () => {
 
       // Company info next to logo
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(12);
+      doc.setFontSize(11);
       doc.setTextColor(BRAND_GREEN.r, BRAND_GREEN.g, BRAND_GREEN.b);
-      doc.text('Axiso Green Energies Private Limited', margin + 22, yPos);
+      doc.text('Axiso Green Energies Private Limited', margin + 20, yPos);
 
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7.5);
+      doc.setFontSize(7);
       doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
-      doc.text('Telangana, India', margin + 22, yPos + 5);
-      doc.text('GSTIN 36ABBCA4478M1Z9', margin + 22, yPos + 9);
-      doc.text('admin@axisogreen.in', margin + 22, yPos + 12);
+      doc.text('Telangana, India', margin + 20, yPos + 4);
+      doc.text('GSTIN 36ABBCA4478M1Z9', margin + 20, yPos + 7);
+      doc.text('admin@axisogreen.in', margin + 20, yPos + 10);
 
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(16);
+      doc.setFontSize(15);
       doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
       doc.text('TAX INVOICE', pageWidth - margin, yPos + 2, { align: 'right' });
 
-      yPos += 22;
+      yPos += 20;
 
       const invoiceNumber = `INV-${String((invoice as any).rowNumber || 1).padStart(6, '0')}`;
       const created = (invoice as any).created_at ? new Date((invoice as any).created_at) : new Date();
       const invoiceDate = created.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-      yPos += 2;
+      yPos += 3;
 
       const leftBoxX = margin;
       const leftBoxW = contentWidth / 2 - 1;
       doc.setDrawColor(BORDER_COLOR.r, BORDER_COLOR.g, BORDER_COLOR.b);
       doc.setLineWidth(0.5);
-      doc.rect(leftBoxX, yPos, leftBoxW, 20);
+      doc.rect(leftBoxX, yPos, leftBoxW, 18);
 
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7.5);
+      doc.setFontSize(7);
       doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
-      doc.text('# : ' + invoiceNumber, leftBoxX + 2, yPos + 4);
-      doc.text('Terms : PIA', leftBoxX + 2, yPos + 8);
-      doc.text('Place Of Supply : Telangana (36)', leftBoxX + 2, yPos + 12);
+      doc.text('# : ' + invoiceNumber, leftBoxX + 2, yPos + 3.5);
+      doc.text('Terms : PIA', leftBoxX + 2, yPos + 7.5);
+      doc.text('Place Of Supply : Telangana (36)', leftBoxX + 2, yPos + 11.5);
 
       const rightBoxX = margin + leftBoxW + 2;
-      doc.rect(rightBoxX, yPos, leftBoxW, 20);
+      doc.rect(rightBoxX, yPos, leftBoxW, 18);
 
-      doc.text(`Invoice Date : ${invoiceDate}`, rightBoxX + 2, yPos + 4);
+      doc.text(`Invoice Date : ${invoiceDate}`, rightBoxX + 2, yPos + 3.5);
       const dueDate = new Date(created);
       dueDate.setDate(dueDate.getDate() + 45);
       const dueDateStr = dueDate.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
-      doc.text(`Due Date : ${dueDateStr}`, rightBoxX + 2, yPos + 8);
+      doc.text(`Due Date : ${dueDateStr}`, rightBoxX + 2, yPos + 7.5);
 
-      yPos += 22;
+      yPos += 21;
 
       const billToX = margin;
       const billToW = contentWidth / 2 - 1;
       const shipToX = margin + billToW + 2;
 
       doc.setFillColor(BRAND_GREEN.r, BRAND_GREEN.g, BRAND_GREEN.b);
-      doc.rect(billToX, yPos, billToW, 5, 'F');
+      doc.rect(billToX, yPos, billToW, 4.5, 'F');
       doc.setTextColor(255, 255, 255);
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(7.5);
-      doc.text('Bill To', billToX + 2, yPos + 3);
+      doc.setFontSize(7);
+      doc.text('Bill To', billToX + 2, yPos + 2.8);
 
       doc.setFillColor(BRAND_GREEN.r, BRAND_GREEN.g, BRAND_GREEN.b);
-      doc.rect(shipToX, yPos, billToW, 5, 'F');
-      doc.text('Ship To', shipToX + 2, yPos + 3);
+      doc.rect(shipToX, yPos, billToW, 4.5, 'F');
+      doc.text('Ship To', shipToX + 2, yPos + 2.8);
 
-      yPos += 6;
+      yPos += 5.5;
 
       doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7);
+      doc.setFontSize(6.5);
       const billToName = invoice.customer_name || 'Mrs. Tanuja j';
       const billToAddr = invoice.place_of_supply || 'Hno 15-1/22/1,sai Srinivasa Nagar I, Dammaiguda, Keesara 500083 India';
       doc.text(billToName, billToX + 2, yPos);
       const billLines = doc.splitTextToSize(billToAddr, billToW - 4);
-      doc.text(billLines, billToX + 2, yPos + 3.5, { maxWidth: billToW - 4 });
+      doc.text(billLines, billToX + 2, yPos + 3, { maxWidth: billToW - 4 });
 
       doc.text(billToName, shipToX + 2, yPos);
       const shipLines = doc.splitTextToSize(billToAddr, billToW - 4);
-      doc.text(shipLines, shipToX + 2, yPos + 3.5, { maxWidth: billToW - 4 });
+      doc.text(shipLines, shipToX + 2, yPos + 3, { maxWidth: billToW - 4 });
 
-      yPos += 15;
+      yPos += 13;
 
       doc.setFillColor(BRAND_GREEN.r, BRAND_GREEN.g, BRAND_GREEN.b);
       doc.setTextColor(255, 255, 255);
