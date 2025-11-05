@@ -1103,16 +1103,16 @@ const Finance: React.FC = () => {
       const notesText = doc.splitTextToSize('IT IS A COMPUTER GENERATED INVOICE AND WILL NOT REQUIRE ANY SIGNATURES', contentWidth - 10);
       doc.text(notesText, margin, yPos);
 
-      yPos = pageHeight - 48;
+      yPos = pageHeight - 46;
 
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(7);
+      doc.setFontSize(6.5);
       doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
       doc.text('Terms & Conditions', margin, yPos);
 
-      yPos += 3;
+      yPos += 2.5;
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(5.5);
+      doc.setFontSize(5);
       doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
       const commissioning = `${String(created.getDate()).padStart(2, '0')}.${String(created.getMonth() + 1).padStart(2, '0')}.${created.getFullYear()}`;
       const tcLines = [
@@ -1120,41 +1120,43 @@ const Finance: React.FC = () => {
         `Warranty starts from the date of Plant commissioning ${commissioning}`
       ];
       tcLines.forEach((line) => {
-        const wrappedLines = doc.splitTextToSize(line, contentWidth - 40);
+        const wrappedLines = doc.splitTextToSize(line, contentWidth - 35);
         doc.text(wrappedLines, margin, yPos);
-        yPos += wrappedLines.length * 2;
+        yPos += wrappedLines.length * 1.8;
       });
 
-      yPos = pageHeight - 24;
+      yPos = pageHeight - 22;
 
       // Add stamp
       try {
         const stampData = await fetchImageAsDataURL(FOOTER_SIGN_STAMP_URL);
         if (stampData) {
-          doc.addImage(stampData, 'PNG', pageWidth - margin - 32, yPos - 10, 28, 15);
+          doc.addImage(stampData, 'PNG', pageWidth - margin - 30, yPos - 9, 26, 14);
         }
       } catch (err) {
         console.error('Error loading stamp:', err);
       }
 
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(5.5);
+      doc.setFontSize(5);
       doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
 
       doc.setDrawColor(BORDER_COLOR.r, BORDER_COLOR.g, BORDER_COLOR.b);
       doc.setLineWidth(0.3);
-      doc.line(margin, yPos, margin + 28, yPos);
-      doc.text('Authorized Signature', margin + 14, yPos + 2, { align: 'center' });
+      doc.line(margin, yPos, margin + 26, yPos);
+      doc.text('Authorized Signature', margin + 13, yPos + 1.5, { align: 'center' });
 
-      const signRightX = pageWidth - margin - 50;
+      const signRightX = pageWidth - margin - 48;
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(6);
-      doc.text('For AXISO GREEN ENERGIES PVT. LTD.', signRightX, yPos - 10);
+      doc.setFontSize(5.5);
+      doc.text('For AXISO GREEN ENERGIES', signRightX, yPos - 9);
+      doc.setFontSize(5);
+      doc.text('PVT. LTD.', signRightX, yPos - 6);
 
       doc.setFont('helvetica', 'normal');
-      doc.line(signRightX + 1, yPos, signRightX + 33, yPos);
-      doc.setFontSize(5.5);
-      doc.text('Manager', signRightX + 17, yPos + 2, { align: 'center' });
+      doc.line(signRightX + 1, yPos, signRightX + 32, yPos);
+      doc.setFontSize(5);
+      doc.text('Manager', signRightX + 16, yPos + 1.5, { align: 'center' });
 
       doc.save(`Tax_Invoice_${invoiceNumber}.pdf`);
     } catch (error) {
