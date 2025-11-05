@@ -1015,19 +1015,19 @@ const Finance: React.FC = () => {
 
       yPos += 4;
 
-      const summaryX = pageWidth - margin - 62;
-      const summaryW = 58;
+      const summaryX = pageWidth - margin - 60;
+      const summaryW = 56;
       doc.setFillColor(240, 240, 240);
-      doc.rect(summaryX, yPos, summaryW, 32, 'F');
+      doc.rect(summaryX, yPos, summaryW, 30, 'F');
       doc.setLineWidth(0.5);
       doc.setDrawColor(BORDER_COLOR.r, BORDER_COLOR.g, BORDER_COLOR.b);
-      doc.rect(summaryX, yPos, summaryW, 32);
+      doc.rect(summaryX, yPos, summaryW, 30);
 
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7);
+      doc.setFontSize(6.5);
       doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
 
-      let sumY = yPos + 2.5;
+      let sumY = yPos + 2;
       doc.text('Sub Total', summaryX + 2, sumY);
       doc.text(subTotal.toFixed(2), summaryX + summaryW - 2, sumY, { align: 'right' });
 
@@ -1036,19 +1036,19 @@ const Finance: React.FC = () => {
       const cgst9 = cgstByRate.get(9) || 0;
       const sgst9 = sgstByRate.get(9) || 0;
 
-      sumY += 3.5;
+      sumY += 3.2;
       doc.text(`CGST6 (6%)`, summaryX + 2, sumY);
       doc.text(cgst6.toFixed(2), summaryX + summaryW - 2, sumY, { align: 'right' });
 
-      sumY += 3.5;
+      sumY += 3.2;
       doc.text(`SGST6 (6%)`, summaryX + 2, sumY);
       doc.text(sgst6.toFixed(2), summaryX + summaryW - 2, sumY, { align: 'right' });
 
-      sumY += 3.5;
+      sumY += 3.2;
       doc.text(`CGST9 (9%)`, summaryX + 2, sumY);
       doc.text(cgst9.toFixed(2), summaryX + summaryW - 2, sumY, { align: 'right' });
 
-      sumY += 3.5;
+      sumY += 3.2;
       doc.text(`SGST9 (9%)`, summaryX + 2, sumY);
       doc.text(sgst9.toFixed(2), summaryX + summaryW - 2, sumY, { align: 'right' });
 
@@ -1056,50 +1056,51 @@ const Finance: React.FC = () => {
       const totalSGST = sgst6 + sgst9;
       const grandTotal = subTotal + totalCGST + totalSGST;
 
-      sumY += 4;
+      sumY += 3.8;
       doc.setFont('helvetica', 'bold');
       doc.setFillColor(BRAND_GREEN.r, BRAND_GREEN.g, BRAND_GREEN.b);
-      doc.rect(summaryX, sumY - 1, summaryW, 4.5, 'F');
+      doc.rect(summaryX, sumY - 2, summaryW, 4, 'F');
       doc.setTextColor(255, 255, 255);
-      doc.setFontSize(7);
-      doc.text('Total', summaryX + 2, sumY + 1.5);
-      doc.text(`Rs.${grandTotal.toFixed(2)}`, summaryX + summaryW - 2, sumY + 1.5, { align: 'right' });
+      doc.setFontSize(6.5);
+      doc.text('Total', summaryX + 2, sumY + 1);
+      doc.text(`Rs.${grandTotal.toFixed(2)}`, summaryX + summaryW - 2, sumY + 1, { align: 'right' });
 
-      yPos += 34;
+      yPos += 32;
+
       doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(7);
+      doc.setFontSize(6.5);
 
       const paid = invoice.amount_paid || 0;
       doc.text('Payment Made (-)', margin, yPos);
       doc.text(paid.toFixed(2), pageWidth - margin - 5, yPos, { align: 'right' });
 
-      yPos += 4;
+      yPos += 3.5;
       const balance = Math.max(0, grandTotal - paid);
       doc.text('Balance Due', margin, yPos);
       doc.text(`Rs.${balance.toFixed(2)}`, pageWidth - margin - 5, yPos, { align: 'right' });
 
-      yPos += 6;
+      yPos += 5;
 
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(7);
-      doc.text('Total In Words', margin, yPos);
-      yPos += 3;
-      doc.setFont('helvetica', 'normal');
       doc.setFontSize(6.5);
+      doc.text('Total In Words', margin, yPos);
+      yPos += 2.5;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(6);
       const words = convertNumberToWords(Math.round(grandTotal));
       const wrappedWords = doc.splitTextToSize(`Indian Rupee ${words} Only`, contentWidth - 50);
       doc.text(wrappedWords, margin, yPos);
 
-      yPos += wrappedWords.length * 2.5 + 3;
+      yPos += wrappedWords.length * 2.3 + 2;
 
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(7);
+      doc.setFontSize(6.5);
       doc.text('Notes', margin, yPos);
-      yPos += 3;
+      yPos += 2.5;
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(6);
-      const notesText = doc.splitTextToSize('IT IS A COMPUTER GENERATED INVOICE AND WILL NOT REQUIRE ANY SIGNATURES', contentWidth);
+      doc.setFontSize(5.5);
+      const notesText = doc.splitTextToSize('IT IS A COMPUTER GENERATED INVOICE AND WILL NOT REQUIRE ANY SIGNATURES', contentWidth - 10);
       doc.text(notesText, margin, yPos);
 
       yPos = pageHeight - 48;
