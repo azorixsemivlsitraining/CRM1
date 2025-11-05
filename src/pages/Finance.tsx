@@ -931,31 +931,33 @@ const Finance: React.FC = () => {
 
       yPos += Math.max(billHeight, 2.5 + (shipLines.length * 2.2)) + 3;
 
-      yPos += 2;
+      yPos += 3;
 
       doc.setFillColor(BRAND_GREEN.r, BRAND_GREEN.g, BRAND_GREEN.b);
       doc.setTextColor(255, 255, 255);
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(7);
+      doc.setFontSize(6.5);
 
-      const colWidths = [4.5, 30, 10, 7.5, 11, 9, 11, 9, 11, 18];
+      const colWidths = [4, 28, 10, 7, 10, 8, 10, 8, 10, 17];
       let colX = margin;
       const tableHeaders = ['#', 'Item & Description', 'HSN/SAC', 'Qty', 'Rate', 'CGST %', 'CGST Amt', 'SGST %', 'SGST Amt', 'Amount'];
 
       const tableTop = yPos;
-      doc.rect(margin, tableTop, contentWidth, 5.5, 'F');
+      const headerHeight = 5;
+      doc.rect(margin, tableTop, contentWidth, headerHeight, 'F');
 
+      colX = margin;
       tableHeaders.forEach((header, idx) => {
-        const align = idx === 0 || idx === 1 ? 'left' : 'center';
-        doc.text(header, colX, tableTop + 3.2, { align, maxWidth: colWidths[idx] });
+        const align = idx === 0 ? 'center' : (idx === 1 ? 'left' : 'center');
+        doc.text(header, colX + (colWidths[idx] / 2) - 0.5, tableTop + 3, { align, maxWidth: colWidths[idx] - 1 });
         colX += colWidths[idx];
       });
 
-      yPos += 5.5;
+      yPos += headerHeight;
 
       doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7);
+      doc.setFontSize(6.5);
 
       let subTotal = 0;
       const cgstByRate = new Map<number, number>();
@@ -970,38 +972,41 @@ const Finance: React.FC = () => {
         sgstByRate.set(item.sgst_percent || 0, (sgstByRate.get(item.sgst_percent || 0) || 0) + sgstAmt);
 
         const rowY = yPos;
-        colX = margin + 1;
-        doc.text(String(idx + 1), colX, rowY + 1.8, { align: 'center', maxWidth: colWidths[0] });
+        const rowHeight = 5.5;
+
+        colX = margin;
+        doc.text(String(idx + 1), colX + 1.5, rowY + 2.8, { align: 'center' });
         colX += colWidths[0];
 
-        doc.text('Renewable Energy Devices and its Spare Parts Design', colX, rowY + 1.8, { maxWidth: colWidths[1] });
+        const descText = 'Renewable Energy Devices';
+        doc.text(descText, colX + 1, rowY + 2.8);
         colX += colWidths[1];
 
-        doc.text(item.hsn || '008541', colX, rowY + 1.8, { align: 'center', maxWidth: colWidths[2] });
+        doc.text(item.hsn || '008541', colX + 3.5, rowY + 2.8, { align: 'center' });
         colX += colWidths[2];
 
-        doc.text((item.quantity || 0).toFixed(2), colX, rowY + 1.8, { align: 'center', maxWidth: colWidths[3] });
+        doc.text((item.quantity || 0).toFixed(2), colX + 2.5, rowY + 2.8, { align: 'center' });
         colX += colWidths[3];
 
-        doc.text((item.rate || 0).toFixed(2), colX, rowY + 1.8, { align: 'right', maxWidth: colWidths[4] });
+        doc.text((item.rate || 0).toFixed(2), colX + 4, rowY + 2.8, { align: 'right' });
         colX += colWidths[4];
 
-        doc.text(`${(item.cgst_percent || 0).toFixed(0)}%`, colX, rowY + 1.8, { align: 'center', maxWidth: colWidths[5] });
+        doc.text(`${(item.cgst_percent || 0).toFixed(0)}%`, colX + 2.5, rowY + 2.8, { align: 'center' });
         colX += colWidths[5];
 
-        doc.text(cgstAmt.toFixed(2), colX, rowY + 1.8, { align: 'right', maxWidth: colWidths[6] });
+        doc.text(cgstAmt.toFixed(2), colX + 4, rowY + 2.8, { align: 'right' });
         colX += colWidths[6];
 
-        doc.text(`${(item.sgst_percent || 0).toFixed(0)}%`, colX, rowY + 1.8, { align: 'center', maxWidth: colWidths[7] });
+        doc.text(`${(item.sgst_percent || 0).toFixed(0)}%`, colX + 2.5, rowY + 2.8, { align: 'center' });
         colX += colWidths[7];
 
-        doc.text(sgstAmt.toFixed(2), colX, rowY + 1.8, { align: 'right', maxWidth: colWidths[8] });
+        doc.text(sgstAmt.toFixed(2), colX + 4, rowY + 2.8, { align: 'right' });
         colX += colWidths[8];
 
         const itemTotal = amount + cgstAmt + sgstAmt;
-        doc.text(itemTotal.toFixed(2), colX, rowY + 1.8, { align: 'right', maxWidth: colWidths[9] });
+        doc.text(itemTotal.toFixed(2), colX + 6, rowY + 2.8, { align: 'right' });
 
-        yPos += 4.5;
+        yPos += rowHeight;
       });
 
       doc.setDrawColor(BORDER_COLOR.r, BORDER_COLOR.g, BORDER_COLOR.b);
