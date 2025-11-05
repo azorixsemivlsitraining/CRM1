@@ -919,29 +919,31 @@ const Finance: React.FC = () => {
 
       yPos += 13;
 
+      yPos += 2;
+
       doc.setFillColor(BRAND_GREEN.r, BRAND_GREEN.g, BRAND_GREEN.b);
       doc.setTextColor(255, 255, 255);
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(7.5);
+      doc.setFontSize(7);
 
-      const colWidths = [5, 32, 11, 8, 12, 10, 12, 10, 12, 20];
+      const colWidths = [4.5, 30, 10, 7.5, 11, 9, 11, 9, 11, 18];
       let colX = margin;
       const tableHeaders = ['#', 'Item & Description', 'HSN/SAC', 'Qty', 'Rate', 'CGST %', 'CGST Amt', 'SGST %', 'SGST Amt', 'Amount'];
 
       const tableTop = yPos;
-      doc.rect(margin, tableTop, contentWidth, 6, 'F');
+      doc.rect(margin, tableTop, contentWidth, 5.5, 'F');
 
       tableHeaders.forEach((header, idx) => {
         const align = idx === 0 || idx === 1 ? 'left' : 'center';
-        doc.text(header, colX, tableTop + 3.5, { align, maxWidth: colWidths[idx] });
+        doc.text(header, colX, tableTop + 3.2, { align, maxWidth: colWidths[idx] });
         colX += colWidths[idx];
       });
 
-      yPos += 6;
+      yPos += 5.5;
 
       doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7.5);
+      doc.setFontSize(7);
 
       let subTotal = 0;
       const cgstByRate = new Map<number, number>();
@@ -957,58 +959,58 @@ const Finance: React.FC = () => {
 
         const rowY = yPos;
         colX = margin + 1;
-        doc.text(String(idx + 1), colX, rowY + 2, { align: 'center', maxWidth: colWidths[0] });
+        doc.text(String(idx + 1), colX, rowY + 1.8, { align: 'center', maxWidth: colWidths[0] });
         colX += colWidths[0];
 
-        doc.text('Renewable Energy Devices and its Spare Parts Design', colX, rowY + 2, { maxWidth: colWidths[1] });
+        doc.text('Renewable Energy Devices and its Spare Parts Design', colX, rowY + 1.8, { maxWidth: colWidths[1] });
         colX += colWidths[1];
 
-        doc.text(item.hsn || '008541', colX, rowY + 2, { align: 'center', maxWidth: colWidths[2] });
+        doc.text(item.hsn || '008541', colX, rowY + 1.8, { align: 'center', maxWidth: colWidths[2] });
         colX += colWidths[2];
 
-        doc.text((item.quantity || 0).toFixed(2), colX, rowY + 2, { align: 'center', maxWidth: colWidths[3] });
+        doc.text((item.quantity || 0).toFixed(2), colX, rowY + 1.8, { align: 'center', maxWidth: colWidths[3] });
         colX += colWidths[3];
 
-        doc.text((item.rate || 0).toFixed(2), colX, rowY + 2, { align: 'right', maxWidth: colWidths[4] });
+        doc.text((item.rate || 0).toFixed(2), colX, rowY + 1.8, { align: 'right', maxWidth: colWidths[4] });
         colX += colWidths[4];
 
-        doc.text(`${(item.cgst_percent || 0).toFixed(0)}%`, colX, rowY + 2, { align: 'center', maxWidth: colWidths[5] });
+        doc.text(`${(item.cgst_percent || 0).toFixed(0)}%`, colX, rowY + 1.8, { align: 'center', maxWidth: colWidths[5] });
         colX += colWidths[5];
 
-        doc.text(cgstAmt.toFixed(2), colX, rowY + 2, { align: 'right', maxWidth: colWidths[6] });
+        doc.text(cgstAmt.toFixed(2), colX, rowY + 1.8, { align: 'right', maxWidth: colWidths[6] });
         colX += colWidths[6];
 
-        doc.text(`${(item.sgst_percent || 0).toFixed(0)}%`, colX, rowY + 2, { align: 'center', maxWidth: colWidths[7] });
+        doc.text(`${(item.sgst_percent || 0).toFixed(0)}%`, colX, rowY + 1.8, { align: 'center', maxWidth: colWidths[7] });
         colX += colWidths[7];
 
-        doc.text(sgstAmt.toFixed(2), colX, rowY + 2, { align: 'right', maxWidth: colWidths[8] });
+        doc.text(sgstAmt.toFixed(2), colX, rowY + 1.8, { align: 'right', maxWidth: colWidths[8] });
         colX += colWidths[8];
 
         const itemTotal = amount + cgstAmt + sgstAmt;
-        doc.text(itemTotal.toFixed(2), colX, rowY + 2, { align: 'right', maxWidth: colWidths[9] });
+        doc.text(itemTotal.toFixed(2), colX, rowY + 1.8, { align: 'right', maxWidth: colWidths[9] });
 
-        yPos += 5;
+        yPos += 4.5;
       });
 
       doc.setDrawColor(BORDER_COLOR.r, BORDER_COLOR.g, BORDER_COLOR.b);
       doc.setLineWidth(0.5);
       doc.rect(margin, tableTop, contentWidth, yPos - tableTop);
 
-      yPos += 2;
+      yPos += 4;
 
-      const summaryX = pageWidth - margin - 65;
-      const summaryW = 60;
+      const summaryX = pageWidth - margin - 62;
+      const summaryW = 58;
       doc.setFillColor(240, 240, 240);
-      doc.rect(summaryX, yPos, summaryW, 35, 'F');
+      doc.rect(summaryX, yPos, summaryW, 32, 'F');
       doc.setLineWidth(0.5);
       doc.setDrawColor(BORDER_COLOR.r, BORDER_COLOR.g, BORDER_COLOR.b);
-      doc.rect(summaryX, yPos, summaryW, 35);
+      doc.rect(summaryX, yPos, summaryW, 32);
 
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7.5);
+      doc.setFontSize(7);
       doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
 
-      let sumY = yPos + 3;
+      let sumY = yPos + 2.5;
       doc.text('Sub Total', summaryX + 2, sumY);
       doc.text(subTotal.toFixed(2), summaryX + summaryW - 2, sumY, { align: 'right' });
 
@@ -1017,19 +1019,19 @@ const Finance: React.FC = () => {
       const cgst9 = cgstByRate.get(9) || 0;
       const sgst9 = sgstByRate.get(9) || 0;
 
-      sumY += 4;
+      sumY += 3.5;
       doc.text(`CGST6 (6%)`, summaryX + 2, sumY);
       doc.text(cgst6.toFixed(2), summaryX + summaryW - 2, sumY, { align: 'right' });
 
-      sumY += 4;
+      sumY += 3.5;
       doc.text(`SGST6 (6%)`, summaryX + 2, sumY);
       doc.text(sgst6.toFixed(2), summaryX + summaryW - 2, sumY, { align: 'right' });
 
-      sumY += 4;
+      sumY += 3.5;
       doc.text(`CGST9 (9%)`, summaryX + 2, sumY);
       doc.text(cgst9.toFixed(2), summaryX + summaryW - 2, sumY, { align: 'right' });
 
-      sumY += 4;
+      sumY += 3.5;
       doc.text(`SGST9 (9%)`, summaryX + 2, sumY);
       doc.text(sgst9.toFixed(2), summaryX + summaryW - 2, sumY, { align: 'right' });
 
@@ -1037,18 +1039,19 @@ const Finance: React.FC = () => {
       const totalSGST = sgst6 + sgst9;
       const grandTotal = subTotal + totalCGST + totalSGST;
 
-      sumY += 5;
+      sumY += 4;
       doc.setFont('helvetica', 'bold');
       doc.setFillColor(BRAND_GREEN.r, BRAND_GREEN.g, BRAND_GREEN.b);
-      doc.rect(summaryX, sumY, summaryW, 5, 'F');
+      doc.rect(summaryX, sumY - 1, summaryW, 4.5, 'F');
       doc.setTextColor(255, 255, 255);
-      doc.text('Total', summaryX + 2, sumY + 3.5);
-      doc.text(`Rs.${grandTotal.toFixed(2)}`, summaryX + summaryW - 2, sumY + 3.5, { align: 'right' });
+      doc.setFontSize(7);
+      doc.text('Total', summaryX + 2, sumY + 1.5);
+      doc.text(`Rs.${grandTotal.toFixed(2)}`, summaryX + summaryW - 2, sumY + 1.5, { align: 'right' });
 
-      yPos += 37;
+      yPos += 34;
       doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(7.5);
+      doc.setFontSize(7);
 
       const paid = invoice.amount_paid || 0;
       doc.text('Payment Made (-)', margin, yPos);
@@ -1062,36 +1065,36 @@ const Finance: React.FC = () => {
       yPos += 6;
 
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(7.5);
+      doc.setFontSize(7);
       doc.text('Total In Words', margin, yPos);
       yPos += 3;
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7);
+      doc.setFontSize(6.5);
       const words = convertNumberToWords(Math.round(grandTotal));
       const wrappedWords = doc.splitTextToSize(`Indian Rupee ${words} Only`, contentWidth - 50);
       doc.text(wrappedWords, margin, yPos);
 
-      yPos += wrappedWords.length * 3 + 3;
+      yPos += wrappedWords.length * 2.5 + 3;
 
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(7.5);
+      doc.setFontSize(7);
       doc.text('Notes', margin, yPos);
       yPos += 3;
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(6.5);
+      doc.setFontSize(6);
       const notesText = doc.splitTextToSize('IT IS A COMPUTER GENERATED INVOICE AND WILL NOT REQUIRE ANY SIGNATURES', contentWidth);
       doc.text(notesText, margin, yPos);
 
-      yPos = pageHeight - 50;
+      yPos = pageHeight - 48;
 
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(7.5);
+      doc.setFontSize(7);
       doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
       doc.text('Terms & Conditions', margin, yPos);
 
       yPos += 3;
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(6);
+      doc.setFontSize(5.5);
       doc.setTextColor(TEXT_MUTED.r, TEXT_MUTED.g, TEXT_MUTED.b);
       const commissioning = `${String(created.getDate()).padStart(2, '0')}.${String(created.getMonth() + 1).padStart(2, '0')}.${created.getFullYear()}`;
       const tcLines = [
@@ -1099,41 +1102,41 @@ const Finance: React.FC = () => {
         `Warranty starts from the date of Plant commissioning ${commissioning}`
       ];
       tcLines.forEach((line) => {
-        const wrappedLines = doc.splitTextToSize(line, contentWidth);
+        const wrappedLines = doc.splitTextToSize(line, contentWidth - 40);
         doc.text(wrappedLines, margin, yPos);
-        yPos += wrappedLines.length * 2 + 1;
+        yPos += wrappedLines.length * 2;
       });
 
-      yPos = pageHeight - 28;
+      yPos = pageHeight - 24;
 
       // Add stamp
       try {
         const stampData = await fetchImageAsDataURL(FOOTER_SIGN_STAMP_URL);
         if (stampData) {
-          doc.addImage(stampData, 'PNG', pageWidth - margin - 35, yPos - 8, 30, 16);
+          doc.addImage(stampData, 'PNG', pageWidth - margin - 32, yPos - 10, 28, 15);
         }
       } catch (err) {
         console.error('Error loading stamp:', err);
       }
 
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(6);
+      doc.setFontSize(5.5);
       doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
 
       doc.setDrawColor(BORDER_COLOR.r, BORDER_COLOR.g, BORDER_COLOR.b);
       doc.setLineWidth(0.3);
-      doc.line(margin, yPos, margin + 30, yPos);
-      doc.text('Authorized Signature', margin + 15, yPos + 2, { align: 'center' });
+      doc.line(margin, yPos, margin + 28, yPos);
+      doc.text('Authorized Signature', margin + 14, yPos + 2, { align: 'center' });
 
       const signRightX = pageWidth - margin - 50;
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(6.5);
-      doc.text('For AXISO GREEN ENERGIES PVT. LTD.', signRightX, yPos - 8);
+      doc.setFontSize(6);
+      doc.text('For AXISO GREEN ENERGIES PVT. LTD.', signRightX, yPos - 10);
 
       doc.setFont('helvetica', 'normal');
-      doc.line(signRightX, yPos, signRightX + 35, yPos);
-      doc.setFontSize(6);
-      doc.text('Manager', signRightX + 17.5, yPos + 2, { align: 'center' });
+      doc.line(signRightX + 1, yPos, signRightX + 33, yPos);
+      doc.setFontSize(5.5);
+      doc.text('Manager', signRightX + 17, yPos + 2, { align: 'center' });
 
       doc.save(`Tax_Invoice_${invoiceNumber}.pdf`);
     } catch (error) {
