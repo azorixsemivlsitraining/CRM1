@@ -887,37 +887,49 @@ const Finance: React.FC = () => {
 
       yPos += 21;
 
+      yPos += 3;
+
       const billToX = margin;
       const billToW = contentWidth / 2 - 1;
       const shipToX = margin + billToW + 2;
 
+      // Bill To and Ship To Headers
       doc.setFillColor(BRAND_GREEN.r, BRAND_GREEN.g, BRAND_GREEN.b);
-      doc.rect(billToX, yPos, billToW, 4.5, 'F');
+      doc.rect(billToX, yPos, billToW, 4, 'F');
       doc.setTextColor(255, 255, 255);
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(7);
-      doc.text('Bill To', billToX + 2, yPos + 2.8);
+      doc.text('Bill To', billToX + 2, yPos + 2.5);
 
       doc.setFillColor(BRAND_GREEN.r, BRAND_GREEN.g, BRAND_GREEN.b);
-      doc.rect(shipToX, yPos, billToW, 4.5, 'F');
-      doc.text('Ship To', shipToX + 2, yPos + 2.8);
+      doc.rect(shipToX, yPos, billToW, 4, 'F');
+      doc.text('Ship To', shipToX + 2, yPos + 2.5);
 
-      yPos += 5.5;
+      yPos += 5;
 
+      // Bill To Content
       doc.setTextColor(TEXT_PRIMARY.r, TEXT_PRIMARY.g, TEXT_PRIMARY.b);
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(6.5);
+      doc.setFontSize(6);
       const billToName = invoice.customer_name || 'Mrs. Tanuja j';
       const billToAddr = invoice.place_of_supply || 'Hno 15-1/22/1,sai Srinivasa Nagar I, Dammaiguda, Keesara 500083 India';
+
+      let billHeight = 2;
       doc.text(billToName, billToX + 2, yPos);
       const billLines = doc.splitTextToSize(billToAddr, billToW - 4);
-      doc.text(billLines, billToX + 2, yPos + 3, { maxWidth: billToW - 4 });
+      if (billLines.length > 0) {
+        doc.text(billLines, billToX + 2, yPos + 2.5, { maxWidth: billToW - 4 });
+        billHeight = 2.5 + (billLines.length * 2.2);
+      }
 
+      // Ship To Content (same y position as Bill To)
       doc.text(billToName, shipToX + 2, yPos);
       const shipLines = doc.splitTextToSize(billToAddr, billToW - 4);
-      doc.text(shipLines, shipToX + 2, yPos + 3, { maxWidth: billToW - 4 });
+      if (shipLines.length > 0) {
+        doc.text(shipLines, shipToX + 2, yPos + 2.5, { maxWidth: billToW - 4 });
+      }
 
-      yPos += 13;
+      yPos += Math.max(billHeight, 2.5 + (shipLines.length * 2.2)) + 3;
 
       yPos += 2;
 
