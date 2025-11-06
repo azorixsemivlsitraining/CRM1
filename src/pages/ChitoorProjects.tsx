@@ -949,6 +949,8 @@ const ChitoorProjects = () => {
                     placeholder="Select lead source"
                   >
                     <option value="Online">Online</option>
+                    <option value="Link">Link</option>
+                    <option value="WhatsApp">WhatsApp</option>
                     <option value="Referral">Referral</option>
                     <option value="Advertisement">Advertisement</option>
                     <option value="Direct">Direct</option>
