@@ -1090,7 +1090,7 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
                   >
                     <option value="TG">TG (Telangana)</option>
                     <option value="AP">AP (Andhra Pradesh)</option>
-                    <option disabled>─────────────</option>
+                    <option disabled>─��───────────</option>
                     <option value="Andhra Pradesh">Andhra Pradesh</option>
                     <option value="Arunachal Pradesh">Arunachal Pradesh</option>
                     <option value="Assam">Assam</option>
@@ -1222,6 +1222,8 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
                     placeholder="Select lead source"
                   >
                     <option value="Online">Online</option>
+                    <option value="Link">Link</option>
+                    <option value="WhatsApp">WhatsApp</option>
                     <option value="Referral">Referral</option>
                     <option value="Advertisement">Advertisement</option>
                     <option value="Direct">Direct</option>
