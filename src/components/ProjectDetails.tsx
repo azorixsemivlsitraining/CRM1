@@ -985,6 +985,8 @@ return (
               <Select name="lead_source" value={projectEditForm.lead_source} onChange={handleProjectEditChange}>
                 <option value="">Select lead source</option>
                 <option value="Online">Online</option>
+                <option value="Link">Link</option>
+                <option value="WhatsApp">WhatsApp</option>
                 <option value="Referral">Referral</option>
                 <option value="Advertisement">Advertisement</option>
                 <option value="Direct">Direct</option>
