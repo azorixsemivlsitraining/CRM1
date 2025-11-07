@@ -953,7 +953,9 @@ const ChitoorProjectsTile = ({
                   </Td>
                   <Td>{dateFormatter(record.date)}</Td>
                   <Td>{record.capacity_kw ?? '—'}</Td>
-                  <Td textTransform="capitalize">{record.location || '—'}</Td>
+                  <Td textTransform="capitalize">
+                    {record.address_mandal_village || (record.village ? `${record.village}${record.mandal ? `, ${record.mandal}` : ''}` : (record.location || '—'))}
+                  </Td>
                   <Td>{record.power_bill_number || '—'}</Td>
                   <Td>{record.project_cost != null ? currencyFormatter.format(record.project_cost) : '—'}</Td>
                   <Td>{record.site_visit_status || '—'}</Td>
