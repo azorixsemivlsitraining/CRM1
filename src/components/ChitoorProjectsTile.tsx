@@ -1232,7 +1232,7 @@ const ChitoorProjectsTile = ({
                         <Table variant="simple" size="sm">
                           <Thead bg="gray.50">
                             <Tr>
-                              <Th color="gray.600">No.</Th>
+                              <Th color="gray.600">Service No.</Th>
                               <Th color="gray.600">Project</Th>
                           <Th color="gray.600">Date</Th>
                           <Th color="gray.600">Capacity (kW)</Th>
