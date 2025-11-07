@@ -1232,7 +1232,6 @@ const ChitoorProjectsTile = ({
                         <Table variant="simple" size="sm">
                           <Thead bg="gray.50">
                             <Tr>
-                              <Th color="gray.600">Service No.</Th>
                               <Th color="gray.600">Project</Th>
                           <Th color="gray.600">Date</Th>
                           <Th color="gray.600">Capacity (kW)</Th>
@@ -1246,7 +1245,7 @@ const ChitoorProjectsTile = ({
                           <Tbody>
                             {projects.length === 0 ? (
                               <Tr>
-                                <Td colSpan={9}>
+                                <Td colSpan={8}>
                                   <Text textAlign="center" color="gray.500" py={6}>No projects available.</Text>
                                 </Td>
                               </Tr>
@@ -1260,7 +1259,6 @@ const ChitoorProjectsTile = ({
                                   }}
                                   cursor="pointer"
                                 >
-                                  <Td>{p.service_number ?? p.serial_no ?? p.id ?? idx + 1}</Td>
                                   <Td>{p.customer_name || p.project_name || '—'}</Td>
                                   <Td>{dateFormatter(p.date_of_order || p.date || p.created_at)}</Td>
                                   <Td>{p.capacity ?? p.capacity_kw ?? '—'}</Td>
