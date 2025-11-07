@@ -1260,7 +1260,7 @@ const ChitoorProjectsTile = ({
                                   }}
                                   cursor="pointer"
                                 >
-                                  <Td>{idx + 1}</Td>
+                                  <Td>{p.service_number ?? p.serial_no ?? p.id ?? idx + 1}</Td>
                                   <Td>{p.customer_name || p.project_name || '—'}</Td>
                                   <Td>{dateFormatter(p.date_of_order || p.date || p.created_at)}</Td>
                                   <Td>{p.capacity ?? p.capacity_kw ?? '—'}</Td>
