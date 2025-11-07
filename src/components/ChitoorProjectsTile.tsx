@@ -183,6 +183,12 @@ const hasMeaningfulValue = (value: unknown): boolean => {
 };
 
 const prettifyKey = (key: string): string => {
+  // Special mappings for specific field names
+  const normalized = key.toLowerCase();
+  if (normalized === 'serial_no' || normalized === 'serialno' || normalized === 'serial') {
+    return 'Service No.';
+  }
+
   const spaced = key
     .replace(/_/g, ' ')
     .replace(/([a-z])([A-Z])/g, '$1 $2')
