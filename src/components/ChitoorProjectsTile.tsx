@@ -428,6 +428,7 @@ const ChitoorProjectsTile = ({
       try {
         // Keep logs concise to avoid noisy FullStory stack traces
         console.warn('Failed to load Chitoor approvals:', message);
+        console.error('Full error object for Chitoor approvals fetch:', error);
       } catch {}
 
       setApprovals([]);
