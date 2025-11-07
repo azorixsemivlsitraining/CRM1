@@ -183,6 +183,12 @@ const hasMeaningfulValue = (value: unknown): boolean => {
 };
 
 const prettifyKey = (key: string): string => {
+  // Special mappings for specific field names
+  const normalized = key.toLowerCase();
+  if (normalized === 'serial_no' || normalized === 'serialno' || normalized === 'serial') {
+    return 'Service No.';
+  }
+
   const spaced = key
     .replace(/_/g, ' ')
     .replace(/([a-z])([A-Z])/g, '$1 $2')
@@ -237,7 +243,12 @@ const formatDynamicValue = (key: string, value: any): string => {
     if (!trimmed) {
       return '—';
     }
-    if (dateLikePattern.test(key) || isLikelyDateValue(trimmed)) {
+    const k = (key || '').toLowerCase();
+    // Never treat these identifiers as dates
+    const isServiceOrSerial = k.includes('service_number') || k.includes('service_no') || k.startsWith('serial');
+    // Numeric strings or number groups like 8890/6160 should stay as-is
+    const looksLikePureNumberOrId = /^[0-9]+(?:\/[0-9]+)*$/.test(trimmed);
+    if (!isServiceOrSerial && !looksLikePureNumberOrId && (dateLikePattern.test(key) || isLikelyDateValue(trimmed))) {
       return dateFormatter(trimmed);
     }
     return trimmed;
@@ -417,6 +428,7 @@ const ChitoorProjectsTile = ({
       try {
         // Keep logs concise to avoid noisy FullStory stack traces
         console.warn('Failed to load Chitoor approvals:', message);
+        console.error('Full error object for Chitoor approvals fetch:', error);
       } catch {}
 
       setApprovals([]);
@@ -652,6 +664,10 @@ const ChitoorProjectsTile = ({
     'village',
     'power_bill_number',
     'payment_amount',
+    'service_status',
+    'serial_no',
+    'serialno',
+    'serial',
   ]);
 
   const BarComparisonChart: React.FC<{ months: string[]; a: number[]; b: number[]; labels: [string, string]; colors?: [string, string]; }> = ({ months, a, b, labels, colors = ['green.600', 'green.300'] }) => {
@@ -949,13 +965,21 @@ const ChitoorProjectsTile = ({
                   </Td>
                   <Td>{dateFormatter(record.date)}</Td>
                   <Td>{record.capacity_kw ?? '—'}</Td>
-                  <Td textTransform="capitalize">{record.location || '—'}</Td>
+                  <Td textTransform="capitalize">
+                    {record.address_mandal_village || (record.village ? `${record.village}${record.mandal ? `, ${record.mandal}` : ''}` : (record.location || '—'))}
+                  </Td>
                   <Td>{record.power_bill_number || '—'}</Td>
                   <Td>{record.project_cost != null ? currencyFormatter.format(record.project_cost) : '—'}</Td>
                   <Td>{record.site_visit_status || '—'}</Td>
                   <Td>{record.payment_amount != null ? currencyFormatter.format(record.payment_amount) : '—'}</Td>
                   {dynamicFields.map((field) => {
-                    const raw = record[field.key];
+                    const normalizedFieldKey = (field.key || '').toLowerCase();
+                    // If the dynamic field is a serial/serial_no, prefer the full service_number when present
+                    let raw = record[field.key];
+                    if ((normalizedFieldKey === 'serial_no' || normalizedFieldKey === 'serialno' || normalizedFieldKey === 'serial') && hasMeaningfulValue(record.service_number)) {
+                      raw = record.service_number;
+                    }
+
                     // gather possible urls from the field (string with commas, array, or single)
                     let candidates: string[] = [];
                     if (Array.isArray(raw)) {
@@ -1215,7 +1239,7 @@ const ChitoorProjectsTile = ({
                         <Table variant="simple" size="sm">
                           <Thead bg="gray.50">
                             <Tr>
-                              <Th color="gray.600">No.</Th>
+                              <Th color="gray.600">Service No.</Th>
                               <Th color="gray.600">Project</Th>
                           <Th color="gray.600">Date</Th>
                           <Th color="gray.600">Capacity (kW)</Th>
@@ -1243,11 +1267,11 @@ const ChitoorProjectsTile = ({
                                   }}
                                   cursor="pointer"
                                 >
-                                  <Td>{idx + 1}</Td>
+                                  <Td>{p.service_number ?? p.serial_no ?? p.id ?? '—'}</Td>
                                   <Td>{p.customer_name || p.project_name || '—'}</Td>
                                   <Td>{dateFormatter(p.date_of_order || p.date || p.created_at)}</Td>
                                   <Td>{p.capacity ?? p.capacity_kw ?? '—'}</Td>
-                                  <Td>{p.address_mandal_village || p.location || '���'}</Td>
+                                  <Td>{p.address_mandal_village || p.location || '-'}</Td>
                                   <Td>{p.project_cost ? currencyFormatter.format(p.project_cost) : '—'}</Td>
                                   <Td>{p.edited_at ? `${new Date(p.edited_at).toLocaleString()}${p.edited_by ? ` by ${p.edited_by}` : ''}` : '—'}</Td>
                                   <Td>{p.project_status || p.service_status || '—'}</Td>
