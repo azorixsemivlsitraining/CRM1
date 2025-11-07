@@ -652,6 +652,10 @@ const ChitoorProjectsTile = ({
     'village',
     'power_bill_number',
     'payment_amount',
+    'service_status',
+    'serial_no',
+    'serialno',
+    'serial',
   ]);
 
   const BarComparisonChart: React.FC<{ months: string[]; a: number[]; b: number[]; labels: [string, string]; colors?: [string, string]; }> = ({ months, a, b, labels, colors = ['green.600', 'green.300'] }) => {
