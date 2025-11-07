@@ -973,7 +973,13 @@ const ChitoorProjectsTile = ({
                   <Td>{record.site_visit_status || '—'}</Td>
                   <Td>{record.payment_amount != null ? currencyFormatter.format(record.payment_amount) : '—'}</Td>
                   {dynamicFields.map((field) => {
-                    const raw = record[field.key];
+                    const normalizedFieldKey = (field.key || '').toLowerCase();
+                    // If the dynamic field is a serial/serial_no, prefer the full service_number when present
+                    let raw = record[field.key];
+                    if ((normalizedFieldKey === 'serial_no' || normalizedFieldKey === 'serialno' || normalizedFieldKey === 'serial') && hasMeaningfulValue(record.service_number)) {
+                      raw = record.service_number;
+                    }
+
                     // gather possible urls from the field (string with commas, array, or single)
                     let candidates: string[] = [];
                     if (Array.isArray(raw)) {
