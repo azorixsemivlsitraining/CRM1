@@ -243,7 +243,12 @@ const formatDynamicValue = (key: string, value: any): string => {
     if (!trimmed) {
       return '—';
     }
-    if (dateLikePattern.test(key) || isLikelyDateValue(trimmed)) {
+    const k = (key || '').toLowerCase();
+    // Never treat these identifiers as dates
+    const isServiceOrSerial = k.includes('service_number') || k.includes('service_no') || k.startsWith('serial');
+    // Numeric strings or number groups like 8890/6160 should stay as-is
+    const looksLikePureNumberOrId = /^[0-9]+(?:\/[0-9]+)*$/.test(trimmed);
+    if (!isServiceOrSerial && !looksLikePureNumberOrId && (dateLikePattern.test(key) || isLikelyDateValue(trimmed))) {
       return dateFormatter(trimmed);
     }
     return trimmed;
@@ -1259,7 +1264,7 @@ const ChitoorProjectsTile = ({
                                   <Td>{p.customer_name || p.project_name || '—'}</Td>
                                   <Td>{dateFormatter(p.date_of_order || p.date || p.created_at)}</Td>
                                   <Td>{p.capacity ?? p.capacity_kw ?? '—'}</Td>
-                                  <Td>{p.address_mandal_village || p.location || '���'}</Td>
+                                  <Td>{p.address_mandal_village || p.location || '-'}</Td>
                                   <Td>{p.project_cost ? currencyFormatter.format(p.project_cost) : '—'}</Td>
                                   <Td>{p.edited_at ? `${new Date(p.edited_at).toLocaleString()}${p.edited_by ? ` by ${p.edited_by}` : ''}` : '—'}</Td>
                                   <Td>{p.project_status || p.service_status || '—'}</Td>
