@@ -183,6 +183,12 @@ const hasMeaningfulValue = (value: unknown): boolean => {
 };
 
 const prettifyKey = (key: string): string => {
+  // Special mappings for specific field names
+  const normalized = key.toLowerCase();
+  if (normalized === 'serial_no' || normalized === 'serialno' || normalized === 'serial') {
+    return 'Service No.';
+  }
+
   const spaced = key
     .replace(/_/g, ' ')
     .replace(/([a-z])([A-Z])/g, '$1 $2')
@@ -652,6 +658,10 @@ const ChitoorProjectsTile = ({
     'village',
     'power_bill_number',
     'payment_amount',
+    'service_status',
+    'serial_no',
+    'serialno',
+    'serial',
   ]);
 
   const BarComparisonChart: React.FC<{ months: string[]; a: number[]; b: number[]; labels: [string, string]; colors?: [string, string]; }> = ({ months, a, b, labels, colors = ['green.600', 'green.300'] }) => {
@@ -949,7 +959,9 @@ const ChitoorProjectsTile = ({
                   </Td>
                   <Td>{dateFormatter(record.date)}</Td>
                   <Td>{record.capacity_kw ?? '—'}</Td>
-                  <Td textTransform="capitalize">{record.location || '—'}</Td>
+                  <Td textTransform="capitalize">
+                    {record.address_mandal_village || (record.village ? `${record.village}${record.mandal ? `, ${record.mandal}` : ''}` : (record.location || '—'))}
+                  </Td>
                   <Td>{record.power_bill_number || '—'}</Td>
                   <Td>{record.project_cost != null ? currencyFormatter.format(record.project_cost) : '—'}</Td>
                   <Td>{record.site_visit_status || '—'}</Td>

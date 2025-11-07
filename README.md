@@ -32,7 +32,7 @@ A project management CRM system for Axiso Green Energy, built with React, TypeSc
 17. Completion document shared
 18. Warranty card shared
 19. Customer feedback taken
-20. Final payment(done)/completed
+20. Final payment(done)/complete
 
 ## Setup
 
