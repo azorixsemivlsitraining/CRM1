@@ -476,19 +476,44 @@ const ChitoorProjects = () => {
             Create New Chitoor Project
           </Button>
         </Flex>
-        const SearchSection: React.FC<{
-  query: string; setQuery: (v: string) => void;
-  statusFilter: string; setStatusFilter: (v: string) => void;
-  mandalFilter: string; setMandalFilter: (v: string) => void;
-  villageFilter: string; setVillageFilter: (v: string) => void;
+const SearchSection: React.FC<{
+  query: string;
+  setQuery: (v: string) => void;
+  statusFilter: string;
+  setStatusFilter: (v: string) => void;
+  mandalFilter: string;
+  setMandalFilter: (v: string) => void;
+  villageFilter: string;
+  setVillageFilter: (v: string) => void;
   count: number;
-}> = ({ query, setQuery, statusFilter, setStatusFilter, mandalFilter, setMandalFilter, villageFilter, setVillageFilter, count }) => {
-  const statuses = ['All', 'Pending', 'In Progress', 'Material Sent', 'Installation Completed', 'Completed', 'On Hold'];
+}> = ({
+  query,
+  setQuery,
+  statusFilter,
+  setStatusFilter,
+  mandalFilter,
+  setMandalFilter,
+  villageFilter,
+  setVillageFilter,
+  count,
+}) => {
+  const statuses = [
+    'All',
+    'Pending',
+    'In Progress',
+    'Material Sent',
+    'Installation Completed',
+    'Completed',
+    'On Hold',
+  ];
+
   return (
     <div className="p-6 bg-white border-b border-slate-100">
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-end">
         <div className="lg:col-span-2 space-y-2">
-          <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Search Lead</label>
+          <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">
+            Search Lead
+          </label>
           <div className="relative">
             <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400">
               <i className="fas fa-search"></i>
@@ -502,19 +527,29 @@ const ChitoorProjects = () => {
             />
           </div>
         </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 lg:col-span-2">
           <div className="space-y-2">
-            <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Status</label>
+            <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">
+              Status
+            </label>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               className="block w-full py-3 px-4 border border-slate-200 rounded-2xl bg-slate-50 focus:outline-none focus:ring-4 focus:ring-blue-500/10 transition-all text-sm font-bold text-slate-700 appearance-none"
             >
-              {statuses.map(s => <option key={s} value={s}>{s}</option>)}
+              {statuses.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
             </select>
           </div>
+
           <div className="space-y-2">
-            <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Mandal</label>
+            <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">
+              Mandal
+            </label>
             <input
               type="text"
               placeholder="Filter mandal..."
@@ -523,8 +558,11 @@ const ChitoorProjects = () => {
               onChange={(e) => setMandalFilter(e.target.value)}
             />
           </div>
+
           <div className="space-y-2">
-            <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Village</label>
+            <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">
+              Village
+            </label>
             <input
               type="text"
               placeholder="Filter village..."
@@ -535,15 +573,24 @@ const ChitoorProjects = () => {
           </div>
         </div>
       </div>
+
       <div className="mt-6 flex items-center justify-between pt-4 border-t border-slate-50">
         <div className="flex items-center gap-3">
           <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-[11px] font-black shadow-lg shadow-blue-200">
             {count}
           </span>
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Results Found</span>
+          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+            Results Found
+          </span>
         </div>
-        <button 
-          onClick={() => { setQuery(''); setStatusFilter('All'); setMandalFilter(''); setVillageFilter(''); }}
+
+        <button
+          onClick={() => {
+            setQuery('');
+            setStatusFilter('All');
+            setMandalFilter('');
+            setVillageFilter('');
+          }}
           className="text-blue-600 hover:text-blue-800 text-[11px] font-black uppercase tracking-widest flex items-center gap-2 group"
         >
           <i className="fas fa-rotate-left transition-transform group-hover:-rotate-90"></i>
@@ -553,6 +600,7 @@ const ChitoorProjects = () => {
     </div>
   );
 };
+
 
         {/* Projects Table */}
         <Card bg={cardBg} border="1px solid" borderColor={borderColor}>
