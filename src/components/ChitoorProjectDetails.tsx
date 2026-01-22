@@ -1,0 +1,1327 @@
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import {
+  Box,
+  Text,
+  Button,
+  VStack,
+  HStack,
+  Flex,
+  Badge,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  Input,
+  FormControl,
+  FormLabel,
+  useDisclosure,
+  Card,
+  CardHeader,
+  CardBody,
+  SimpleGrid,
+  useToast,
+  TableContainer,
+  Table,
+  Thead,
+  Tr,
+  Th,
+  Tbody,
+  Td,
+  ModalCloseButton,
+  Select,
+  Divider,
+  IconButton,
+  Tooltip,
+  Image,
+} from '@chakra-ui/react';
+import { supabase } from '../lib/supabase';
+import { formatSupabaseError } from '../utils/error';
+import { CHITOOR_PROJECT_STAGES } from '../lib/constants';
+import { useAuth } from '../context/AuthContext';
+import { ArrowBackIcon, EditIcon, CalendarIcon, DeleteIcon } from '@chakra-ui/icons';
+import { generatePaymentReceiptPDF } from './PaymentReceipt';
+
+interface ChitoorProject {
+  id: string;
+  customer_name: string;
+  mobile_number: string;
+  date_of_order: string;
+  service_number?: string;
+  address_mandal_village: string;
+  capacity: number;
+  project_cost: number;
+  amount_received?: number;
+  subsidy_scope?: string;
+  velugu_officer_payments?: number;
+  project_status?: string;
+  material_sent_date?: string;
+  balamuragan_payment?: number;
+  created_at?: string;
+  edited_by?: string | null;
+  edited_at?: string | null;
+  lead_source?: string;
+  lead_finished_by?: string;
+  lead_finished_by_name?: string;
+}
+
+interface PaymentHistory {
+  id: string;
+  amount: number;
+  payment_date: string;
+  payment_mode?: string;
+  created_at: string;
+}
+
+const ChitoorProjectDetails = () => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const toast = useToast();
+  const { isAuthenticated, user } = useAuth();
+  const { isOpen: isPaymentOpen, onOpen: onPaymentOpen, onClose: onPaymentClose } = useDisclosure();
+  const { isOpen: isEditOpen, onOpen: onEditOpen, onClose: onEditClose } = useDisclosure();
+  const { isOpen: isCustomerEditOpen, onOpen: onCustomerEditOpen, onClose: onCustomerEditClose } = useDisclosure();
+
+  const [project, setProject] = useState<ChitoorProject | null>(null);
+  const [projectImages, setProjectImages] = useState<any[]>([]);
+  const [approvalFallback, setApprovalFallback] = useState<any | null>(null);
+  const [paymentHistory, setPaymentHistory] = useState<PaymentHistory[]>([]);
+  const [paymentsTable, setPaymentsTable] = useState<'payment_history' | 'chitoor_payment_history'>('payment_history');
+  const [loading, setLoading] = useState(true);
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
+  const [paymentMode, setPaymentMode] = useState('Cash');
+  const [processingPayment, setProcessingPayment] = useState(false);
+  const [customerFormData, setCustomerFormData] = useState({
+    customer_name: '',
+    mobile_number: '',
+    address_mandal_village: '',
+    service_number: '',
+  });
+
+  const [projectFormData, setProjectFormData] = useState({
+    capacity: 0,
+    project_cost: 0,
+    subsidy_scope: '',
+    material_sent_date: '',
+    project_status: '' as string | undefined,
+    lead_source: '',
+    lead_finished_by: '',
+    lead_finished_by_name: '',
+  });
+
+  const location = useLocation();
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const edit = params.get('edit');
+    if (edit === 'customer') {
+      onCustomerEditOpen();
+    } else if (edit === 'project') {
+      onEditOpen();
+    }
+  }, [location.search]);
+
+  const fetchProjectDetails = async () => {
+    if (!id) return;
+
+    try {
+      setLoading(true);
+
+      // If the route id encodes an approval fallback (prefix 'approval-<uuid>'), fetch the approval record instead
+      if (typeof id === 'string' && id.startsWith('approval-')) {
+        const potentialApprovalId = id.replace(/^approval-/, '');
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (uuidRegex.test(potentialApprovalId)) {
+          try {
+            const { data: approvalRows, error: approvalErr } = await supabase
+              .from('chitoor_project_approvals')
+              .select('*')
+              .eq('id', potentialApprovalId)
+              .limit(1);
+            if (!approvalErr && approvalRows && Array.isArray(approvalRows) && approvalRows.length > 0) {
+              setApprovalFallback(approvalRows[0]);
+              toast({ title: 'Approval record', description: 'Showing approval record for this id.', status: 'info', duration: 5000 });
+              setLoading(false);
+              return;
+            }
+          } catch (e) {
+            console.warn('Error fetching approval fallback by id', e);
+          }
+        } else {
+          // malformed uuid after prefix — avoid querying projects with invalid UUID
+          toast({ title: 'Invalid approval id', description: 'Approval identifier is malformed.', status: 'error', duration: 5000 });
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Fetch project details
+      // Fetch project details robustly (handle 0/1/multiple rows)
+      const res = await supabase
+        .from('chitoor_projects')
+        .select('*')
+        .eq('id', id);
+
+      const projectError = res.error;
+      const projectDataRaw = res.data;
+
+      if (projectError) {
+        try {
+          // print full error details to console for debugging
+          console.error('Error fetching project:', JSON.stringify(projectError, Object.getOwnPropertyNames(projectError), 2));
+        } catch (e) {
+          console.error('Error fetching project (non-serializable):', projectError);
+        }
+
+        // If navigation included an approvalRecord, show it as fallback instead of failing hard
+        const approvalRec = (location && (location as any).state && (location as any).state.approvalRecord) || null;
+        if (approvalRec) {
+          setApprovalFallback(approvalRec);
+          toast({
+            title: 'Project not found',
+            description: 'Could not fetch project; showing approval record instead.',
+            status: 'info',
+            duration: 5000,
+            isClosable: true,
+          });
+          setLoading(false);
+          return;
+        }
+
+        const formatted = formatSupabaseError(projectError) || (typeof projectError === 'string' ? projectError : JSON.stringify(projectError));
+        toast({
+          title: 'Error',
+          description: formatted,
+          status: 'error',
+          duration: 7000,
+          isClosable: true,
+        });
+        return;
+      }
+
+      if (!projectDataRaw || (Array.isArray(projectDataRaw) && projectDataRaw.length === 0)) {
+        // If navigation passed an approval record, use it as a fallback to show useful info
+        const approvalRec = (location && (location as any).state && (location as any).state.approvalRecord) || null;
+        if (approvalRec) {
+          setApprovalFallback(approvalRec);
+          setProject(null);
+          toast({ title: 'Project not found', description: 'Project not found; showing approval record instead.', status: 'info', duration: 5000 });
+          return;
+        }
+
+        toast({ title: 'Project not found', description: 'Project not found', status: 'error', duration: 4000 });
+        setProject(null);
+        return;
+      }
+
+      let projectData: any = null;
+      if (Array.isArray(projectDataRaw)) {
+        if (projectDataRaw.length > 1) {
+          console.warn('Multiple projects returned for id, using first', projectDataRaw);
+        }
+        projectData = projectDataRaw[0];
+      } else {
+        projectData = projectDataRaw as any;
+      }
+
+      if (projectData) {
+        setProject(projectData);
+        setCustomerFormData({
+          customer_name: projectData.customer_name || '',
+          mobile_number: projectData.mobile_number || '',
+          address_mandal_village: projectData.address_mandal_village || '',
+          service_number: projectData.service_number || '',
+        });
+        setProjectFormData({
+          capacity: Number(projectData.capacity) || 0,
+          project_cost: Number(projectData.project_cost) || 0,
+          subsidy_scope: projectData.subsidy_scope || '',
+          material_sent_date: projectData.material_sent_date ? new Date(projectData.material_sent_date).toISOString().split('T')[0] : '',
+          project_status: projectData.project_status || 'Pending',
+          lead_source: projectData.lead_source || '',
+          lead_finished_by: projectData.lead_finished_by ? new Date(projectData.lead_finished_by).toISOString().split('T')[0] : '',
+          lead_finished_by_name: projectData.lead_finished_by_name || '',
+        });
+
+        // Fetch associated images for this project
+        try {
+          const { data: imgs, error: imgErr } = await supabase
+            .from('project_images')
+            .select('*')
+            .eq('project_id', projectData.id)
+            .order('uploaded_at', { ascending: false });
+          if (!imgErr && imgs) {
+            const enriched = (Array.isArray(imgs) ? imgs : [imgs]).map((it: any) => {
+              try {
+                const urlData = supabase.storage.from('project-images').getPublicUrl(it.path);
+                const publicUrl = urlData?.data?.publicUrl || (urlData as any)?.publicUrl || '';
+                return { ...it, public_url: publicUrl };
+              } catch (e) {
+                return { ...it, public_url: '' };
+              }
+            });
+            setProjectImages(enriched);
+          } else {
+            setProjectImages([]);
+          }
+        } catch (imgFetchErr) {
+          console.warn('Failed to fetch project images', imgFetchErr);
+          setProjectImages([]);
+        }
+      }
+
+      // Fetch phase-wise payment history. Try shared table first, then chitoor-specific as fallback
+      let localPayments: any[] = [];
+      let usedTable: 'payment_history' | 'chitoor_payment_history' = 'payment_history';
+      let projectIdField: 'project_id' | 'chitoor_project_id' = 'project_id';
+
+      try {
+        const { data: payData } = await supabase
+          .from('payment_history')
+          .select('*')
+          .eq('project_id', id)
+          .order('created_at', { ascending: true });
+        localPayments = (payData as any[]) || [];
+      } catch (firstErr) {
+        // ignore and try fallback
+      }
+
+      if ((!localPayments || localPayments.length === 0)) {
+        try {
+          const { data: chPayData } = await supabase
+            .from('chitoor_payment_history')
+            .select('*')
+            .eq('chitoor_project_id', id)
+            .order('created_at', { ascending: true });
+          if (chPayData && Array.isArray(chPayData)) {
+            localPayments = chPayData as any[];
+            usedTable = 'chitoor_payment_history';
+            projectIdField = 'chitoor_project_id';
+          }
+        } catch (secondErr) {
+          console.warn('Payment history fallback failed', secondErr);
+        }
+      }
+
+      setPaymentsTable(usedTable);
+      
+      // Build payment history similar to regular projects
+      let history = (localPayments || []) as PaymentHistory[];
+      
+      // Calculate total from payment history records
+      const totalFromHistory = history.reduce((sum, p) => sum + (p.amount || 0), 0);
+      const initialAmount = projectData?.amount_received || 0;
+      
+      // If there's an initial amount_received that's not fully accounted for in payment history,
+      // add it as the first entry (similar to advance_payment in regular projects)
+      // This handles the case where amount_received was set but no payment history records exist
+      if (initialAmount > 0) {
+        const initialPaymentDate = projectData.date_of_order || projectData.created_at || new Date().toISOString();
+        
+        // If no payment history exists, show the full amount_received as initial payment
+        if (history.length === 0) {
+          const initialRow = {
+            id: 'initial',
+            amount: initialAmount,
+            payment_date: initialPaymentDate,
+            payment_mode: 'Cash',
+            created_at: initialPaymentDate,
+          };
+          history = [initialRow];
+        } else if (totalFromHistory < initialAmount) {
+          // If payment history exists but doesn't account for full amount_received,
+          // add the difference as initial payment (only if not already present)
+          const initialPaymentAmount = initialAmount - totalFromHistory;
+          const initialRow = {
+            id: 'initial',
+            amount: initialPaymentAmount,
+            payment_date: initialPaymentDate,
+            payment_mode: 'Cash',
+            created_at: initialPaymentDate,
+          };
+          
+          // Check if a similar entry already exists
+          const exists = history.some((p: any) => 
+            p.id === 'initial' || 
+            (Math.abs((p.amount || 0) - initialPaymentAmount) < 0.01 && 
+             (p.payment_date === initialPaymentDate || p.created_at === initialPaymentDate))
+          );
+          
+          if (!exists && initialPaymentAmount > 0) {
+            history = [initialRow, ...history];
+          }
+        }
+      }
+      
+      // Sort by date (oldest first) - ensure all payments are shown chronologically
+      history.sort((a, b) => {
+        const dateA = new Date(a.payment_date || a.created_at || 0).getTime();
+        const dateB = new Date(b.payment_date || b.created_at || 0).getTime();
+        return dateA - dateB;
+      });
+      
+      setPaymentHistory(history);
+
+    } catch (error) {
+      console.error('Error:', error);
+      toast({
+        title: 'Error',
+        description: 'An unexpected error occurred',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProjectDetails();
+  }, [id]);
+
+  const handleAddPayment = async () => {
+    if (!paymentAmount || !project) return;
+
+    try {
+      setProcessingPayment(true);
+
+      // Validate amount
+      const amountNum = Number(paymentAmount);
+      if (!isFinite(amountNum) || amountNum <= 0) {
+        toast({ title: 'Invalid amount', status: 'warning', duration: 3000, isClosable: true });
+        return;
+      }
+      const maxPayable = Math.max((project.project_cost || 0) - (project.amount_received || 0), 0);
+      if (amountNum > maxPayable) {
+        toast({ title: 'Amount exceeds balance', description: `Max: ₹${maxPayable.toLocaleString()}`, status: 'warning', duration: 4000, isClosable: true });
+        return;
+      }
+      if (!paymentDate) {
+        toast({ title: 'Choose a payment date', status: 'warning', duration: 3000, isClosable: true });
+        return;
+      }
+
+      // Insert a new phase entry into detected table; fallback to chitoor_payment_history on FK error
+      let usedTable: 'payment_history' | 'chitoor_payment_history' = paymentsTable;
+      let projectIdField: 'project_id' | 'chitoor_project_id' = usedTable === 'payment_history' ? 'project_id' : 'chitoor_project_id';
+
+      let insertError: any | null = null;
+      try {
+        const { error } = await supabase
+          .from(usedTable)
+          .insert([{
+            [projectIdField]: project.id,
+            amount: amountNum,
+            payment_mode: paymentMode,
+            payment_date: paymentDate,
+          } as any]);
+        insertError = error || null;
+      } catch (e) {
+        insertError = e;
+      }
+
+      if (insertError) {
+        usedTable = 'chitoor_payment_history';
+        projectIdField = 'chitoor_project_id';
+        const { error: fbError } = await supabase
+          .from(usedTable)
+          .insert([{
+            [projectIdField]: project.id,
+            amount: amountNum,
+            payment_mode: paymentMode,
+            payment_date: paymentDate,
+          } as any]);
+        if (fbError) throw fbError;
+        setPaymentsTable(usedTable);
+      }
+
+      const newAmountReceived = (project.amount_received || 0) + amountNum;
+
+      // Update project with new amount received
+      const { error: updateError } = await supabase
+        .from('chitoor_projects')
+        .update({ amount_received: newAmountReceived })
+        .eq('id', project.id);
+
+      if (updateError) throw updateError;
+
+      // Refresh project data and payment history
+      await fetchProjectDetails();
+
+      toast({
+        title: 'Success',
+        description: 'Payment added successfully',
+        status: 'success',
+        duration: 5000,
+        isClosable: true,
+      });
+
+      onPaymentClose();
+      setPaymentAmount('');
+      setPaymentDate(new Date().toISOString().split('T')[0]);
+      setPaymentMode('Cash');
+
+    } catch (error: any) {
+      console.error('Error adding payment:', error);
+      const message = formatSupabaseError(error) || (error?.message || 'Failed to add payment');
+      toast({
+        title: 'Error adding payment',
+        description: message,
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setProcessingPayment(false);
+    }
+  };
+
+  const handleDeletePayment = async (payment: PaymentHistory) => {
+    // existing delete payment logic
+    if (!project) return;
+    try {
+      // Delete payment row
+      const tableToUse = paymentsTable;
+      const { error: delError } = await supabase
+        .from(tableToUse)
+        .delete()
+        .eq('id', payment.id);
+      if (delError) throw delError;
+
+      const updatedAmount = Math.max((project.amount_received || 0) - (payment.amount || 0), 0);
+      const { error: updError } = await supabase
+        .from('chitoor_projects')
+        .update({ amount_received: updatedAmount })
+        .eq('id', project.id);
+      if (updError) throw updError;
+
+      // Refresh project data and payment history
+      await fetchProjectDetails();
+
+      toast({
+        title: 'Payment deleted',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (err) {
+      console.error('Error deleting payment:', err);
+      toast({
+        title: 'Error',
+        description: formatSupabaseError(err) || 'Failed to delete payment',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const handleDeleteImage = async (img: any) => {
+    if (!project) return;
+    if (!isAuthenticated) {
+      toast({ title: 'Unauthorized', description: 'You must be authenticated to delete images.', status: 'warning' });
+      return;
+    }
+    if (!img || !img.id) return;
+    const ok = window.confirm('Delete this image? This will remove it from storage and the database.');
+    if (!ok) return;
+    try {
+      // Delete from storage (path is expected)
+      if (img.path) {
+        const { error: storageErr } = await supabase.storage.from('project-images').remove([img.path]);
+        if (storageErr) console.warn('Storage delete returned error', storageErr);
+      }
+      // Delete DB record
+      const { error: delErr } = await supabase.from('project_images').delete().eq('id', img.id);
+      if (delErr) throw delErr;
+
+      // Refresh images
+      const { data: imgs } = await supabase
+        .from('project_images')
+        .select('*')
+        .eq('project_id', project.id)
+        .order('uploaded_at', { ascending: false });
+      const enriched = (Array.isArray(imgs) ? imgs : (imgs ? [imgs] : [])).map((it: any) => {
+        try {
+          const urlData = supabase.storage.from('project-images').getPublicUrl(it.path);
+          const publicUrl = urlData?.data?.publicUrl || (urlData as any)?.publicUrl || '';
+          return { ...it, public_url: publicUrl };
+        } catch (e) {
+          return { ...it, public_url: '' };
+        }
+      });
+      setProjectImages(enriched);
+
+      toast({ title: 'Image deleted', status: 'success', duration: 3000 });
+    } catch (err) {
+      console.error('Failed to delete image', err);
+      toast({ title: 'Delete failed', description: formatSupabaseError(err) || 'Failed to delete image', status: 'error' });
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'completed': return 'green';
+      case 'installation completed': return 'green';
+      case 'pending': return 'yellow';
+      case 'material pending': return 'yellow';
+      case 'in progress': return 'blue';
+      case 'material sent': return 'purple';
+      case 'on hold': return 'red';
+      default: return 'gray';
+    }
+  };
+
+  if (loading) {
+    return (
+      <Box p={8} textAlign="center">
+        <Text>Loading project details...</Text>
+      </Box>
+    );
+  }
+
+  if (!project) {
+    if (approvalFallback) {
+      // Render approval details in the same two-card layout as a regular project, without edit actions
+      const a = approvalFallback as any;
+      const safeDate = (d: any) => { try { return d ? new Date(d).toLocaleDateString() : '—'; } catch { return String(d); } };
+      return (
+        <Box p={6}>
+          <VStack spacing={6} align="stretch">
+            <Flex justify="space-between" align="center">
+              <Box>
+                <Text fontSize="2xl" fontWeight="bold" color="gray.800">Chitoor Project Details</Text>
+                <Text color="gray.600">Approval ID: {a.id || '—'}</Text>
+              </Box>
+              <Button variant="ghost" onClick={() => navigate('/projects/chitoor')}>Back</Button>
+            </Flex>
+
+            <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6}>
+              <Card>
+                <CardHeader>
+                  <Text fontSize="lg" fontWeight="semibold" color="gray.700">Overview</Text>
+                </CardHeader>
+                <CardBody>
+                  <VStack align="stretch" spacing={3}>
+                    <Text><strong>Project Name:</strong> {a.project_name || '—'}</Text>
+                    <Text><strong>Date:</strong> {safeDate(a.date)}</Text>
+                    <Text><strong>Capacity (kW):</strong> {a.capacity_kw ?? a.capacity ?? '—'}</Text>
+                    <Text><strong>Villages / Location:</strong> {a.location || '—'}</Text>
+                    <Text><strong>Power Bill Number:</strong> {a.power_bill_number || '—'}</Text>
+                    <Text><strong>Project Cost:</strong> {a.project_cost != null ? `₹${Number(a.project_cost).toLocaleString()}` : '��'}</Text>
+                  </VStack>
+                </CardBody>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <Text fontSize="lg" fontWeight="semibold" color="gray.700">Status & Billing</Text>
+                </CardHeader>
+                <CardBody>
+                  <VStack align="stretch" spacing={3}>
+                    <Text><strong>Site Visit Status:</strong> {a.site_visit_status || '—'}</Text>
+                    <Text><strong>Payment Request (₹):</strong> {a.payment_amount != null ? `₹${Number(a.payment_amount).toLocaleString()}` : '—'}</Text>
+                    <Text><strong>Banking Ref ID:</strong> {a.banking_ref_id || a.banking_ref || '—'}</Text>
+                    <Text><strong>Service Number:</strong> {a.service_number || '—'}</Text>
+                    <Text><strong>Service Status:</strong> {a.service_status || '—'}</Text>
+                    <Text><strong>Approval (CRM):</strong> {a.approval_status || a.approval || '—'}</Text>
+                    <Text fontSize="xs" color="gray.500">Updated: {safeDate(a.approval_updated_at || a.updated_at || a.created_at)}</Text>
+                  </VStack>
+                </CardBody>
+              </Card>
+            </SimpleGrid>
+          </VStack>
+        </Box>
+      );
+    }
+
+    return (
+      <Box p={8} textAlign="center">
+        <Text>Project not found</Text>
+        <Button mt={4} onClick={() => navigate('/projects/chitoor')}>
+          Back to Chitoor Projects
+        </Button>
+      </Box>
+    );
+  }
+
+  const balanceAmount = (project.project_cost || 0) - (project.amount_received || 0);
+
+  return (
+    <Box p={6}>
+      <VStack spacing={6} align="stretch">
+        {/* Header */}
+        <Flex justify="space-between" align="center">
+          <HStack spacing={4}>
+            <IconButton
+              icon={<ArrowBackIcon />}
+              onClick={() => navigate('/projects/chitoor')}
+              variant="ghost"
+              aria-label="Back to projects"
+            />
+            <Box>
+              <Text fontSize="2xl" fontWeight="bold" color="gray.800">
+                Chitoor Project Details
+              </Text>
+              <Text color="gray.600">
+                Project ID: {project.id}
+              </Text>
+              {project.edited_at && (
+                <Text color="gray.500" fontSize="sm">Last edited {new Date(project.edited_at).toLocaleString()}{project.edited_by ? ` by ${project.edited_by}` : ''}</Text>
+              )}
+            </Box>
+          </HStack>
+          {project && (
+            <HStack spacing={2}>
+              <Tooltip label="Edit customer" hasArrow>
+                <IconButton aria-label="Edit customer" icon={<EditIcon />} variant="ghost" onClick={onCustomerEditOpen} />
+              </Tooltip>
+              <Tooltip label="Edit project" hasArrow>
+                <IconButton aria-label="Edit project" icon={<EditIcon />} variant="ghost" onClick={onEditOpen} />
+              </Tooltip>
+              <Button leftIcon={<CalendarIcon />} colorScheme="blue" onClick={onPaymentOpen}>
+                Add Payment
+              </Button>
+            </HStack>
+          )}
+        </Flex>
+
+        {/* Project Info Cards: 3-column layout (images span 2 columns) */}
+        <SimpleGrid columns={{ base: 1, lg: 4 }} spacing={6}>
+          <Box gridColumn={{ lg: 'span 1' }}>
+            <Card>
+              <CardHeader>
+                <Flex justify="space-between" align="center">
+                  <Text fontSize="lg" fontWeight="semibold" color="gray.700">Customer Details</Text>
+                  <Tooltip label="Edit customer" hasArrow>
+                    <IconButton aria-label="Edit customer" icon={<EditIcon />} variant="ghost" size="sm" onClick={onCustomerEditOpen} />
+                  </Tooltip>
+                </Flex>
+              </CardHeader>
+              <CardBody>
+                <VStack align="stretch" spacing={3}>
+                  <Text><strong>Name:</strong> {project.customer_name}</Text>
+                  <Text><strong>Phone:</strong> {project.mobile_number}</Text>
+                  <Text><strong>Address:</strong> {project.address_mandal_village}</Text>
+                  {project.service_number && (<Text><strong>Service Number:</strong> {project.service_number}</Text>)}
+                  <Text><strong>Order Date:</strong> {project.date_of_order ? new Date(project.date_of_order).toLocaleDateString() : 'N/A'}</Text>
+                </VStack>
+              </CardBody>
+            </Card>
+          </Box>
+
+          <Box gridColumn={{ lg: 'span 1' }}>
+            <Card>
+              <CardHeader>
+                <Flex justify="space-between" align="center">
+                  <Text fontSize="lg" fontWeight="semibold" color="gray.700">Project Details</Text>
+                  <Tooltip label="Edit project" hasArrow>
+                    <IconButton aria-label="Edit project" icon={<EditIcon />} variant="ghost" size="sm" onClick={onEditOpen} />
+                  </Tooltip>
+                </Flex>
+              </CardHeader>
+              <CardBody>
+                <VStack align="stretch" spacing={3}>
+                  <Text><strong>Project Name:</strong> Chitoor-{project.id.slice(-6)}</Text>
+                  <HStack>
+                    <Text><strong>Status:</strong></Text>
+                    <Badge colorScheme={getStatusColor(project.project_status || 'pending')} px={2} py={1} borderRadius="full">{project.project_status || 'Pending'}</Badge>
+                  </HStack>
+                  <Text><strong>Capacity:</strong> {project.capacity} kW</Text>
+                  <Text><strong>Project Cost:</strong> ₹{project.project_cost.toLocaleString()}</Text>
+                  <Text><strong>Amount Received:</strong> ₹{(project.amount_received || 0).toLocaleString()}</Text>
+                  <Text><strong>Balance Amount:</strong> ₹{balanceAmount.toLocaleString()}</Text>
+                  {project.subsidy_scope && (<Text><strong>Subsidy Scope:</strong> {project.subsidy_scope}</Text>)}
+                  {project.material_sent_date && (<Text><strong>Material Sent Date:</strong> {new Date(project.material_sent_date).toLocaleDateString()}</Text>)}
+                </VStack>
+              </CardBody>
+            </Card>
+          </Box>
+
+          <Box gridColumn={{ lg: 'span 2' }}>
+            <Card>
+              <CardHeader>
+                <Text fontSize="lg" fontWeight="semibold" color="gray.700">Project Images</Text>
+              </CardHeader>
+              <CardBody>
+                {projectImages && projectImages.length > 0 ? (
+                  <HStack spacing={4} wrap="wrap">
+                    {projectImages.map((img) => (
+                      <Box key={img.id} position="relative">
+                        <Image src={img.public_url || ''} alt={img.name || img.path || 'project image'} boxSize="160px" objectFit="cover" borderRadius="md" onClick={() => window.open(img.public_url || '#', '_blank')} cursor={img.public_url ? 'pointer' : 'default'} />
+                        {isAuthenticated && (
+                          <IconButton aria-label="Delete image" icon={<DeleteIcon />} size="sm" colorScheme="red" position="absolute" top="6px" right="6px" onClick={() => handleDeleteImage(img)} />
+                        )}
+                        <Text fontSize="xs" color="gray.500" mt={1} textAlign="center">{img.uploaded_by ? `${img.uploaded_by}` : ''} {img.uploaded_at ? new Date(img.uploaded_at).toLocaleString() : ''}</Text>
+                      </Box>
+                    ))}
+                  </HStack>
+                ) : (
+                  <Text color="gray.500">No images uploaded for this project.</Text>
+                )}
+              </CardBody>
+            </Card>
+          </Box>
+        </SimpleGrid>
+
+        {/* Project Progress */}
+        <Card>
+          <CardHeader>
+            <Text fontSize="lg" fontWeight="semibold" color="gray.700">
+              Project Progress
+            </Text>
+          </CardHeader>
+          <CardBody>
+            <VStack spacing={4}>
+              <HStack justify="space-between" w="full">
+                <Text><strong>Current Stage:</strong></Text>
+                <Badge
+                  colorScheme={getStatusColor(project.project_status || 'pending')}
+                  px={3} py={2} borderRadius="full"
+                >
+                  {project.project_status || 'Pending'}
+                </Badge>
+              </HStack>
+
+              {/* Stage Progress Bar */}
+              <Box w="full">
+                <Flex justify="space-between" mb={2}>
+                  <Text fontSize="sm" color="gray.600">Stage Progress</Text>
+                  <Text fontSize="sm" color="gray.600">
+                    Stage {CHITOOR_PROJECT_STAGES.findIndex(s => s === project.project_status) + 1} of {CHITOOR_PROJECT_STAGES.length}
+                  </Text>
+                </Flex>
+                <Box bg="gray.200" borderRadius="full" h="3">
+                  <Box
+                    bg="blue.400"
+                    h="3"
+                    borderRadius="full"
+                    width={`${Math.max(((CHITOOR_PROJECT_STAGES.findIndex(s => s === project.project_status) + 1) / CHITOOR_PROJECT_STAGES.length) * 100, 5)}%`}
+                  />
+                </Box>
+              </Box>
+
+              {/* Stage Navigation Buttons */}
+              {isAuthenticated && (
+                <HStack pt={2} spacing={4}>
+                  <Button
+                    size="sm"
+                    colorScheme="gray"
+                    onClick={async () => {
+                      if (!project) return;
+                      const currentStageIdx = CHITOOR_PROJECT_STAGES.findIndex(s => s.toLowerCase() === (project.project_status || 'pending').toLowerCase());
+                      if (currentStageIdx > 0) {
+                        try {
+                          const newStage = CHITOOR_PROJECT_STAGES[currentStageIdx - 1];
+                          const { error } = await supabase
+                            .from('chitoor_projects')
+                            .update({ project_status: newStage })
+                            .eq('id', project.id);
+
+                          if (error) throw error;
+
+                          setProject({ ...project, project_status: newStage });
+                          await fetchProjectDetails();
+
+                          toast({
+                            title: 'Stage Updated',
+                            description: `Moved to: ${newStage}`,
+                            status: 'success',
+                            duration: 3000,
+                            isClosable: true
+                          });
+                        } catch (error) {
+                          console.error('Error updating stage:', error);
+                          toast({
+                            title: 'Error',
+                            description: 'Failed to update stage',
+                            status: 'error',
+                            duration: 3000,
+                            isClosable: true
+                          });
+                        }
+                      }
+                    }}
+                    isDisabled={!project || !project.project_status || CHITOOR_PROJECT_STAGES.findIndex(s => s.toLowerCase() === (project.project_status || 'pending').toLowerCase()) <= 0}
+                    leftIcon={<Text>←</Text>}
+                  >
+                    Previous Stage
+                  </Button>
+                  <Button
+                    size="sm"
+                    colorScheme="green"
+                    onClick={async () => {
+                      if (!project) return;
+                      const currentStageIdx = CHITOOR_PROJECT_STAGES.findIndex(s => s.toLowerCase() === (project.project_status || 'pending').toLowerCase());
+                      if (currentStageIdx >= 0 && currentStageIdx < CHITOOR_PROJECT_STAGES.length - 1) {
+                        try {
+                          const newStage = CHITOOR_PROJECT_STAGES[currentStageIdx + 1];
+                          const { error } = await supabase
+                            .from('chitoor_projects')
+                            .update({ project_status: newStage })
+                            .eq('id', project.id);
+
+                          if (error) throw error;
+
+                          setProject({ ...project, project_status: newStage });
+                          await fetchProjectDetails();
+
+                          toast({
+                            title: 'Stage Updated',
+                            description: `Advanced to: ${newStage}`,
+                            status: 'success',
+                            duration: 3000,
+                            isClosable: true
+                          });
+                        } catch (error) {
+                          console.error('Error updating stage:', error);
+                          toast({
+                            title: 'Error',
+                            description: 'Failed to update stage',
+                            status: 'error',
+                            duration: 3000,
+                            isClosable: true
+                          });
+                        }
+                      }
+                    }}
+                    isDisabled={!project || !project.project_status || CHITOOR_PROJECT_STAGES.findIndex(s => s.toLowerCase() === (project.project_status || 'pending').toLowerCase()) >= CHITOOR_PROJECT_STAGES.length - 1}
+                    rightIcon={<Text>→</Text>}
+                  >
+                    Next Stage
+                  </Button>
+                </HStack>
+              )}
+
+              {/* Payment Progress */}
+              <Box w="full">
+                <Flex justify="space-between" mb={2}>
+                  <Text fontSize="sm" color="gray.600">Payment Progress</Text>
+                  <Text fontSize="sm" color="gray.600">
+                    ₹{(project.amount_received || 0).toLocaleString()} / ₹{project.project_cost.toLocaleString()}
+                  </Text>
+                </Flex>
+                <Box bg="gray.200" borderRadius="full" h="2">
+                  <Box
+                    bg="green.400"
+                    h="2"
+                    borderRadius="full"
+                    width={`${Math.min(((project.amount_received || 0) / project.project_cost) * 100, 100)}%`}
+                  />
+                </Box>
+              </Box>
+            </VStack>
+          </CardBody>
+        </Card>
+
+        {/* Payment History */}
+        <Card>
+          <CardHeader>
+            <Flex justify="space-between" align="center">
+              <Text fontSize="lg" fontWeight="semibold" color="gray.700">
+                Payment History
+              </Text>
+              <Button size="sm" colorScheme="blue" onClick={onPaymentOpen}>
+                Add Payment
+              </Button>
+            </Flex>
+          </CardHeader>
+          <CardBody>
+            {paymentHistory.length > 0 ? (
+              <TableContainer>
+                <Table variant="simple" size="sm">
+                  <Thead>
+                    <Tr>
+                      <Th>Date</Th>
+                      <Th>Amount (₹)</Th>
+                      <Th>Mode</Th>
+                      <Th>Receipt</Th>
+                    </Tr>
+                  </Thead>
+                  <Tbody>
+                    {paymentHistory.map((payment) => (
+                      <Tr key={payment.id}>
+                        <Td>{payment.payment_date ? new Date(payment.payment_date).toLocaleDateString() : (payment.created_at ? new Date(payment.created_at).toLocaleDateString() : 'N/A')}</Td>
+                        <Td>₹{payment.amount.toLocaleString()}</Td>
+                        <Td>{payment.payment_mode || 'Cash'}</Td>
+                        <Td>
+                          <Button
+                            size="xs"
+                            colorScheme="blue"
+                            variant="outline"
+                            onClick={async () => {
+                              try {
+                                if (!project) return;
+                                await generatePaymentReceiptPDF({
+                                  date: payment.payment_date,
+                                  amount: payment.amount,
+                                  receivedFrom: project.customer_name,
+                                  paymentMode: payment.payment_mode || 'Cash',
+                                  placeOfSupply: 'Andhra Pradesh',
+                                  customerAddress: project.address_mandal_village,
+                                });
+                              } catch (e) {
+                                console.error('Receipt generation failed', e);
+                                toast({
+                                  title: 'Failed to generate receipt',
+                                  status: 'error',
+                                  duration: 3000,
+                                  isClosable: true,
+                                });
+                              }
+                            }}
+                          >
+                            Download Receipt
+                          </Button>
+                          {payment.id !== 'initial' && (
+                            <Button
+                              size="xs"
+                              ml={2}
+                              colorScheme="red"
+                              variant="outline"
+                              onClick={() => handleDeletePayment(payment)}
+                            >
+                              Delete
+                            </Button>
+                          )}
+                        </Td>
+                      </Tr>
+                    ))}
+                  </Tbody>
+                </Table>
+              </TableContainer>
+            ) : (
+              <Text color="gray.500" textAlign="center" py={8}>
+                No payments recorded yet
+              </Text>
+            )}
+          </CardBody>
+        </Card>
+      </VStack>
+
+      {/* Add Payment Modal */}
+      <Modal isOpen={isPaymentOpen} onClose={onPaymentClose}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Add Payment</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <VStack spacing={4}>
+              <FormControl isRequired>
+                <FormLabel>Payment Amount</FormLabel>
+                <Input
+                  type="number"
+                  value={paymentAmount}
+                  onChange={(e) => setPaymentAmount(e.target.value)}
+                  placeholder="Enter payment amount"
+                  max={balanceAmount}
+                />
+                <Text fontSize="xs" color="gray.500" mt={1}>
+                  Maximum payment amount: ₹{balanceAmount.toLocaleString()}
+                </Text>
+              </FormControl>
+
+              <FormControl isRequired>
+                <FormLabel>Payment Date</FormLabel>
+                <Input
+                  type="date"
+                  value={paymentDate}
+                  onChange={(e) => setPaymentDate(e.target.value)}
+                />
+              </FormControl>
+
+              <FormControl isRequired>
+                <FormLabel>Payment Mode</FormLabel>
+                <Select
+                  value={paymentMode}
+                  onChange={(e) => setPaymentMode(e.target.value)}
+                >
+                  <option value="Cash">Cash</option>
+                  <option value="Bank Transfer">Bank Transfer</option>
+                  <option value="Cheque">Cheque</option>
+                  <option value="UPI">UPI</option>
+                </Select>
+              </FormControl>
+            </VStack>
+          </ModalBody>
+          <ModalFooter>
+            <Button mr={3} onClick={onPaymentClose}>
+              Cancel
+            </Button>
+            <Button
+              colorScheme="blue"
+              onClick={handleAddPayment}
+              isLoading={processingPayment}
+              loadingText="Adding..."
+            >
+              Add Payment
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* Edit Customer Modal */}
+      <Modal isOpen={isCustomerEditOpen} onClose={onCustomerEditClose} size="lg">
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Edit Customer Details</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <VStack spacing={4}>
+              <FormControl isRequired>
+                <FormLabel>Customer Name</FormLabel>
+                <Input
+                  value={customerFormData.customer_name}
+                  onChange={(e) => setCustomerFormData(prev => ({ ...prev, customer_name: e.target.value }))}
+                  placeholder="Enter customer name"
+                />
+              </FormControl>
+
+              <FormControl isRequired>
+                <FormLabel>Mobile Number</FormLabel>
+                <Input
+                  value={customerFormData.mobile_number}
+                  onChange={(e) => setCustomerFormData(prev => ({ ...prev, mobile_number: e.target.value }))}
+                  placeholder="Enter mobile number"
+                />
+              </FormControl>
+
+              <FormControl isRequired>
+                <FormLabel>Address (Mandal, Village)</FormLabel>
+                <Input
+                  value={customerFormData.address_mandal_village}
+                  onChange={(e) => setCustomerFormData(prev => ({ ...prev, address_mandal_village: e.target.value }))}
+                  placeholder="Enter address"
+                />
+              </FormControl>
+
+              <FormControl>
+                <FormLabel>Service Number</FormLabel>
+                <Input
+                  value={customerFormData.service_number}
+                  onChange={(e) => setCustomerFormData(prev => ({ ...prev, service_number: e.target.value }))}
+                  placeholder="Enter service number (optional)"
+                />
+              </FormControl>
+            </VStack>
+          </ModalBody>
+          <ModalFooter>
+            <Button mr={3} onClick={onCustomerEditClose}>
+              Cancel
+            </Button>
+            <Button
+              colorScheme="blue"
+              onClick={async () => {
+                try {
+                  if (!project) return;
+
+                  const updatesPayload: any = {
+                    customer_name: customerFormData.customer_name,
+                    mobile_number: customerFormData.mobile_number,
+                    address_mandal_village: customerFormData.address_mandal_village,
+                    service_number: customerFormData.service_number || null,
+                    edited_by: user?.email || null,
+                    edited_at: new Date().toISOString(),
+                  };
+
+                  const { error } = await supabase
+                    .from('chitoor_projects')
+                    .update(updatesPayload)
+                    .eq('id', project.id);
+
+                  if (error) throw error;
+
+                  setProject(prev => prev ? {
+                    ...prev,
+                    ...updatesPayload,
+                  } : null);
+
+                  toast({
+                    title: 'Success',
+                    description: 'Customer details updated successfully',
+                    status: 'success',
+                    duration: 3000,
+                    isClosable: true,
+                  });
+
+                  onCustomerEditClose();
+                } catch (error) {
+                  console.error('Error updating customer:', error);
+                  toast({
+                    title: 'Error',
+                    description: 'Failed to update customer details',
+                    status: 'error',
+                    duration: 3000,
+                    isClosable: true,
+                  });
+                }
+              }}
+            >
+              Save Changes
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* Edit Project Modal */}
+      <Modal isOpen={isEditOpen} onClose={onEditClose} size="lg">
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Edit Project Details</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <VStack spacing={4} align="stretch">
+              <FormControl isRequired>
+                <FormLabel>Capacity (kW)</FormLabel>
+                <Input
+                  type="number"
+                  value={projectFormData.capacity}
+                  onChange={(e) => setProjectFormData(prev => ({ ...prev, capacity: Number(e.target.value) }))}
+                  placeholder="Enter capacity"
+                />
+              </FormControl>
+
+              <FormControl isRequired>
+                <FormLabel>Project Cost (��)</FormLabel>
+                <Input
+                  type="number"
+                  value={projectFormData.project_cost}
+                  onChange={(e) => setProjectFormData(prev => ({ ...prev, project_cost: Number(e.target.value) }))}
+                  placeholder="Enter project cost"
+                />
+              </FormControl>
+
+              <FormControl>
+                <FormLabel>Subsidy Scope</FormLabel>
+                <Input
+                  value={projectFormData.subsidy_scope}
+                  onChange={(e) => setProjectFormData(prev => ({ ...prev, subsidy_scope: e.target.value }))}
+                  placeholder="Enter subsidy scope"
+                />
+              </FormControl>
+
+              <FormControl>
+                <FormLabel>Material Sent Date</FormLabel>
+                <Input
+                  type="date"
+                  value={projectFormData.material_sent_date}
+                  onChange={(e) => setProjectFormData(prev => ({ ...prev, material_sent_date: e.target.value }))}
+                />
+              </FormControl>
+
+              <FormControl>
+                <FormLabel>Project Status</FormLabel>
+                <Select
+                  value={projectFormData.project_status}
+                  onChange={(e) => setProjectFormData(prev => ({ ...prev, project_status: e.target.value }))}
+                >
+                  {CHITOOR_PROJECT_STAGES.map(stage => (
+                    <option key={stage} value={stage}>{stage}</option>
+                  ))}
+                </Select>
+              </FormControl>
+
+              <FormControl>
+                <FormLabel>Lead Source</FormLabel>
+                <Select
+                  value={projectFormData.lead_source}
+                  onChange={(e) => setProjectFormData(prev => ({ ...prev, lead_source: e.target.value }))}
+                >
+                  <option value="">Select lead source</option>
+                  <option value="Online">Online</option>
+                  <option value="Link">Link</option>
+                  <option value="WhatsApp">WhatsApp</option>
+                  <option value="Referral">Referral</option>
+                  <option value="Advertisement">Advertisement</option>
+                  <option value="Direct">Direct</option>
+                  <option value="Social Media">Social Media</option>
+                  <option value="Event">Event</option>
+                  <option value="Other">Other</option>
+                </Select>
+              </FormControl>
+
+              <FormControl>
+                <FormLabel>Lead Finished By Name</FormLabel>
+                <Input
+                  type="text"
+                  placeholder="Enter person's name"
+                  value={projectFormData.lead_finished_by_name}
+                  onChange={(e) => setProjectFormData(prev => ({ ...prev, lead_finished_by_name: e.target.value }))}
+                />
+              </FormControl>
+
+              <FormControl>
+                <FormLabel>Lead Finished By Date</FormLabel>
+                <Input
+                  type="date"
+                  value={projectFormData.lead_finished_by}
+                  onChange={(e) => setProjectFormData(prev => ({ ...prev, lead_finished_by: e.target.value }))}
+                />
+              </FormControl>
+            </VStack>
+          </ModalBody>
+          <ModalFooter>
+            <Button mr={3} onClick={onEditClose}>Cancel</Button>
+            <Button
+              colorScheme="blue"
+              onClick={async () => {
+                try {
+                  if (!project) return;
+                  const updates: any = {
+                    capacity: projectFormData.capacity,
+                    project_cost: projectFormData.project_cost,
+                    subsidy_scope: projectFormData.subsidy_scope || null,
+                    project_status: projectFormData.project_status || null,
+                    lead_source: projectFormData.lead_source || null,
+                    lead_finished_by: projectFormData.lead_finished_by || null,
+                    lead_finished_by_name: projectFormData.lead_finished_by_name || null,
+                  };
+                  if (projectFormData.material_sent_date) {
+                    updates.material_sent_date = new Date(projectFormData.material_sent_date).toISOString();
+                  } else {
+                    updates.material_sent_date = null;
+                  }
+
+                  updates.edited_by = user?.email || null;
+                  updates.edited_at = new Date().toISOString();
+
+                  const { error } = await supabase
+                    .from('chitoor_projects')
+                    .update(updates)
+                    .eq('id', project.id);
+
+                  if (error) throw error;
+
+                  setProject(prev => prev ? { ...prev, ...updates } : null);
+
+                  toast({
+                    title: 'Project updated',
+                    status: 'success',
+                    duration: 3000,
+                    isClosable: true,
+                  });
+                  onEditClose();
+                } catch (err) {
+                  console.error('Project update failed', err);
+                  toast({
+                    title: 'Failed to update project',
+                    status: 'error',
+                    duration: 3000,
+                    isClosable: true,
+                  });
+                }
+              }}
+            >
+              Save Changes
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+    </Box>
+  );
+};
+
+export default ChitoorProjectDetails;
