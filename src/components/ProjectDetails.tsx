@@ -106,7 +106,7 @@ const ProjectDetails = () => {
   const { id } = useParams();
   const toast = useToast();
   const navigate = useNavigate();
-  const { isAuthenticated, isEditor } = useAuth();
+  const { isAuthenticated, isEditor, isAdmin } = useAuth();
 
   const [project, setProject] = useState<Project | null>(null);
   const [paymentHistory, setPaymentHistory] = useState<PaymentHistory[]>([]);
@@ -582,7 +582,7 @@ const renderPaymentHistory = () => {
 return (
   <Box p={6} maxW="5xl" mx="auto">
     {/* Header with Edit Options */}
-    {isEditor && (
+    {isAuthenticated && (
       <Card mb={6} bg="blue.50" borderColor="blue.200" borderWidth={1}>
         <CardHeader>
           <Flex justify="space-between" align="center" wrap="wrap" gap={4}>
@@ -624,7 +624,7 @@ return (
       <Card boxShadow="lg" borderRadius="lg" bg="white" position="relative">
         <CardHeader display="flex" alignItems="center" justifyContent="space-between">
           <Text fontSize="2xl" fontWeight="bold">Customer Details</Text>
-          {isEditor && (
+          {isAuthenticated && (
             <Tooltip label="Edit customer" hasArrow>
               <IconButton
                 aria-label="Edit customer"
@@ -681,7 +681,7 @@ return (
       <Card boxShadow="lg" borderRadius="lg" bg="white" position="relative">
         <CardHeader display="flex" alignItems="center" justifyContent="space-between">
           <Text fontSize="2xl" fontWeight="bold">Project Details</Text>
-          {isEditor && (
+          {isAuthenticated && (
             <Tooltip label="Edit project" hasArrow>
               <IconButton
                 aria-label="Edit project"
