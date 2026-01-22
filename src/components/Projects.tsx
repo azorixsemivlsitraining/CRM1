@@ -83,10 +83,15 @@ interface Project {
   status: string;
   current_stage: string;
   start_date: string;
+  created_at?: string;
   kwh: number;
+  state?: string;
+  dealing_personal?: 'Project Manager' | 'Yellesh' | 'Hitesh';
   lead_source?: string;
   lead_finished_by?: string;
   lead_finished_by_name?: string;
+  _isChitoor?: boolean; // Flag to identify Chitoor projects
+  _chitoorData?: any; // Keep original Chitoor data for navigation
 }
 
 // Define filter structure
@@ -163,6 +168,7 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
   });
   const [loading, setLoading] = useState(false);
   const [allProjects, setAllProjects] = useState<Project[]>([]);
+  const [allChitoorProjects, setAllChitoorProjects] = useState<any[]>([]);
   const [combinedTotals, setCombinedTotals] = useState({ totalProjects: 0, totalRevenue: 0, totalKWH: 0, active: 0, completed: 0 });
   const [activeFilters, setActiveFilters] = useState<FilterOptions[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -215,7 +221,6 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
 
       const primaryProjects = Array.isArray(data) ? (data as Project[]) : [];
       setAllProjects(primaryProjects);
-      setProjects(primaryProjects);
 
       const primaryTotals = {
         count: primaryProjects.length,
@@ -228,10 +233,12 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
       const canIncludeChitoor = !stateFilter && (isAdmin || !Array.isArray(assignedRegions) || assignedRegions.length === 0 || assignedRegions.includes('Chitoor'));
 
       let chitoorTotals = { count: 0, revenue: 0, kwh: 0, active: 0, completed: 0 };
+      let chitoorProjectsData: any[] = [];
       if (canIncludeChitoor) {
-        const { data: chitoorData, error: chErr } = await supabase.from('chitoor_projects').select('project_cost, capacity, project_status');
+        const { data: chitoorData, error: chErr } = await supabase.from('chitoor_projects').select('*');
         if (!chErr || (chErr as any)?.code === 'PGRST116') {
           const rows = Array.isArray(chitoorData) ? chitoorData : [];
+          chitoorProjectsData = rows;
           const isCompleted = (s: any) => {
             const v = String(s || '').toLowerCase();
             return v === 'completed' || v.includes('installation completed') || v.includes('commissioned') || v.includes('delivered');
@@ -253,6 +260,10 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
           console.warn('Chitoor projects fetch error:', chErr);
         }
       }
+      setAllChitoorProjects(chitoorProjectsData);
+      
+      // Set initial projects (will be filtered by search if needed)
+      setProjects(primaryProjects);
 
       setCombinedTotals({
         totalProjects: primaryTotals.count + (canIncludeChitoor ? chitoorTotals.count : 0),
@@ -294,7 +305,43 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
 
   // Apply filters and search whenever activeFilters or searchTerm changes
   const applyFilters = useCallback(() => {
-    let filtered = allProjects;
+    // Combine regular projects and Chitoor projects for search when viewing "All Projects"
+    const canIncludeChitoor = !stateFilter && (isAdmin || !Array.isArray(assignedRegions) || assignedRegions.length === 0 || assignedRegions.includes('Chitoor'));
+    let allProjectsToSearch = [...allProjects];
+    
+    // Add Chitoor projects to searchable list (transform them to match Project structure for search)
+    if (canIncludeChitoor && allChitoorProjects.length > 0) {
+      const transformedChitoor = allChitoorProjects.map((cp: any) => ({
+        id: cp.id,
+        name: `Chitoor-${cp.id.slice(-6)}`,
+        customer_name: cp.customer_name || '',
+        email: '',
+        phone: cp.mobile_number || '',
+        address: cp.address_mandal_village || '',
+        project_type: 'DCR' as const,
+        payment_mode: 'Cash' as const,
+        proposal_amount: cp.project_cost || 0,
+        advance_payment: cp.amount_received || 0,
+        loan_amount: 0,
+        paid_amount: cp.amount_received || 0,
+        balance_amount: (cp.project_cost || 0) - (cp.amount_received || 0),
+        status: (cp.project_status || '').toLowerCase() === 'completed' ? 'completed' : 'active',
+        current_stage: cp.project_status || 'Pending',
+        start_date: cp.date_of_order || cp.created_at || '',
+        created_at: cp.created_at || '',
+        kwh: cp.capacity || 0,
+        state: 'Andhra Pradesh',
+        dealing_personal: 'Project Manager' as const,
+        lead_source: cp.lead_source || '',
+        lead_finished_by: cp.lead_finished_by || '',
+        lead_finished_by_name: cp.lead_finished_by_name || '',
+        _isChitoor: true, // Flag to identify Chitoor projects
+        _chitoorData: cp, // Keep original data for navigation
+      }));
+      allProjectsToSearch = [...allProjects, ...transformedChitoor];
+    }
+    
+    let filtered = allProjectsToSearch;
     if (activeFilters.length > 0) {
       filtered = filtered.filter(project => {
         return activeFilters.every(filter => {
@@ -312,7 +359,7 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
       );
     }
     setProjects(filtered);
-  }, [activeFilters, allProjects, searchTerm]);
+  }, [activeFilters, allProjects, allChitoorProjects, searchTerm, stateFilter, isAdmin, assignedRegions]);
 
   useEffect(() => {
     applyFilters();
@@ -412,6 +459,19 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
 
   const handleSubmit = async () => {
     try {
+      // Validate required fields
+      if (!newProject.kwh || newProject.kwh === '' || parseFloat(newProject.kwh) <= 0 || isNaN(parseFloat(newProject.kwh))) {
+        toast({
+          title: 'Validation Error',
+          description: 'Capacity (kW) is required and must be a positive number',
+          status: 'error',
+          duration: 5000,
+          isClosable: true,
+        });
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       const startDate = newProject.start_date 
         ? new Date(newProject.start_date).toISOString() 
@@ -420,6 +480,7 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
       const proposal = parseFloat(newProject.proposal_amount);
       const advance = parseFloat(newProject.advance_payment);
       const loan = parseFloat(newProject.loan_amount || '0');
+      const kwh = parseFloat(newProject.kwh);
       
       const projectData = {
         name: newProject.name,
@@ -437,7 +498,7 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
         status: 'active',
         current_stage: 'Advance payment done',
         start_date: startDate,
-        kwh: parseFloat(newProject.kwh),
+        kwh: kwh,
         lead_source: newProject.lead_source || null,
         lead_finished_by: newProject.lead_finished_by || null,
         lead_finished_by_name: newProject.lead_finished_by_name || null,
@@ -659,7 +720,7 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
                     <SearchIcon color="gray.400" />
                   </InputLeftElement>
                   <Input
-                    placeholder="Search projects by any keyword..."
+                    placeholder={!stateFilter ? "Search all projects (TG, AP, Chitoor) by any keyword..." : "Search projects by any keyword..."}
                     value={searchTerm}
                     onChange={e => setSearchTerm(e.target.value)}
                     bg="gray.50"
@@ -749,7 +810,13 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
                         <Td>
                           <VStack align="start" spacing={1}>
                             <Text fontWeight="medium" fontSize="sm" cursor="pointer" 
-                                  onClick={() => navigate(`/projects/${project.id}`)}>
+                                  onClick={() => {
+                                    if (project._isChitoor) {
+                                      navigate(`/projects/chitoor/${project.id}`);
+                                    } else {
+                                      navigate(`/projects/${project.id}`);
+                                    }
+                                  }}>
                               {project.name}
                             </Text>
                             <HStack spacing={2}>
@@ -882,27 +949,37 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
                                 
                                 <MenuItem
                                   icon={<ViewIcon />}
-                                  onClick={() => navigate(`/projects/${project.id}`)}
-                                >
-                                  View Details
-                                </MenuItem>
-                                <MenuItem
-                                  icon={project.status === 'active' ? <CheckCircleIcon /> : <CloseIcon />}
-                                  onClick={() => toggleProjectStatus(project.id, project.status)}
-                                >
-                                  Mark {project.status === 'active' ? 'Complete' : 'Active'}
-                                </MenuItem>
-                                <MenuItem
-                                  icon={<DeleteIcon />}
-                                  color="red.500"
                                   onClick={() => {
-                                    if (window.confirm('Are you sure you want to delete this project? This action cannot be undone.')) {
-                                      deleteProject(project.id);
+                                    if (project._isChitoor) {
+                                      navigate(`/projects/chitoor/${project.id}`);
+                                    } else {
+                                      navigate(`/projects/${project.id}`);
                                     }
                                   }}
                                 >
-                                  Delete Project
+                                  View Details
                                 </MenuItem>
+                                {!project._isChitoor && (
+                                  <>
+                                    <MenuItem
+                                      icon={project.status === 'active' ? <CheckCircleIcon /> : <CloseIcon />}
+                                      onClick={() => toggleProjectStatus(project.id, project.status)}
+                                    >
+                                      Mark {project.status === 'active' ? 'Complete' : 'Active'}
+                                    </MenuItem>
+                                    <MenuItem
+                                      icon={<DeleteIcon />}
+                                      color="red.500"
+                                      onClick={() => {
+                                        if (window.confirm('Are you sure you want to delete this project? This action cannot be undone.')) {
+                                          deleteProject(project.id);
+                                        }
+                                      }}
+                                    >
+                                      Delete Project
+                                    </MenuItem>
+                                  </>
+                                )}
                               </MenuList>
                             </Portal>
                           </Menu>
@@ -1203,13 +1280,18 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
                 </FormControl>
 
                 <FormControl isRequired>
-                  <FormLabel fontSize="sm" fontWeight="medium">Capacity (kW)</FormLabel>
+                  <FormLabel fontSize="sm" fontWeight="medium">
+                    Capacity (kW) <Text as="span" color="red.500">*</Text>
+                  </FormLabel>
                   <Input
                     name="kwh"
                     type="number"
                     value={newProject.kwh}
                     onChange={handleInputChange}
-                    placeholder="0"
+                    placeholder="Enter capacity in kW"
+                    required
+                    min="0.1"
+                    step="0.1"
                   />
                 </FormControl>
 

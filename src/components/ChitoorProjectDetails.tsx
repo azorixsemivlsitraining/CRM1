@@ -306,20 +306,63 @@ const ChitoorProjectDetails = () => {
       }
 
       setPaymentsTable(usedTable);
-      if ((!localPayments || localPayments.length === 0) && projectData?.amount_received && projectData.amount_received > 0) {
-        const d = projectData.date_of_order || projectData.created_at || new Date().toISOString();
-        setPaymentHistory([
-          {
+      
+      // Build payment history similar to regular projects
+      let history = (localPayments || []) as PaymentHistory[];
+      
+      // Calculate total from payment history records
+      const totalFromHistory = history.reduce((sum, p) => sum + (p.amount || 0), 0);
+      const initialAmount = projectData?.amount_received || 0;
+      
+      // If there's an initial amount_received that's not fully accounted for in payment history,
+      // add it as the first entry (similar to advance_payment in regular projects)
+      // This handles the case where amount_received was set but no payment history records exist
+      if (initialAmount > 0) {
+        const initialPaymentDate = projectData.date_of_order || projectData.created_at || new Date().toISOString();
+        
+        // If no payment history exists, show the full amount_received as initial payment
+        if (history.length === 0) {
+          const initialRow = {
             id: 'initial',
-            amount: projectData.amount_received,
-            payment_date: d,
+            amount: initialAmount,
+            payment_date: initialPaymentDate,
             payment_mode: 'Cash',
-            created_at: d,
-          },
-        ]);
-      } else {
-        setPaymentHistory(localPayments as PaymentHistory[]);
+            created_at: initialPaymentDate,
+          };
+          history = [initialRow];
+        } else if (totalFromHistory < initialAmount) {
+          // If payment history exists but doesn't account for full amount_received,
+          // add the difference as initial payment (only if not already present)
+          const initialPaymentAmount = initialAmount - totalFromHistory;
+          const initialRow = {
+            id: 'initial',
+            amount: initialPaymentAmount,
+            payment_date: initialPaymentDate,
+            payment_mode: 'Cash',
+            created_at: initialPaymentDate,
+          };
+          
+          // Check if a similar entry already exists
+          const exists = history.some((p: any) => 
+            p.id === 'initial' || 
+            (Math.abs((p.amount || 0) - initialPaymentAmount) < 0.01 && 
+             (p.payment_date === initialPaymentDate || p.created_at === initialPaymentDate))
+          );
+          
+          if (!exists && initialPaymentAmount > 0) {
+            history = [initialRow, ...history];
+          }
+        }
       }
+      
+      // Sort by date (oldest first) - ensure all payments are shown chronologically
+      history.sort((a, b) => {
+        const dateA = new Date(a.payment_date || a.created_at || 0).getTime();
+        const dateB = new Date(b.payment_date || b.created_at || 0).getTime();
+        return dateA - dateB;
+      });
+      
+      setPaymentHistory(history);
 
     } catch (error) {
       console.error('Error:', error);
@@ -405,16 +448,8 @@ const ChitoorProjectDetails = () => {
 
       if (updateError) throw updateError;
 
-      // Refresh payments from the detected table
-      const tableToRead = usedTable;
-      const projectField = usedTable === 'payment_history' ? 'project_id' : 'chitoor_project_id';
-      const { data: payData } = await supabase
-        .from(tableToRead)
-        .select('*')
-        .eq(projectField, project.id)
-        .order('created_at', { ascending: true });
-      setPaymentHistory((payData as any[]) as PaymentHistory[]);
-      setProject(prev => prev ? { ...prev, amount_received: newAmountReceived } : null);
+      // Refresh project data and payment history
+      await fetchProjectDetails();
 
       toast({
         title: 'Success',
@@ -463,16 +498,8 @@ const ChitoorProjectDetails = () => {
         .eq('id', project.id);
       if (updError) throw updError;
 
-      // Refresh list
-      const projectField = tableToUse === 'payment_history' ? 'project_id' : 'chitoor_project_id';
-      const { data: payData } = await supabase
-        .from(tableToUse)
-        .select('*')
-        .eq(projectField, project.id)
-        .order('created_at', { ascending: true });
-
-      setPaymentHistory((payData as any[]) as PaymentHistory[]);
-      setProject(prev => prev ? { ...prev, amount_received: updatedAmount } : null);
+      // Refresh project data and payment history
+      await fetchProjectDetails();
 
       toast({
         title: 'Payment deleted',
@@ -917,7 +944,7 @@ const ChitoorProjectDetails = () => {
                   <Tbody>
                     {paymentHistory.map((payment) => (
                       <Tr key={payment.id}>
-                        <Td>{new Date(payment.payment_date).toLocaleDateString()}</Td>
+                        <Td>{payment.payment_date ? new Date(payment.payment_date).toLocaleDateString() : (payment.created_at ? new Date(payment.created_at).toLocaleDateString() : 'N/A')}</Td>
                         <Td>₹{payment.amount.toLocaleString()}</Td>
                         <Td>{payment.payment_mode || 'Cash'}</Td>
                         <Td>

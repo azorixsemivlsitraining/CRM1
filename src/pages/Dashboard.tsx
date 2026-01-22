@@ -54,6 +54,7 @@ interface Project {
   current_stage: string;
   proposal_amount: number;
   created_at: string;
+  updated_at?: string;
   start_date: string;
   kwh: number;
 }
@@ -196,29 +197,46 @@ const Dashboard = () => {
       console.log('Projects fetched:', projects);
 
       if (projects) {
+        // Deduplicate projects by ID to prevent counting duplicates
+        const uniqueProjectsMap = new Map<string, Project>();
+        projects.forEach((project: Project) => {
+          if (!uniqueProjectsMap.has(project.id)) {
+            uniqueProjectsMap.set(project.id, project);
+          } else {
+            // If duplicate found, keep the one with the most recent updated_at or created_at
+            const existing = uniqueProjectsMap.get(project.id)!;
+            const existingDate = new Date(existing.updated_at || existing.created_at || 0).getTime();
+            const currentDate = new Date(project.updated_at || project.created_at || 0).getTime();
+            if (currentDate > existingDate) {
+              uniqueProjectsMap.set(project.id, project);
+            }
+          }
+        });
+        const uniqueProjects = Array.from(uniqueProjectsMap.values());
+
         // Log all possible status values to debug
         const allStatusesMap: Record<string, boolean> = {};
-        projects.forEach((p: any) => {
+        uniqueProjects.forEach((p: any) => {
           if (p.status) allStatusesMap[p.status] = true;
         });
         const allStatuses = Object.keys(allStatusesMap);
         console.log('All status values found in DB:', allStatuses);
         
         // Filter projects for selected year WITHOUT filtering by status yet
-        const yearProjects = projects.filter((project: Project) => {
+        const yearProjects = uniqueProjects.filter((project: Project) => {
           const projectDate = new Date(project.start_date || project.created_at);
           return projectDate.getFullYear() === selectedYear;
         });
         
         // Case-insensitive filtering for active projects (main table)
-        const activeProjects = projects.filter((p: Project) =>
+        const activeProjects = uniqueProjects.filter((p: Project) =>
           typeof p.status === 'string' && p.status.toLowerCase() === 'active'
         );
         console.log('All active projects (case-insensitive):', activeProjects.length);
         console.log('Active project IDs:', activeProjects.map((p: any) => p.id));
 
         // Case-insensitive filtering for completed projects (main table)
-        const completedProjects = projects.filter((p: Project) =>
+        const completedProjects = uniqueProjects.filter((p: Project) =>
           typeof p.status === 'string' && p.status.toLowerCase() === 'completed'
         );
 
@@ -252,16 +270,16 @@ const Dashboard = () => {
           }
         });
 
-        // Calculate total revenue and KWH from all projects
-        const totalRevenueProjects: number = projects.reduce((sum: number, p: Project) => sum + (p.proposal_amount || 0), 0);
-        const totalKWHProjects: number = projects.reduce((sum: number, p: Project) => sum + (p.kwh || 0), 0);
+        // Calculate total revenue and KWH from all unique projects
+        const totalRevenueProjects: number = uniqueProjects.reduce((sum: number, p: Project) => sum + (p.proposal_amount || 0), 0);
+        const totalKWHProjects: number = uniqueProjects.reduce((sum: number, p: Project) => sum + (p.kwh || 0), 0);
         const chitoorRevenue: number = (chitoorProjects as ChitoorProject[] | null)?.reduce((sum, p) => sum + (p.project_cost || 0), 0) || 0;
         const chitoorKWH: number = (chitoorProjects as ChitoorProject[] | null)?.reduce((sum, p) => sum + (p.capacity || 0), 0) || 0;
         const totalRevenue = totalRevenueProjects + chitoorRevenue;
         const totalKWH = totalKWHProjects + chitoorKWH;
 
         // Total projects across all sources
-        const totalProjectsCount = (projects?.length || 0) + ((chitoorProjects as any)?.length || 0);
+        const totalProjectsCount = (uniqueProjects?.length || 0) + ((chitoorProjects as any)?.length || 0);
 
         setStats({
           totalProjects: totalProjectsCount,

@@ -46,6 +46,7 @@ interface Project {
   current_stage: string;
   proposal_amount: number;
   created_at: string;
+  updated_at?: string;
   start_date: string;
   kwh: number;
   state?: string;
@@ -152,13 +153,30 @@ const DashboardTG = () => {
       if (error) throw error;
 
       if (projects) {
-        const yearProjects = projects.filter((project: Project) => {
+        // Deduplicate projects by ID to prevent counting duplicates
+        const uniqueProjectsMap = new Map<string, Project>();
+        projects.forEach((project: Project) => {
+          if (!uniqueProjectsMap.has(project.id)) {
+            uniqueProjectsMap.set(project.id, project);
+          } else {
+            // If duplicate found, keep the one with the most recent updated_at or created_at
+            const existing = uniqueProjectsMap.get(project.id)!;
+            const existingDate = new Date(existing.updated_at || existing.created_at || 0).getTime();
+            const currentDate = new Date(project.updated_at || project.created_at || 0).getTime();
+            if (currentDate > existingDate) {
+              uniqueProjectsMap.set(project.id, project);
+            }
+          }
+        });
+        const uniqueProjects = Array.from(uniqueProjectsMap.values());
+
+        const yearProjects = uniqueProjects.filter((project: Project) => {
           const projectDate = new Date(project.start_date || project.created_at);
           return projectDate.getFullYear() === selectedYear;
         });
 
-        const activeAll = projects.filter((p: Project) => typeof p.status === 'string' && p.status.toLowerCase() === 'active');
-        const completedAll = projects.filter((p: Project) => typeof p.status === 'string' && p.status.toLowerCase() === 'completed');
+        const activeAll = uniqueProjects.filter((p: Project) => typeof p.status === 'string' && p.status.toLowerCase() === 'active');
+        const completedAll = uniqueProjects.filter((p: Project) => typeof p.status === 'string' && p.status.toLowerCase() === 'completed');
 
         const sortedProjects = [...yearProjects].sort((a: Project, b: Project) => {
           if (sortBy === 'date') {
@@ -174,10 +192,10 @@ const DashboardTG = () => {
           }
         });
 
-        const totalRevenue: number = projects.reduce((sum: number, p: Project) => sum + (p.proposal_amount || 0), 0);
-        const totalKWH: number = projects.reduce((sum: number, p: Project) => sum + (p.kwh || 0), 0);
+        const totalRevenue: number = uniqueProjects.reduce((sum: number, p: Project) => sum + (p.proposal_amount || 0), 0);
+        const totalKWH: number = uniqueProjects.reduce((sum: number, p: Project) => sum + (p.kwh || 0), 0);
 
-        const totalProjectsCount = projects.length;
+        const totalProjectsCount = uniqueProjects.length;
 
         setStats({
           totalProjects: totalProjectsCount,

@@ -39,10 +39,13 @@ import {
   IconButton,
   Tooltip,
   Portal,
+  InputGroup,
+  InputLeftElement,
+  Stack,
 } from '@chakra-ui/react';
 import { supabase } from '../lib/supabase';
 import { formatSupabaseError } from '../utils/error';
-import { AddIcon, ChevronDownIcon, ViewIcon, EditIcon, DeleteIcon, PhoneIcon } from '@chakra-ui/icons';
+import { AddIcon, ChevronDownIcon, ViewIcon, EditIcon, DeleteIcon, PhoneIcon, SearchIcon } from '@chakra-ui/icons';
 import { useNavigate } from 'react-router-dom';
 import CHITOOR_LOCATIONS from '../data/chitoorLocations';
 
@@ -117,6 +120,8 @@ const StatsCard: React.FC<StatsCardProps> = ({ title, value, icon, color, helpTe
 
 const ChitoorProjects = () => {
   const [projects, setProjects] = useState<ChitoorProject[]>([]);
+  const [allProjects, setAllProjects] = useState<ChitoorProject[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const { isOpen, onOpen, onClose } = useDisclosure();
   const navigate = useNavigate();
   const [newProject, setNewProject] = useState({
@@ -170,7 +175,7 @@ const ChitoorProjects = () => {
       }
 
       if (data) {
-        setProjects(data);
+        setAllProjects(data);
         const completedProjects = data.filter((p: any) => (p.project_status || '').toLowerCase() === 'completed');
         const pendingProjects = data.filter((p: any) => (p.project_status || '').toLowerCase() !== 'completed');
         const totalRevenue = data.reduce((sum: number, p: any) => sum + (p.project_cost || 0), 0);
@@ -191,6 +196,21 @@ const ChitoorProjects = () => {
       setLoading(false);
     }
   }, [toast]);
+
+  // Apply search filter whenever searchTerm or allProjects changes
+  useEffect(() => {
+    if (searchTerm.trim() === '') {
+      setProjects(allProjects);
+    } else {
+      const keyword = searchTerm.toLowerCase();
+      const filtered = allProjects.filter((project: ChitoorProject) =>
+        Object.values(project).some(val =>
+          val !== null && val !== undefined && String(val).toLowerCase().includes(keyword)
+        )
+      );
+      setProjects(filtered);
+    }
+  }, [searchTerm, allProjects]);
 
   // Locations state
   const [locations, setLocations] = useState<{ village: string; mandal: string }[]>([]);
@@ -454,6 +474,28 @@ const ChitoorProjects = () => {
           />
         </SimpleGrid>
 
+        {/* Search Bar */}
+        <Card bg={cardBg} border="1px solid" borderColor={borderColor}>
+          <CardBody>
+            <Stack spacing={4}>
+              <InputGroup>
+                <InputLeftElement>
+                  <SearchIcon color="gray.400" />
+                </InputLeftElement>
+                <Input
+                  placeholder="Search Chitoor projects by any keyword..."
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  bg="gray.50"
+                  border="1px solid"
+                  borderColor="gray.200"
+                  _focus={{ bg: 'white', borderColor: 'green.400' }}
+                />
+              </InputGroup>
+            </Stack>
+          </CardBody>
+        </Card>
+
         {/* Header Actions */}
         <Flex justify="space-between" align="center" wrap="wrap" gap={4}>
           <Box>
@@ -461,7 +503,8 @@ const ChitoorProjects = () => {
               Chitoor Projects Management
             </Heading>
             <Text color="gray.600">
-              {projects.length} projects total
+              {projects.length} of {allProjects.length} projects
+              {searchTerm && ` matching "${searchTerm}"`}
             </Text>
           </Box>
           <Button
