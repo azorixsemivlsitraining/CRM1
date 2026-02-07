@@ -129,7 +129,7 @@ export async function generatePaymentReceiptPDF({
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(14);
     doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
-    doc.text('AXIVOLT GREEN ENERGIES PRIVATE LIMITED', margin, 21);
+    doc.text('AXIVOLT GREEN ENERGY PRIVATE LIMITED', margin, 21);
 
     // Calculate logo size and position after text is drawn
     const { dataUrl: logoData, aspectRatio: logoRatio } = await fetchImageAsset(LOGO_URL);
