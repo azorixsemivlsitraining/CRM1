@@ -160,7 +160,7 @@ export async function generatePaymentReceiptPDF({
       'Address: PLOT NO-102,103, TEMPLE LANE MYTHRI NAGAR',
       'Shri Ambika Vidya Mandir, MATHRUSRINAGAR, SERLINGAMPALLY',
       'Hyderabad, Rangareddy, Telangana, 500049',
-      'Email: contact@axisogreen.in | Website: www.axisogreen.in',
+      'Email: contact@axisogreen.in | Website: www.axivolt.in',
       'GSTIN: 36ABBCA4478M1Z9',
     ];
     doc.setFontSize(8.5);
