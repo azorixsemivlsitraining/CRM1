@@ -136,7 +136,7 @@ const Login = () => {
           <Image
             src={logoUrl}
             alt="Axivolt Logo"
-            h="80px"
+            h="120px"
             w="auto"
             objectFit="contain"
           />
@@ -157,13 +157,13 @@ const Login = () => {
                 <Image
                   src={logoUrl}
                   alt="Axivolt Logo"
-                  h="60px"
+                  h="100px"
                   w="auto"
                   objectFit="contain"
                 />
               </Flex>
-              <Heading size={{ base: 'xs', md: 'sm' }} color="brand.600">
-                Axivolt
+              <Heading size={{ base: 'sm', md: 'md' }} color="brand.600">
+                AXIVOLT GREEN ENERGY
               </Heading>
               <Text color="gray.600">
                 Sustainable Energy Management Platform

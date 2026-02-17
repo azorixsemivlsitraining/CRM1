@@ -841,7 +841,7 @@ const Finance: React.FC = () => {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(11);
       doc.setTextColor(BRAND_GREEN.r, BRAND_GREEN.g, BRAND_GREEN.b);
-      doc.text('Axivolt', margin + 20, yPos);
+      doc.text('AXIVOLT GREEN ENERGY', margin + 20, yPos);
 
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(7);

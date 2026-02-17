@@ -122,7 +122,7 @@ const DashboardHeader = () => {
           <HStack spacing={3} align="center">
             <Text fontSize="2xl">🔋</Text>
             <Text fontSize="xl" fontWeight="bold" color="brand.600">
-              Axivolt
+              AXIVOLT GREEN ENERGY
             </Text>
             <Badge colorScheme="brand" px={2} py={1} borderRadius="full" fontSize="xs">
               Dashboard Overview

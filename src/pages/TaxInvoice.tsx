@@ -89,7 +89,7 @@ const LOGO_URL = 'https://cdn.builder.io/api/v1/image/assets%2F5c07bd532d434c36b
 const STAMP_URL = 'https://cdn.builder.io/api/v1/image/assets%2Fa31d1200efef4b74975fb36c4890f8c1%2F7b695dbf880d48f38857f81c589061b2?format=webp&width=800';
 
 const COMPANY_INFO = {
-  name: 'Axivolt',
+  name: 'AXIVOLT GREEN ENERGY',
   address: 'Plot No-102,103, Temple Lane Mythri Nagar, Shri Ambika Vidya Mandir, Mathrusrinagar, Serlingampally, Hyderabad, Rangareddy, Telangana 500049',
   phone: '+91 88888 88898',
   email: 'admin@axisogreen.in',

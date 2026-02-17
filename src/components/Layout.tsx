@@ -176,7 +176,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               <img
                 src={logoUrl}
                 alt="Axivolt Logo"
-                style={{ height: '60px', width: 'auto' }}
+                style={{ height: '80px', width: 'auto' }}
               />
             )}
             <IconButton
@@ -196,7 +196,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 textAlign="center"
                 mb={2}
               >
-                Axivolt
+                AXIVOLT GREEN ENERGY
               </Text>
               <Text fontSize="xs" color="gray.500" textAlign="center">
                 Sustainable Energy Platform
