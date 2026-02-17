@@ -153,7 +153,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       // Ensure a row exists in public.users for management views
-      supabase.from('users').upsert({ id: session.user.id, email: sessionEmail }).catch(() => {});
+      supabase.from('users').upsert({ id: session.user.id, email: sessionEmail }).then(({ error }) => {
+        if (error) console.warn('User sync error:', error);
+      });
 
       // Set auth state fast
       setUser(session.user);
@@ -260,7 +262,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsAdmin(adminFlag);
 
       try {
-        await supabase.from('users').upsert({ id: data.user.id, email: normalizedEmail });
+        supabase.from('users').upsert({ id: data.user.id, email: normalizedEmail }).then(({ error }) => {
+          if (error) console.warn('User login sync error:', error);
+        });
       } catch {}
 
       const { regions, modules, regionMap } = await fetchUserAccess(normalizedEmail);
