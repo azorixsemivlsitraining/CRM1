@@ -85,11 +85,11 @@ interface TaxInvoiceData {
   updated_at?: string;
 }
 
-const LOGO_URL = 'https://cdn.builder.io/api/v1/image/assets%2Fa31d1200efef4b74975fb36c4890f8c1%2F80d2848c756046eb88adca5a77fec3e6?format=webp&width=800';
+const LOGO_URL = 'https://cdn.builder.io/api/v1/image/assets%2F5c07bd532d434c36b4bb2918deeee627%2F221ced27dd51481aa0a6f7a7e0d5c673?format=webp&width=800&height=1200';
 const STAMP_URL = 'https://cdn.builder.io/api/v1/image/assets%2Fa31d1200efef4b74975fb36c4890f8c1%2F7b695dbf880d48f38857f81c589061b2?format=webp&width=800';
 
 const COMPANY_INFO = {
-  name: 'Axiso Green Energies Private Limited',
+  name: 'AXIVOLT GREEN ENERGY',
   address: 'Plot No-102,103, Temple Lane Mythri Nagar, Shri Ambika Vidya Mandir, Mathrusrinagar, Serlingampally, Hyderabad, Rangareddy, Telangana 500049',
   phone: '+91 88888 88898',
   email: 'admin@axisogreen.in',
@@ -983,7 +983,7 @@ const TaxInvoice: React.FC = () => {
   if (loading) {
     return (
       <Center h="100vh">
-        <Spinner size="xl" color="green.500" />
+        <Spinner size="xl" color="brand.500" />
       </Center>
     );
   }
@@ -992,7 +992,7 @@ const TaxInvoice: React.FC = () => {
     <Box p={6} maxW="1400px" mx="auto">
       <Flex justify="space-between" align="center" mb={6}>
         <Heading as="h1" size="xl">Tax Invoices</Heading>
-        <Button colorScheme="green" onClick={openCreateForm}>
+        <Button colorScheme="brand" onClick={openCreateForm}>
           Create Invoice
         </Button>
       </Flex>
@@ -1005,7 +1005,7 @@ const TaxInvoice: React.FC = () => {
           <TableContainer>
             <Table variant="simple">
               <Thead>
-                <Tr bg="green.50">
+                <Tr bg="brand.50">
                   <Th>GST #</Th>
                   <Th>Invoice #</Th>
                   <Th>Invoice Date</Th>
@@ -1026,7 +1026,7 @@ const TaxInvoice: React.FC = () => {
                   return (
                     <Tr key={invoice.id}>
                       <Td>
-                        <Badge colorScheme="green">{invoice.gst_number}</Badge>
+                        <Badge colorScheme="brand">{invoice.gst_number}</Badge>
                       </Td>
                       <Td fontWeight="medium">{invoice.invoice_number}</Td>
                       <Td>{new Date(invoice.invoice_date).toLocaleDateString()}</Td>
@@ -1042,7 +1042,7 @@ const TaxInvoice: React.FC = () => {
                             variant="outline"
                             onClick={() => handleDownloadPDF(invoice)}
                           />
-                          <Button size="sm" colorScheme="green" variant="outline" onClick={() => { setPreviewInvoice(invoice); onPreviewOpen(); }}>
+                          <Button size="sm" colorScheme="brand" variant="outline" onClick={() => { setPreviewInvoice(invoice); onPreviewOpen(); }}>
                             Preview
                           </Button>
                           <IconButton
@@ -1095,25 +1095,25 @@ const TaxInvoice: React.FC = () => {
                   <HStack align="flex-start" spacing={4}>
                     <Image src={LOGO_URL} alt="Logo" boxSize="60px" objectFit="contain" />
                     <Box>
-                      <Heading size="sm" color="green.600">{COMPANY_INFO.name}</Heading>
+                      <Heading size="sm" color="brand.600">{COMPANY_INFO.name}</Heading>
                       <Text fontSize="sm">GSTIN {COMPANY_INFO.gstin}</Text>
                       <Text fontSize="sm">{COMPANY_INFO.email}</Text>
                       <Text fontSize="sm">{COMPANY_INFO.website}</Text>
                     </Box>
                   </HStack>
-                  <Heading size="md" color="green.600">TAX INVOICE</Heading>
+                  <Heading size="md" color="brand.600">TAX INVOICE</Heading>
                 </Flex>
 
                 <SimpleGrid columns={{ base: 1, md: 2 }} spacing={3} mb={4}>
                   <Box border="1px solid" borderColor="gray.300" borderRadius="md">
-                    <Flex bg="green.600" color="white" px={3} py={2} borderTopRadius="md"><Text fontWeight="semibold">Bill To</Text></Flex>
+                    <Flex bg="brand.600" color="white" px={3} py={2} borderTopRadius="md"><Text fontWeight="semibold">Bill To</Text></Flex>
                     <Box p={3}>
                       <Text fontWeight="semibold">{previewInvoice.bill_to_name || '—'}</Text>
                       <Text fontSize="sm" whiteSpace="pre-wrap">{previewInvoice.bill_to_address || '—'}</Text>
                     </Box>
                   </Box>
                   <Box border="1px solid" borderColor="gray.300" borderRadius="md">
-                    <Flex bg="green.600" color="white" px={3} py={2} borderTopRadius="md"><Text fontWeight="semibold">Ship To</Text></Flex>
+                    <Flex bg="brand.600" color="white" px={3} py={2} borderTopRadius="md"><Text fontWeight="semibold">Ship To</Text></Flex>
                     <Box p={3}>
                       <Text fontWeight="semibold">{previewInvoice.ship_to_name || '—'}</Text>
                       <Text fontSize="sm" whiteSpace="pre-wrap">{previewInvoice.ship_to_address || '—'}</Text>
@@ -1144,7 +1144,7 @@ const TaxInvoice: React.FC = () => {
 
                 <TableContainer border="1px solid" borderColor="gray.300" borderRadius="md" mb={4}>
                   <Table size="sm">
-                    <Thead bg="green.600">
+                    <Thead bg="brand.600">
                       <Tr>
                         <Th color="white">#</Th>
                         <Th color="white">Item & Description</Th>
@@ -1202,7 +1202,7 @@ const TaxInvoice: React.FC = () => {
                           <Flex px={3} py={2} justify="space-between"><Text>Sub Total</Text><Text>₹ {totals.subtotal.toFixed(2)}</Text></Flex>
                           <Flex px={3} py={2} justify="space-between"><Text>CGST ({previewInvoice.items[0]?.cgst_rate || 0}%)</Text><Text>₹ {totals.cgst.toFixed(2)}</Text></Flex>
                           <Flex px={3} py={2} justify="space-between"><Text>SGST ({previewInvoice.items[0]?.sgst_rate || 0}%)</Text><Text>₹ {totals.sgst.toFixed(2)}</Text></Flex>
-                          <Flex px={3} py={2} justify="space-between" bg="green.50" fontWeight="bold"><Text>Total</Text><Text>₹ {totals.total.toFixed(2)}</Text></Flex>
+                          <Flex px={3} py={2} justify="space-between" bg="brand.50" fontWeight="bold"><Text>Total</Text><Text>₹ {totals.total.toFixed(2)}</Text></Flex>
                         </VStack>
                       </Box>
                     </Flex>
@@ -1210,19 +1210,19 @@ const TaxInvoice: React.FC = () => {
                 })()}
 
                 <Box mb={3}>
-                  <Text fontWeight="semibold" color="green.600">Total In Words</Text>
+                  <Text fontWeight="semibold" color="brand.600">Total In Words</Text>
                   <Text fontSize="sm">Indian Rupee {convertNumberToWords(Math.floor(previewInvoice.items.reduce((s,i)=>s+i.quantity*i.rate*(1+(i.cgst_rate+i.sgst_rate)/100),0)))} Only</Text>
                 </Box>
 
                 {previewInvoice.notes && (
                   <Box mb={3}>
-                    <Text fontWeight="semibold" color="green.600">Notes</Text>
+                    <Text fontWeight="semibold" color="brand.600">Notes</Text>
                     <Text whiteSpace="pre-wrap" fontSize="sm">{previewInvoice.notes}</Text>
                   </Box>
                 )}
                 {previewInvoice.terms_and_conditions && (
                   <Box>
-                    <Text fontWeight="semibold" color="green.600">Terms & Conditions</Text>
+                    <Text fontWeight="semibold" color="brand.600">Terms & Conditions</Text>
                     <Text whiteSpace="pre-wrap" fontSize="sm">{previewInvoice.terms_and_conditions}</Text>
                   </Box>
                 )}
@@ -1368,11 +1368,11 @@ const TaxInvoice: React.FC = () => {
                 </CardBody>
               </Card>
 
-              <Card bg="green.50">
+              <Card bg="brand.50">
                 <CardHeader>
                   <Flex justify="space-between" align="center">
                     <Heading size="sm">Items</Heading>
-                    <Button size="sm" colorScheme="green" onClick={addItem}>
+                    <Button size="sm" colorScheme="brand" onClick={addItem}>
                       Add Item
                     </Button>
                   </Flex>
@@ -1380,8 +1380,8 @@ const TaxInvoice: React.FC = () => {
                 <CardBody>
                   <VStack spacing={4}>
                     {formData.items.map((item, index) => (
-                      <Card key={item.id} w="full" bg="white" border="2px solid" borderColor="green.200">
-                        <CardHeader bg="green.100" borderBottom="1px solid" borderColor="green.200">
+                      <Card key={item.id} w="full" bg="white" border="2px solid" borderColor="brand.200">
+                        <CardHeader bg="brand.100" borderBottom="1px solid" borderColor="brand.200">
                           <Flex justify="space-between" align="center">
                             <Heading size="sm">Main Item {index + 1}</Heading>
                             <Button
@@ -1522,7 +1522,7 @@ const TaxInvoice: React.FC = () => {
             <Button variant="ghost" onClick={onClose}>
               Cancel
             </Button>
-            <Button colorScheme="green" onClick={handleSaveInvoice} isLoading={submitLoading} loadingText="Saving">
+            <Button colorScheme="brand" onClick={handleSaveInvoice} isLoading={submitLoading} loadingText="Saving">
               Save Invoice
             </Button>
           </ModalFooter>

@@ -98,8 +98,8 @@ const StatsCard: React.FC<StatsCardProps> = ({ title, value, icon, color, helpTe
               )}
               {trend && (
                 <HStack spacing={1} mt={1}>
-                  <Text fontSize="xs" color="green.500">↗️</Text>
-                  <Text fontSize="xs" color="green.500" fontWeight="medium">
+                  <Text fontSize="xs" color="brand.500">↗️</Text>
+                  <Text fontSize="xs" color="brand.500" fontWeight="medium">
                     {trend}
                   </Text>
                 </HStack>
@@ -326,9 +326,9 @@ const Dashboard = () => {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" height="70vh">
         <VStack spacing={6}>
-          <Text fontSize="6xl" color="green.500">📈</Text>
+          <Text fontSize="6xl" color="brand.500">📈</Text>
           <Text fontSize="lg" color="gray.600">Loading dashboard...</Text>
-          <Progress size="md" isIndeterminate w="300px" colorScheme="green" borderRadius="full" />
+          <Progress size="md" isIndeterminate w="300px" colorScheme="brand" borderRadius="full" />
         </VStack>
       </Box>
     );
@@ -400,7 +400,7 @@ const Dashboard = () => {
             title="Active Projects"
             value={stats.activeProjects}
             icon="📊"
-            color="green"
+            color="brand"
             helpText="In progress"
           />
           <StatsCard
@@ -468,7 +468,7 @@ const Dashboard = () => {
                             return (
                               <Flex key={stage} justify="space-between" align="center" p={2} border="1px solid" borderColor="gray.100" borderRadius="md" bg="white">
                                 <Text fontSize="sm" color="gray.700">{stage}</Text>
-                                <Badge colorScheme="green" borderRadius="full" px={2}>{count}</Badge>
+                                <Badge colorScheme="brand" borderRadius="full" px={2}>{count}</Badge>
                               </Flex>
                             );
                           })}
@@ -492,7 +492,7 @@ const Dashboard = () => {
                   {activeProjects.length} projects currently in progress
                 </Text>
               </Box>
-              <Badge colorScheme="green" px={3} py={1} borderRadius="full">
+              <Badge colorScheme="brand" px={3} py={1} borderRadius="full">
                 Live Data
               </Badge>
             </Flex>

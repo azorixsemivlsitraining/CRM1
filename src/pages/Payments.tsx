@@ -264,7 +264,7 @@ const Payments: React.FC = () => {
         key: 'rzp_test_NCm6iCJioqxsjo', // Razorpay test key ID
         amount: amountInPaise,
         currency: 'INR',
-        name: 'Axiso Green Energy',
+        name: 'Axivolt',
         description: `Payment for ${project?.name || 'Project'}`,
         // Using Supabase order ID as receipt instead of actual Razorpay order_id
         receipt: `receipt_${orderData.id}`,
@@ -368,7 +368,7 @@ const Payments: React.FC = () => {
         // Config Razorpay to use our secret key - note: this is not secure for production
         // In production, you should use a backend API to create orders
         notes: {
-          address: 'Axiso Green Energy Corporate Office'
+          address: 'Axivolt Corporate Office'
         },
       };
 
@@ -456,7 +456,7 @@ const Payments: React.FC = () => {
           
           {loadingHistory ? (
             <Center py={10}>
-              <Spinner size="lg" color="green.500" />
+              <Spinner size="lg" color="brand.500" />
             </Center>
           ) : (
             <Table variant="simple" size="sm">

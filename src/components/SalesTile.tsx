@@ -277,7 +277,7 @@ const SalesTile: React.FC<SalesTileProps> = ({
                   </Text>
                 </Box>
               </HStack>
-              <Button colorScheme="green" onClick={onNavigateToFull}>
+              <Button colorScheme="brand" onClick={onNavigateToFull}>
                 Go to Sales Page
               </Button>
             </Flex>
@@ -301,7 +301,7 @@ const SalesTile: React.FC<SalesTileProps> = ({
                         <Text fontSize="sm" color={titleColor}>
                           Total Leads
                         </Text>
-                        <Heading size="lg" color="green.600">
+                        <Heading size="lg" color="brand.600">
                           {summary.total}
                         </Heading>
                       </CardBody>
@@ -348,7 +348,7 @@ const SalesTile: React.FC<SalesTileProps> = ({
                           <Text fontSize="xs" color={titleColor}>
                             {stage.name}
                           </Text>
-                          <Heading size="sm" color="green.600">
+                          <Heading size="sm" color="brand.600">
                             {summary.byStage[stage.id] || 0}
                           </Heading>
                         </CardBody>
@@ -407,7 +407,7 @@ const SalesTile: React.FC<SalesTileProps> = ({
                                     )}
                                   </Td>
                                   <Td>
-                                    <Badge colorScheme="green">{stage?.name || '—'}</Badge>
+                                    <Badge colorScheme="brand">{stage?.name || '—'}</Badge>
                                   </Td>
                                 </Tr>
                               );
@@ -424,7 +424,7 @@ const SalesTile: React.FC<SalesTileProps> = ({
                   <SimpleGrid columns={{ base: 1, md: 2, lg: stages.length > 4 ? 4 : stages.length }} spacing={4}>
                     {stages.map((stage) => (
                       <Box key={stage.id} bg={cardBg} border="1px solid" borderColor={borderColor} borderRadius="lg" p={4}>
-                        <Heading size="sm" color="green.600" mb={3}>
+                        <Heading size="sm" color="brand.600" mb={3}>
                           {stage.name}
                         </Heading>
                         <VStack spacing={2} align="stretch">
@@ -519,7 +519,7 @@ const SalesTile: React.FC<SalesTileProps> = ({
             <Button variant="ghost" mr={3} onClick={onClose}>
               Close
             </Button>
-            <Button colorScheme="green" onClick={onNavigateToFull}>
+            <Button colorScheme="brand" onClick={onNavigateToFull}>
               Go to Sales Page
             </Button>
           </ModalFooter>

@@ -91,6 +91,8 @@ const Login = () => {
     }
   }, [fromHR, hrEmail]);
 
+  const logoUrl = "https://cdn.builder.io/api/v1/image/assets%2F5c07bd532d434c36b4bb2918deeee627%2F221ced27dd51481aa0a6f7a7e0d5c673?format=webp&width=800&height=1200";
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (loading) return;
@@ -132,13 +134,13 @@ const Login = () => {
       <Center h="100vh" bg={bgColor}>
         <VStack spacing={4}>
           <Image
-            src="https://cdn.builder.io/api/v1/image/assets%2F2f195b82614d46a0b777d649ad418b24%2F5065c74f0a374ff4a36efc224f468f09?format=webp&width=800"
-            alt="Axiso Green Energy Logo"
-            h="80px"
+            src={logoUrl}
+            alt="Axivolt Logo"
+            h="120px"
             w="auto"
             objectFit="contain"
           />
-          <Spinner size="xl" color="green.500" thickness="4px" />
+          <Spinner size="xl" color="brand.500" thickness="4px" />
           <Text fontSize="lg" color="gray.600">Loading...</Text>
         </VStack>
       </Center>
@@ -153,15 +155,15 @@ const Login = () => {
             <Stack spacing={{ base: '2', md: '3' }} textAlign="center">
               <Flex justify="center" align="center" mb={4}>
                 <Image
-                  src="https://cdn.builder.io/api/v1/image/assets%2F2f195b82614d46a0b777d649ad418b24%2F5065c74f0a374ff4a36efc224f468f09?format=webp&width=800"
-                  alt="Axiso Green Energy Logo"
-                  h="60px"
+                  src={logoUrl}
+                  alt="Axivolt Logo"
+                  h="100px"
                   w="auto"
                   objectFit="contain"
                 />
               </Flex>
-              <Heading size={{ base: 'xs', md: 'sm' }} color="green.600">
-                Axiso Green Energy
+              <Heading size={{ base: 'sm', md: 'md' }} color="brand.600">
+                AXIVOLT GREEN ENERGY
               </Heading>
               <Text color="gray.600">
                 Sustainable Energy Management Platform
@@ -169,7 +171,7 @@ const Login = () => {
             </Stack>
           </Stack>
           <HStack justify="flex-start">
-            <Button leftIcon={<ArrowBackIcon />} variant="outline" colorScheme="green" size="sm" onClick={() => {
+            <Button leftIcon={<ArrowBackIcon />} variant="outline" colorScheme="brand" size="sm" onClick={() => {
               if (isAuthenticated) {
                 navigate('/welcome');
               } else {
@@ -196,7 +198,7 @@ const Login = () => {
               left="0"
               right="0"
               h="4px"
-              bgGradient="linear(to-r, green.400, blue.400, purple.400)"
+              bgGradient="linear(to-r, brand.400, accent.400, purple.400)"
             />
             <form onSubmit={handleLogin}>
               <Stack spacing="6">
@@ -218,8 +220,8 @@ const Login = () => {
                       placeholder="Enter your email"
                       _placeholder={{ color: 'gray.400' }}
                       borderColor="gray.300"
-                      _hover={{ borderColor: 'green.400' }}
-                      _focus={{ borderColor: 'green.500', boxShadow: '0 0 0 1px #48BB78' }}
+                      _hover={{ borderColor: 'brand.400' }}
+                      _focus={{ borderColor: 'brand.500', boxShadow: '0 0 0 1px #015668' }}
                     />
                   </InputGroup>
                 </FormControl>
@@ -240,8 +242,8 @@ const Login = () => {
                       placeholder="Enter your password"
                       _placeholder={{ color: 'gray.400' }}
                       borderColor="gray.300"
-                      _hover={{ borderColor: 'green.400' }}
-                      _focus={{ borderColor: 'green.500', boxShadow: '0 0 0 1px #48BB78' }}
+                      _hover={{ borderColor: 'brand.400' }}
+                      _focus={{ borderColor: 'brand.500', boxShadow: '0 0 0 1px #015668' }}
                     />
                     <Button
                       variant="ghost"
@@ -258,15 +260,15 @@ const Login = () => {
                   </InputGroup>
                 </FormControl>
                 <HStack justify="flex-end">
-                  <Button variant="link" size="sm" colorScheme="green" onClick={handleForgot}>Forgot password?</Button>
+                  <Button variant="link" size="sm" colorScheme="brand" onClick={handleForgot}>Forgot password?</Button>
                 </HStack>
                 </Stack>
                 <Stack spacing="6">
                   <Button
                     type="submit"
-                  bgGradient="linear(to-r, green.400, green.500)"
+                  bgGradient="linear(to-r, brand.400, brand.500)"
                   _hover={{
-                    bgGradient: 'linear(to-r, green.500, green.600)',
+                    bgGradient: 'linear(to-r, brand.500, brand.600)',
                     transform: 'translateY(-1px)',
                     boxShadow: 'lg',
                   }}
@@ -285,7 +287,7 @@ const Login = () => {
                 {fromHR && isHrQuickLoginConfigured && (
                   <Button
                     variant="outline"
-                    colorScheme="green"
+                    colorScheme="brand"
                     size="sm"
                     onClick={handleQuickHrLogin}
                     isDisabled={loading}

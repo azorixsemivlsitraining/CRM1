@@ -160,12 +160,12 @@ const AdminDashboard = () => {
   const borderColor = useColorModeValue('gray.200', 'gray.600');
 
   const availableAssignees = [
-    { email: 'yellesh@axisogreen.in', name: 'Yellesh' },
-    { email: 'dhanush@axisogreen.in', name: 'Dhanush' },
-    { email: 'TGoffice@axisogreen.in', name: 'TG Office' },
-    { email: 'APoffice@axisogreen.in', name: 'AP Office' },
-    { email: 'procurement@axisogreen.in', name: 'Procurement' },
-    { email: 'services@axisogreen.in', name: 'Services' },
+    { email: 'yellesh@axivolt.in', name: 'Yellesh' },
+    { email: 'dhanush@axivolt.in', name: 'Dhanush' },
+    { email: 'TGoffice@axivolt.in', name: 'TG Office' },
+    { email: 'APoffice@axivolt.in', name: 'AP Office' },
+    { email: 'procurement@axivolt.in', name: 'Procurement' },
+    { email: 'services@axivolt.in', name: 'Services' },
   ];
 
   const availableStates = ['Telangana', 'Andhra Pradesh', 'Chitoor'];
@@ -919,7 +919,7 @@ const Admin = () => {
   const { user, isAdmin } = useAuth();
 
   // Check if user is admin
-  if (!isAdmin || user?.email !== 'admin@axisogreen.in') {
+  if (!isAdmin || user?.email !== 'admin@axivolt.in') {
     return <Navigate to="/dashboard" replace />;
   }
 
