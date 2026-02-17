@@ -153,7 +153,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       // Ensure a row exists in public.users for management views
-      supabase.from('users').upsert({ id: session.user.id, email: sessionEmail }).then(({ error }) => {
+      supabase.from('users').upsert({ id: session.user.id, email: sessionEmail }).then(({ error }: any) => {
         if (error) console.warn('User sync error:', error);
       });
 
@@ -262,7 +262,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsAdmin(adminFlag);
 
       try {
-        supabase.from('users').upsert({ id: data.user.id, email: normalizedEmail }).then(({ error }) => {
+        supabase.from('users').upsert({ id: data.user.id, email: normalizedEmail }).then(({ error }: any) => {
           if (error) console.warn('User login sync error:', error);
         });
       } catch {}
