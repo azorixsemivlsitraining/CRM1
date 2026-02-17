@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { Session } from '@supabase/supabase-js';
 import { useNavigate } from 'react-router-dom';
@@ -41,6 +41,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isEditor, setIsEditor] = useState(false);
   const [user, setUser] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [, setIsPermissionsLoading] = useState(false);
   const [assignedRegions, setAssignedRegions] = useState<string[]>([]);
   const [allowedModules, setAllowedModules] = useState<string[]>([]);
   const [regionAccess, setRegionAccess] = useState<RegionAccessMap>({});
@@ -48,7 +49,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const toast = useToast();
 
   // Fetch user's assigned regions and optional permissions
-  const fetchUserAccess = async (userEmail: string): Promise<{ regions: string[]; modules: string[]; regionMap: RegionAccessMap }> => {
+  const fetchUserAccess = useCallback(async (userEmail: string): Promise<{ regions: string[]; modules: string[]; regionMap: RegionAccessMap }> => {
     try {
       const { data, error } = await supabase
         .from('project_assignments')
@@ -92,9 +93,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Error fetching user access:', error);
       return { regions: [], modules: [], regionMap: {} };
     }
-  };
+  }, []);
 
-  const handleAuthChange = async (session: Session | null) => {
+  const loadPermissions = useCallback(async (userId: string, email: string) => {
+    try {
+      setIsPermissionsLoading(true);
+
+      // Check admin role
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', userId)
+        .single();
+
+      if (!userError && userData) {
+        setIsAdmin((userData as any)?.role === 'admin');
+      }
+
+      // Fetch assigned regions and permissions
+      const { regions, modules, regionMap } = await fetchUserAccess(email);
+      setAssignedRegions(regions);
+      setAllowedModules(Array.isArray(modules) ? modules : []);
+      setRegionAccess(regionMap || {});
+    } catch (err) {
+      console.error('Permissions load error:', err);
+    } finally {
+      setIsPermissionsLoading(false);
+    }
+  }, [fetchUserAccess]);
+
+  const handleAuthChange = useCallback(async (session: Session | null) => {
     try {
       if (!session?.user?.id) {
         setIsAuthenticated(false);
@@ -124,34 +152,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsEditor(false);
       }
 
-      // First check if user exists in users table
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('role')
-        .eq('id', session.user.id)
-        .single();
-
-      let adminFlag = false;
-      if (!userError && userData) {
-        adminFlag = (userData as any)?.role === 'admin';
-      } else {
-        console.warn('User role not found or users table missing; defaulting to non-admin.', (userError as any)?.message || userError);
-      }
-      setIsAdmin(adminFlag);
-
       // Ensure a row exists in public.users for management views
-      try {
-        await supabase.from('users').upsert({ id: session.user.id, email: sessionEmail });
-      } catch {}
+      supabase.from('users').upsert({ id: session.user.id, email: sessionEmail }).catch(() => {});
 
-      // Fetch assigned regions and permissions (defaults allow all modules when not configured)
-      const { regions, modules, regionMap } = await fetchUserAccess(sessionEmail);
-      setAssignedRegions(regions);
-      setAllowedModules(Array.isArray(modules) ? modules : []);
-      setRegionAccess(regionMap || {});
-
+      // Set auth state fast
       setUser(session.user);
       setIsAuthenticated(true);
+
+      // Load permissions in background
+      loadPermissions(session.user.id, sessionEmail);
     } catch (error) {
       console.error('Error handling auth change:', error);
       setIsAuthenticated(false);
@@ -163,17 +172,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setAllowedModules([]);
       setRegionAccess({});
     }
-  };
+  }, [loadPermissions]);
 
   useEffect(() => {
     let mounted = true;
 
     const initializeAuth = async () => {
       try {
+        // Set a maximum load time of 8 seconds to prevent permanent hang
+        const timeoutId = setTimeout(() => {
+          if (mounted) {
+            console.warn('Auth initialization timed out, forcing loading state to false');
+            setIsLoading(false);
+          }
+        }, 8000);
+
         const { data: { session } } = await supabase.auth.getSession();
         if (mounted) {
           await handleAuthChange(session);
         }
+
+        clearTimeout(timeoutId);
       } catch (error) {
         console.error('Error initializing auth:', error);
       } finally {
@@ -326,7 +345,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   if (isLoading) {
     return (
       <Center h="100vh">
-        <Spinner size="xl" color="blue.500" />
+        <Spinner size="xl" color="brand.500" />
       </Center>
     );
   }
