@@ -11,7 +11,7 @@ interface PaymentReceiptProps {
 }
 
 // Updated color scheme: Changed from green (#47BA78) to teal (#058286)
-const BRAND_PRIMARY = { r: 5, g: 130, b: 134 }; // #058286 - Teal color
+const BRAND_PRIMARY = { r: 1, g: 86, b: 104 }; // #015668 - Teal color
 const TEXT_PRIMARY = { r: 45, g: 55, b: 72 };
 const TEXT_MUTED = { r: 99, g: 110, b: 114 };
 const BOX_BORDER = { r: 209, g: 213, b: 219 };
@@ -19,7 +19,7 @@ const BOX_BG = { r: 240, g: 250, b: 251 }; // Light teal background to match new
 
 // Using local logo from public/images folder
 // For local files, use path relative to public folder root (starts with /)
-const LOGO_URL = '/images/axiso-logo.png';
+const LOGO_URL = 'https://cdn.builder.io/api/v1/image/assets%2F5c07bd532d434c36b4bb2918deeee627%2F221ced27dd51481aa0a6f7a7e0d5c673?format=webp&width=800&height=1200';
 const FOOTER_SIGN_STAMP_URL = 'https://cdn.builder.io/api/v1/image/assets%2Fd6ed3a58ddbf4178909cabbd3ef86178%2F0237e5d9ea084a6abe20e0bc958c4e2c?format=webp&width=800';
 
 async function fetchImageAsDataURL(url: string): Promise<string> {
@@ -129,7 +129,7 @@ export async function generatePaymentReceiptPDF({
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(14);
     doc.setTextColor(BRAND_PRIMARY.r, BRAND_PRIMARY.g, BRAND_PRIMARY.b);
-    doc.text('AXIVOLT GREEN ENERGY PRIVATE LIMITED', margin, 21);
+    doc.text('AXIVOLT', margin, 21);
 
     // Calculate logo size and position after text is drawn
     const { dataUrl: logoData, aspectRatio: logoRatio } = await fetchImageAsset(LOGO_URL);
@@ -160,7 +160,7 @@ export async function generatePaymentReceiptPDF({
       'Address: PLOT NO-102,103, TEMPLE LANE MYTHRI NAGAR',
       'Shri Ambika Vidya Mandir, MATHRUSRINAGAR, SERLINGAMPALLY',
       'Hyderabad, Rangareddy, Telangana, 500049',
-      'Email: contact@axisogreen.in | Website: www.axivolt.in',
+      'Email: contact@axivolt.in | Website: www.axivolt.in',
       'GSTIN: 36ABBCA4478M1Z9',
     ];
     doc.setFontSize(8.5);

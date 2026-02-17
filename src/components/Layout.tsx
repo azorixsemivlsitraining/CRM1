@@ -196,7 +196,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 textAlign="center"
                 mb={2}
               >
-                Axiso Green Energy
+                Axivolt
               </Text>
               <Text fontSize="xs" color="gray.500" textAlign="center">
                 Sustainable Energy Platform
@@ -444,7 +444,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <Flex align="center">
           <img
             src={logoUrl}
-            alt="Axiso Green Energy Logo"
+            alt="Axivolt Logo"
             style={{ height: '32px', width: 'auto' }}
           />
         </Flex>

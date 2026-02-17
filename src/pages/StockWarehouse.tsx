@@ -113,7 +113,7 @@ const StockWarehouse: React.FC = () => {
       let y = 50;
 
       doc.setFontSize(16);
-      doc.text('Axiso Green Energy – Inventory List', marginX, y);
+      doc.text('Axivolt – Inventory List', marginX, y);
       y += 20;
       doc.setFontSize(11);
       doc.text(`Generated: ${new Date().toLocaleString()}`, marginX, y);
@@ -172,7 +172,7 @@ const StockWarehouse: React.FC = () => {
     <Box>
       <Heading size="lg" mb={4}>Stock Warehouse</Heading>
 
-      <Tabs colorScheme="green" variant="enclosed" index={tabIndex} onChange={(i) => setTabIndex(i)}>
+      <Tabs colorScheme="brand" variant="enclosed" index={tabIndex} onChange={(i) => setTabIndex(i)}>
         <TabList>
           <Tab>Overview</Tab>
           <Tab>Visuals</Tab>
@@ -208,7 +208,7 @@ const StockWarehouse: React.FC = () => {
                 </Stat>
               </SimpleGrid>
               <HStack mt={4} spacing={3}>
-                <Badge colorScheme="green">Live</Badge>
+                <Badge colorScheme="brand">Live</Badge>
                 <Text color="gray.600">{stats.lastUpdated ? `Updated ${stats.lastUpdated.toLocaleString()}` : 'Awaiting first sync'}</Text>
               </HStack>
             </CardBody></Card>
@@ -251,7 +251,7 @@ const StockWarehouse: React.FC = () => {
           <TabPanel>
             <Card><CardBody>
               <HStack spacing={3} wrap="wrap">
-                <Button colorScheme="green" onClick={() => setTabIndex(5)}>Check Available Stock</Button>
+                <Button colorScheme="brand" onClick={() => setTabIndex(5)}>Check Available Stock</Button>
                 <Button onClick={downloadInventoryPDF}>Download Inventory List</Button>
                 <Button as={Link} href="mailto:logistics@axisogreen.in">Contact Warehouse Team</Button>
               </HStack>
@@ -265,19 +265,19 @@ const StockWarehouse: React.FC = () => {
                 <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4}>
                   <VStack align="stretch" spacing={1}>
                     <Text>Hyderabad Warehouse</Text>
-                    <Link color="green.600" isExternal href="https://maps.google.com/?q=Hyderabad">Open in Maps</Link>
+                    <Link color="brand.600" isExternal href="https://maps.google.com/?q=Hyderabad">Open in Maps</Link>
                   </VStack>
                   <VStack align="stretch" spacing={1}>
                     <Text>Bangalore Warehouse</Text>
-                    <Link color="green.600" isExternal href="https://maps.google.com/?q=Bangalore">Open in Maps</Link>
+                    <Link color="brand.600" isExternal href="https://maps.google.com/?q=Bangalore">Open in Maps</Link>
                   </VStack>
                   <VStack align="stretch" spacing={1}>
                     <Text>Chennai Warehouse</Text>
-                    <Link color="green.600" isExternal href="https://maps.google.com/?q=Chennai">Open in Maps</Link>
+                    <Link color="brand.600" isExternal href="https://maps.google.com/?q=Chennai">Open in Maps</Link>
                   </VStack>
                 </SimpleGrid>
                 <HStack pt={2} spacing={6}>
-                  <Text>Email: <Link href="mailto:logistics@axisogreen.in" color="green.600">logistics@axisogreen.in</Link></Text>
+                  <Text>Email: <Link href="mailto:logistics@axisogreen.in" color="brand.600">logistics@axisogreen.in</Link></Text>
                 </HStack>
               </VStack>
             </CardBody></Card>
@@ -291,7 +291,7 @@ const StockWarehouse: React.FC = () => {
                   <Input type="number" placeholder="Qty" value={quantity} onChange={(e) => setQuantity(Number(e.target.value))} w="120px" />
                   <Input placeholder="Location" value={location} onChange={(e) => setLocation(e.target.value)} />
                   <Input placeholder="Notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
-                  <Button colorScheme="green" onClick={addItem} isLoading={loading}>Add</Button>
+                  <Button colorScheme="brand" onClick={addItem} isLoading={loading}>Add</Button>
                 </HStack>
               </VStack>
             </CardBody></Card>
@@ -322,7 +322,7 @@ const StockWarehouse: React.FC = () => {
                     <Td>
                       {editing?.id === it.id ? (
                         <HStack>
-                          <Button size="sm" colorScheme="green" onClick={async ()=>{
+                          <Button size="sm" colorScheme="brand" onClick={async ()=>{
                             try{
                               setLoading(true);
                               const payload:any={ item_name:editing.item_name, quantity:editing.quantity, location:editing.location||null, notes:editing.notes||null };

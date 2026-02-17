@@ -236,7 +236,7 @@ async function fetchImageAsset(url: string): Promise<{ dataUrl: string; aspectRa
 }
 
 // Simple bar chart (pure Chakra UI)
-const BarChart: React.FC<{ labels: string[]; values: number[]; color?: string; maxBars?: number }> = ({ labels, values, color = 'green.500', maxBars = 12 }) => {
+const BarChart: React.FC<{ labels: string[]; values: number[]; color?: string; maxBars?: number }> = ({ labels, values, color = 'brand.500', maxBars = 12 }) => {
   const items = labels.map((l, i) => ({ l, v: values[i] || 0 }));
   const trimmed = items.slice(-maxBars);
   const maxV = Math.max(1, ...trimmed.map(i => i.v));
@@ -257,7 +257,7 @@ const BarChart: React.FC<{ labels: string[]; values: number[]; color?: string; m
 };
 
 // Two-series comparison bar chart
-const BarCompareChart: React.FC<{ labels: string[]; seriesA: number[]; seriesB: number[]; seriesLabels: [string, string]; colors?: [string, string] }> = ({ labels, seriesA, seriesB, seriesLabels, colors = ['green.600', 'green.300'] }) => {
+const BarCompareChart: React.FC<{ labels: string[]; seriesA: number[]; seriesB: number[]; seriesLabels: [string, string]; colors?: [string, string] }> = ({ labels, seriesA, seriesB, seriesLabels, colors = ['brand.600', 'brand.300'] }) => {
   const maxV = Math.max(1, ...seriesA, ...seriesB);
   return (
     <Box border="1px solid" borderColor="gray.100" borderRadius="lg" p={4} bg="white">
@@ -841,7 +841,7 @@ const Finance: React.FC = () => {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(11);
       doc.setTextColor(BRAND_GREEN.r, BRAND_GREEN.g, BRAND_GREEN.b);
-      doc.text('Axiso Green Energies Private Limited', margin + 20, yPos);
+      doc.text('Axivolt', margin + 20, yPos);
 
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(7);
@@ -1944,7 +1944,7 @@ const Finance: React.FC = () => {
     <Box p={6} maxW="1400px" mx="auto">
       <Heading as="h1" size="xl" mb={2}>Finance Dashboard</Heading>
       <HStack mb={4} spacing={3}>
-        <Button size="sm" colorScheme="green" onClick={() => { window.location.href = '#/procurement'; }}>Open Procurement</Button>
+        <Button size="sm" colorScheme="brand" onClick={() => { window.location.href = '#/procurement'; }}>Open Procurement</Button>
         <Button size="sm" onClick={() => { window.location.href = '#/stock'; }}>Open Warehouse</Button>
       </HStack>
 
@@ -1954,7 +1954,7 @@ const Finance: React.FC = () => {
         <Card><CardBody><Stat><StatLabel>Active Projects</StatLabel><StatNumber>{activeProjectsCount}</StatNumber><Text fontSize="sm" color="gray.500">With outstanding payments</Text></Stat></CardBody></Card>
       </SimpleGrid>
 
-      <Tabs colorScheme="green" isFitted variant="enclosed">
+      <Tabs colorScheme="brand" isFitted variant="enclosed">
         <TabList>
           <Tab>Sales & Revenue</Tab>
           <Tab>Projects Receivables</Tab>
@@ -1985,7 +1985,7 @@ const Finance: React.FC = () => {
                 <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6} mb={4}>
                   <Stat><StatLabel>Revenue ({period === 'all' ? 'All' : 'Period'})</StatLabel><StatNumber>{inr(period === 'all' ? totalRevenueAll : totalRevenuePeriod)}</StatNumber></Stat>
                   <Stat><StatLabel>Expenses ({period === 'all' ? 'All' : 'Period'})</StatLabel><StatNumber>{inr(period === 'all' ? totalExpensesAll : totalExpensesPeriod)}</StatNumber></Stat>
-                  <Stat><StatLabel>Profit ({period === 'all' ? 'All' : 'Period'})</StatLabel><StatNumber color={(period === 'all' ? profitAll : profitPeriod) >= 0 ? 'green.600' : 'red.600'}>{inr(period === 'all' ? profitAll : profitPeriod)}</StatNumber></Stat>
+                  <Stat><StatLabel>Profit ({period === 'all' ? 'All' : 'Period'})</StatLabel><StatNumber color={(period === 'all' ? profitAll : profitPeriod) >= 0 ? 'brand.600' : 'red.600'}>{inr(period === 'all' ? profitAll : profitPeriod)}</StatNumber></Stat>
                 </SimpleGrid>
                 <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6} mb={6}>
                   <Card>
@@ -2081,10 +2081,10 @@ const Finance: React.FC = () => {
                         <Td>{project.customer_name}</Td>
                         <Td>{inr(project.proposal_amount || 0)}</Td>
                         <Td>{inr((project.advance_payment || 0) + (project.paid_amount || 0))}</Td>
-                        <Td fontWeight="bold" color={(project.balance_amount || 0) > 0 ? 'red.500' : 'green.500'}>{inr(project.balance_amount || 0)}</Td>
+                        <Td fontWeight="bold" color={(project.balance_amount || 0) > 0 ? 'red.500' : 'brand.500'}>{inr(project.balance_amount || 0)}</Td>
                         <Td><Badge colorScheme={project.payment_mode === 'Loan' ? 'purple' : 'blue'}>{project.payment_mode}</Badge></Td>
                         <Td>{project.current_stage}</Td>
-                        <Td><Badge colorScheme={project.status === 'active' ? 'green' : 'gray'}>{project.status}</Badge></Td>
+                        <Td><Badge colorScheme={project.status === 'active' ? 'brand' : 'gray'}>{project.status}</Badge></Td>
                         <Td><Button size="xs" variant="outline" onClick={() => openPaymentModal(project)}>Payment</Button></Td>
                       </Tr>
                     ))}
@@ -2126,7 +2126,7 @@ const Finance: React.FC = () => {
                             </Box>
                             <Box>
                               <Text fontSize="sm" color="gray.600">Outstanding</Text>
-                              <Text fontWeight="bold" color={(selectedProject.balance_amount || 0) > 0 ? 'red.500' : 'green.500'}>{inr(selectedProject.balance_amount || 0)}</Text>
+                              <Text fontWeight="bold" color={(selectedProject.balance_amount || 0) > 0 ? 'red.500' : 'brand.500'}>{inr(selectedProject.balance_amount || 0)}</Text>
                             </Box>
                           </SimpleGrid>
                         </CardBody>
@@ -2177,7 +2177,7 @@ const Finance: React.FC = () => {
                               </Select>
                             </FormControl>
                             <Button
-                              colorScheme="green"
+                              colorScheme="brand"
                               width="full"
                               onClick={handleAddPayment}
                               isLoading={paymentLoading}
@@ -2308,7 +2308,7 @@ const Finance: React.FC = () => {
                           />
                         </FormControl>
                         <Button
-                          colorScheme="green"
+                          colorScheme="brand"
                           width="full"
                           onClick={handleAddEstimation}
                           isLoading={estimationLoading}
@@ -2597,8 +2597,8 @@ const Finance: React.FC = () => {
                             </HStack>
                           </FormControl>
                           {taxInvoiceForm.items.map((item, index) => (
-                            <Card key={index} mb={4} bg="white" border="2px solid" borderColor="green.200">
-                              <CardHeader bg="green.50" pb={2}>
+                            <Card key={index} mb={4} bg="white" border="2px solid" borderColor="brand.200">
+                              <CardHeader bg="brand.50" pb={2}>
                                 <HStack justify="space-between">
                                   <Box>
                                     <Text fontSize="sm" color="gray.600">Item {index + 1}</Text>
@@ -2739,7 +2739,7 @@ const Finance: React.FC = () => {
                         </Box>
 
                         <Button
-                          colorScheme="green"
+                          colorScheme="brand"
                           width="full"
                           onClick={handleAddTaxInvoice}
                           isLoading={taxInvoiceLoading}
@@ -2851,7 +2851,7 @@ const Finance: React.FC = () => {
                 <Heading size="md">Reports & Export</Heading>
               </CardHeader>
               <CardBody>
-                <Tabs colorScheme="green" isFitted>
+                <Tabs colorScheme="brand" isFitted>
                   <TabList>
                     <Tab>Order & Payment</Tab>
                     <Tab>Customer Purchase</Tab>
@@ -2936,7 +2936,7 @@ const Finance: React.FC = () => {
                         <Box>
                           <Text fontWeight="semibold" color="gray.700" mb={2}>Expenses by Category</Text>
                           {expensesByCategory.labels.length > 0 ? (
-                            <BarChart labels={expensesByCategory.labels} values={expensesByCategory.values} color="green.300" />
+                            <BarChart labels={expensesByCategory.labels} values={expensesByCategory.values} color="brand.300" />
                           ) : (
                             <Text fontSize="sm" color="gray.500">No data</Text>
                           )}
