@@ -111,14 +111,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const sessionEmail = (session.user.email || '').toLowerCase();
 
       // Check if the user is the finance user
-      if (sessionEmail === 'dhanush@axisogreen.in') {
+      if (sessionEmail === 'dhanush@axivolt.in') {
         setIsFinance(true);
       } else {
         setIsFinance(false);
       }
 
       // Check if the user has edit permissions (admin or contact)
-      if (sessionEmail === 'admin@axisogreen.in' || sessionEmail === 'contact@axisogreen.in') {
+      if (sessionEmail === 'admin@axivolt.in' || sessionEmail === 'contact@axivolt.in') {
         setIsEditor(true);
       } else {
         setIsEditor(false);
@@ -223,8 +223,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       setUser(data.user);
       setIsAuthenticated(true);
-      setIsFinance(normalizedEmail === 'dhanush@axisogreen.in');
-      setIsEditor(normalizedEmail === 'admin@axisogreen.in' || normalizedEmail === 'contact@axisogreen.in');
+      setIsFinance(normalizedEmail === 'dhanush@axivolt.in');
+      setIsEditor(normalizedEmail === 'admin@axivolt.in' || normalizedEmail === 'contact@axivolt.in');
 
       const { data: userData, error: userError } = await supabase
         .from('users')

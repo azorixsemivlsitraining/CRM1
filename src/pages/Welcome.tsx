@@ -166,7 +166,7 @@ const Welcome: React.FC = () => {
   };
 
   const handleHRAccess = async () => {
-    if (user?.email?.toLowerCase() === 'yellesh@axisogreen.in') {
+    if (user?.email?.toLowerCase() === 'yellesh@axivolt.in') {
       navigate('/hr');
       return;
     }
