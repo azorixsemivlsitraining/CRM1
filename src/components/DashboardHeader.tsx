@@ -121,10 +121,10 @@ const DashboardHeader = () => {
         <Box>
           <HStack spacing={3} align="center">
             <Text fontSize="2xl">🔋</Text>
-            <Text fontSize="xl" fontWeight="bold" color="green.600">
-              Axiso Green Energy
+            <Text fontSize="xl" fontWeight="bold" color="brand.600">
+              Axivolt
             </Text>
-            <Badge colorScheme="green" px={2} py={1} borderRadius="full" fontSize="xs">
+            <Badge colorScheme="brand" px={2} py={1} borderRadius="full" fontSize="xs">
               Dashboard Overview
             </Badge>
           </HStack>
@@ -146,7 +146,7 @@ const DashboardHeader = () => {
           title="Active Projects"
           value={globalStats.activeProjects}
           icon="🚀"
-          color="green"
+          color="brand"
           helpText="In progress"
         />
         <HeaderStatsCard

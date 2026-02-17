@@ -32,6 +32,7 @@ import RegionGuard from './components/RegionGuard';
 import ModulesPage from './components/ModulesPage';
 import ChitoorProjectDetails from './components/ChitoorProjectDetails';
 import { AuthProvider } from './context/AuthContext';
+import theme from './theme';
 
 // Finance route is handled by PrivateRoute, so this is no longer needed
 
@@ -75,7 +76,7 @@ class ErrorBoundary extends React.Component<
 const App: React.FC = () => {
   return (
     <ErrorBoundary>
-      <ChakraProvider>
+      <ChakraProvider theme={theme}>
         <Router>
           <AuthProvider>
             <Routes>

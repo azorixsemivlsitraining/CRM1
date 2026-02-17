@@ -662,7 +662,7 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
             <Box>
               <Stat>
                 <StatLabel color="gray.600" fontSize="sm" fontWeight="medium">{title}</StatLabel>
-                <StatNumber fontSize="2xl" color="green.600">{value.toLocaleString()}</StatNumber>
+                <StatNumber fontSize="2xl" color="brand.600">{value.toLocaleString()}</StatNumber>
                 {help && <Text fontSize="xs" color="gray.500">{help}</Text>}
               </Stat>
             </Box>
@@ -692,7 +692,7 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
           </HStack>
           <Button
             leftIcon={<AddIcon />}
-            colorScheme="green"
+            colorScheme="brand"
             onClick={onOpen}
             size="lg"
             borderRadius="lg"
@@ -726,16 +726,16 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
                     bg="gray.50"
                     border="1px solid"
                     borderColor="gray.200"
-                    _focus={{ bg: 'white', borderColor: 'green.400' }}
+                    _focus={{ bg: 'white', borderColor: 'brand.400' }}
                   />
                 </InputGroup>
                 <Button
                   leftIcon={<SettingsIcon />}
                   onClick={onFilterOpen}
                   variant="outline"
-                  borderColor="green.300"
-                  color="green.600"
-                  _hover={{ bg: 'green.50' }}
+                  borderColor="brand.300"
+                  color="brand.600"
+                  _hover={{ bg: 'brand.50' }}
                 >
                   Filter
                 </Button>
@@ -761,7 +761,7 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
                     {activeFilters.map((filter, index) => (
                       <Badge
                         key={index}
-                        colorScheme="green"
+                        colorScheme="brand"
                         px={3}
                         py={1}
                         borderRadius="full"
@@ -776,7 +776,7 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
                           variant="ghost"
                           aria-label="Remove filter"
                           icon={<Text fontSize="xs">×</Text>}
-                          _hover={{ bg: 'green.600' }}
+                          _hover={{ bg: 'brand.600' }}
                         />
                       </Badge>
                     ))}
@@ -861,7 +861,7 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
                           <VStack align="start" spacing={1}>
                             <HStack spacing={1}>
                               <Text fontSize="xs" color="green.500">₹</Text>
-                              <Text fontSize="sm" fontWeight="bold" color="green.600">
+                              <Text fontSize="sm" fontWeight="bold" color="brand.600">
                                 ₹{project.proposal_amount.toLocaleString()}
                               </Text>
                             </HStack>
@@ -1004,7 +1004,7 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
                 {(!searchTerm && activeFilters.length === 0) && (
                   <Button
                     leftIcon={<AddIcon />}
-                    colorScheme="green"
+                    colorScheme="brand"
                     onClick={onOpen}
                   >
                     Create New Project
@@ -1077,7 +1077,7 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
               </FormControl>
 
               <Button 
-                colorScheme="green" 
+                colorScheme="brand" 
                 width="full" 
                 onClick={addFilter}
                 isDisabled={!filterField || !filterValue}
@@ -1340,7 +1340,7 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
               <Divider />
 
               <Button 
-                colorScheme="green" 
+                colorScheme="brand" 
                 width="full" 
                 onClick={handleSubmit}
                 isLoading={loading}

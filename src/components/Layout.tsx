@@ -56,17 +56,17 @@ const NavItem: React.FC<NavItemProps> = ({ icon, label, to, isActive, onClick, c
       px={4}
       py={3}
       borderRadius="lg"
-      bg={isActive ? 'green.50' : 'transparent'}
-      color={isActive ? 'green.600' : 'gray.600'}
+      bg={isActive ? 'brand.50' : 'transparent'}
+      color={isActive ? 'brand.600' : 'gray.600'}
       fontWeight={isActive ? 'semibold' : 'medium'}
       _hover={{
-        bg: isActive ? 'green.100' : 'gray.50',
-        color: isActive ? 'green.700' : 'gray.700',
+        bg: isActive ? 'brand.100' : 'gray.50',
+        color: isActive ? 'brand.700' : 'gray.700',
         textDecoration: 'none',
       }}
       transition="background-color 0.2s, color 0.2s"
       border="1px solid"
-      borderColor={isActive ? 'green.200' : 'transparent'}
+      borderColor={isActive ? 'brand.200' : 'transparent'}
     >
       <Text fontSize="lg" mr={collapsed ? 0 : 3}>{icon}</Text>
       {!collapsed && <Text fontSize="sm">{label}</Text>}
@@ -93,10 +93,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const bgColor = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.600');
   const sidebarBg = useColorModeValue('gray.50', 'gray.900');
-  const logoUrl = "https://cdn.builder.io/api/v1/image/assets%2F2f195b82614d46a0b777d649ad418b24%2F5065c74f0a374ff4a36efc224f468f09?format=webp&width=800";
+  const logoUrl = "https://cdn.builder.io/api/v1/image/assets%2F5c07bd532d434c36b4bb2918deeee627%2F221ced27dd51481aa0a6f7a7e0d5c673?format=webp&width=800&height=1200";
 
   React.useEffect(() => {
-    document.title = 'Axiso Green Energy';
+    document.title = 'Axivolt';
     const link = document.querySelector("link[rel='icon']") as HTMLLinkElement | null;
     if (link) link.href = logoUrl;
   }, [logoUrl]);
@@ -175,7 +175,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             {!isCollapsed && (
               <img
                 src={logoUrl}
-                alt="Axiso Green Energy Logo"
+                alt="Axivolt Logo"
                 style={{ height: '60px', width: 'auto' }}
               />
             )}

@@ -408,7 +408,7 @@ const Sales: React.FC = () => {
         <Card bg={cardBg}>
           <CardBody>
             <Text fontSize="sm" color={titleColor}>Total Leads</Text>
-            <Heading size="lg" color="green.600">{summaryStats.total}</Heading>
+            <Heading size="lg" color="brand.600">{summaryStats.total}</Heading>
           </CardBody>
         </Card>
         <Card bg={cardBg}>
@@ -433,7 +433,7 @@ const Sales: React.FC = () => {
 
       {/* Action Buttons */}
       <Flex gap={3} mb={6}>
-        <Button leftIcon={<AddIcon />} colorScheme="green" onClick={onAddLeadOpen}>
+        <Button leftIcon={<AddIcon />} colorScheme="brand" onClick={onAddLeadOpen}>
           Add Lead
         </Button>
         <Button leftIcon={<AddIcon />} colorScheme="purple" variant="outline" onClick={onAddPersonOpen}>
@@ -459,7 +459,7 @@ const Sales: React.FC = () => {
             <SimpleGrid columns={{ base: 1, md: 2, lg: stages.length > 4 ? 4 : stages.length }} spacing={4}>
               {stages.map((stage) => (
                 <Box key={stage.id} bg={cardBg} border="1px solid" borderColor={borderColor} borderRadius="lg" p={4}>
-                  <Heading size="sm" color="green.600" mb={4}>
+                  <Heading size="sm" color="brand.600" mb={4}>
                     {stage.name}
                   </Heading>
                   <VStack spacing={3} align="stretch">
@@ -578,7 +578,7 @@ const Sales: React.FC = () => {
                           <Td>{lead.location || '—'}</Td>
                           <Td>{source ? `${source.icon} ${source.name}` : '—'}</Td>
                           <Td>{person ? person.name : <Badge colorScheme="orange">Unassigned</Badge>}</Td>
-                          <Td>{stage ? <Badge colorScheme="green">{stage.name}</Badge> : '—'}</Td>
+                          <Td>{stage ? <Badge colorScheme="brand">{stage.name}</Badge> : '—'}</Td>
                           <Td>
                             <HStack spacing={2}>
                               <IconButton
@@ -710,7 +710,7 @@ const Sales: React.FC = () => {
                   </Select>
                 </FormControl>
                 <HStack>
-                  <Button colorScheme="green" onClick={handleAddLead}>Add Lead</Button>
+                  <Button colorScheme="brand" onClick={handleAddLead}>Add Lead</Button>
                 </HStack>
               </VStack>
             </Box>
@@ -754,7 +754,7 @@ const Sales: React.FC = () => {
           <TabPanel>
             <VStack spacing={6} align="stretch">
               <Box bg={cardBg} border="1px solid" borderColor={borderColor} borderRadius="lg" p={4}>
-                <Heading size="sm" color="green.600" mb={3}>Add Lead Source</Heading>
+                <Heading size="sm" color="brand.600" mb={3}>Add Lead Source</Heading>
                 <VStack spacing={4} align="stretch">
                   <FormControl isRequired>
                     <FormLabel>Name</FormLabel>
@@ -780,7 +780,7 @@ const Sales: React.FC = () => {
                       onChange={(e) => setNewSourceData({ ...newSourceData, color: e.target.value })}
                     />
                   </FormControl>
-                  <Button colorScheme="green" onClick={handleAddSource}>Add Source</Button>
+                  <Button colorScheme="brand" onClick={handleAddSource}>Add Source</Button>
                 </VStack>
               </Box>
 
@@ -920,7 +920,7 @@ const Sales: React.FC = () => {
             <Button variant="ghost" mr={3} onClick={onAddLeadClose}>
               Cancel
             </Button>
-            <Button colorScheme="green" onClick={handleAddLead}>
+            <Button colorScheme="brand" onClick={handleAddLead}>
               Add Lead
             </Button>
           </ModalFooter>
@@ -1022,7 +1022,7 @@ const Sales: React.FC = () => {
                   return stage ? (
                     <Box>
                       <Text fontSize="sm" color="gray.500">Current Stage</Text>
-                      <Badge colorScheme="green">{stage.name}</Badge>
+                      <Badge colorScheme="brand">{stage.name}</Badge>
                     </Box>
                   ) : null;
                 })()}
@@ -1030,7 +1030,7 @@ const Sales: React.FC = () => {
             )}
           </ModalBody>
           <ModalFooter>
-            <Button colorScheme="green" onClick={onDetailsClose}>
+            <Button colorScheme="brand" onClick={onDetailsClose}>
               Close
             </Button>
           </ModalFooter>

@@ -73,7 +73,7 @@ const Welcome: React.FC = () => {
           cardBg={cardBg}
           borderColor={borderColor}
           titleColor={titleColor}
-          accentColor="green.600"
+          accentColor="brand.600"
           onNavigateToFull={() => handleOpenPath('/projects/chitoor')}
           canApprove={Boolean(isAdmin)}
         />
@@ -88,7 +88,7 @@ const Welcome: React.FC = () => {
           cardBg={cardBg}
           borderColor={borderColor}
           titleColor={titleColor}
-          accentColor="green.600"
+          accentColor="brand.600"
           onNavigateToFull={() => handleOpenPath('/sales')}
         />
       );
@@ -111,13 +111,13 @@ const Welcome: React.FC = () => {
         transition="all 0.2s"
       >
         <Text fontSize={isMobileVariant ? '3xl' : '4xl'} mb={2}>{tile.icon}</Text>
-        <Heading size="sm" mb={1} color="green.600">{tile.label}</Heading>
+        <Heading size="sm" mb={1} color="brand.600">{tile.label}</Heading>
         <Text fontSize="sm" color={titleColor} noOfLines={isMobileVariant ? 2 : undefined}>{tile.description}</Text>
         <Box mt={3}>
           {tile.label === 'Admin Settings' ? (
-            <LinkOverlay as="button" onClick={handleAdminAccess} color="green.600">Open</LinkOverlay>
+            <LinkOverlay as="button" onClick={handleAdminAccess} color="brand.600">Open</LinkOverlay>
           ) : (
-            <LinkOverlay as="button" onClick={() => handleOpenPath(tile.to)} color="green.600">Open</LinkOverlay>
+            <LinkOverlay as="button" onClick={() => handleOpenPath(tile.to)} color="brand.600">Open</LinkOverlay>
           )}
         </Box>
       </LinkBox>
@@ -176,9 +176,9 @@ const Welcome: React.FC = () => {
   return (
     <Box px={{ base: 4, md: 6 }} py={{ base: 4, md: 6 }} maxW="1200px" mx="auto">
       <Flex mb={6} align="center" gap={4} wrap="wrap">
-        <Image src="https://cdn.builder.io/api/v1/image/assets%2F2f195b82614d46a0b777d649ad418b24%2F5065c74f0a374ff4a36efc224f468f09?format=webp&width=800" alt="Axiso Green Energy Logo" h={{ base: '36px', md: '48px' }} w="auto" objectFit="contain" />
+        <Image src="https://cdn.builder.io/api/v1/image/assets%2F5c07bd532d434c36b4bb2918deeee627%2F221ced27dd51481aa0a6f7a7e0d5c673?format=webp&width=800&height=1200" alt="Axivolt Logo" h={{ base: '36px', md: '48px' }} w="auto" objectFit="contain" />
         <Box>
-          <Heading size={{ base: 'sm', md: 'md' }} color="green.600">Axiso Green Energy</Heading>
+          <Heading size={{ base: 'sm', md: 'md' }} color="brand.600">Axivolt</Heading>
           <Text color={titleColor} fontSize={{ base: 'xs', md: 'sm' }}>Sustainable Energy Platform</Text>
         </Box>
         <Spacer />
@@ -209,7 +209,7 @@ const Welcome: React.FC = () => {
 
       {true && (
         <>
-      <Heading size={{ base: 'sm', md: 'md' }} color="green.600" mb={3}>Operations Modules</Heading>
+      <Heading size={{ base: 'sm', md: 'md' }} color="brand.600" mb={3}>Operations Modules</Heading>
       <Text color={titleColor} mb={4}>Jump directly into operations workflows</Text>
 
       <Box display={{ base: 'block', md: 'none' }} overflowX="auto" pb={2} sx={{ scrollbarWidth: 'thin', WebkitOverflowScrolling: 'touch' }}>
@@ -217,10 +217,10 @@ const Welcome: React.FC = () => {
           {operationsModules.map((m) => (
             <LinkBox key={m.label} minW="240px" maxW="240px" bg={cardBg} border="1px solid" borderColor={borderColor} borderRadius="xl" p={5} boxShadow="sm" _hover={{ boxShadow: 'md', transform: 'translateY(-2px)' }} transition="all 0.2s">
               <Text fontSize="3xl" mb={2}>{m.icon}</Text>
-              <Heading size="sm" mb={1} color="green.600">{m.label}</Heading>
+              <Heading size="sm" mb={1} color="brand.600">{m.label}</Heading>
               <Text fontSize="sm" color={titleColor} noOfLines={2}>{m.description}</Text>
               <Box mt={3}>
-                <LinkOverlay as="button" onClick={() => handleOpenPath(m.to)} color="green.600">Open</LinkOverlay>
+                <LinkOverlay as="button" onClick={() => handleOpenPath(m.to)} color="brand.600">Open</LinkOverlay>
               </Box>
             </LinkBox>
           ))}
@@ -231,10 +231,10 @@ const Welcome: React.FC = () => {
         {operationsModules.map((m) => (
           <LinkBox key={m.label} bg={cardBg} border="1px solid" borderColor={borderColor} borderRadius="xl" p={6} boxShadow="sm" _hover={{ boxShadow: 'md', transform: 'translateY(-2px)' }} transition="all 0.2s">
             <Text fontSize="4xl" mb={2}>{m.icon}</Text>
-            <Heading size="sm" mb={1} color="green.600">{m.label}</Heading>
+            <Heading size="sm" mb={1} color="brand.600">{m.label}</Heading>
             <Text fontSize="sm" color={titleColor}>{m.description}</Text>
             <Box mt={3}>
-              <LinkOverlay as="button" onClick={() => handleOpenPath(m.to)} color="green.600">Open</LinkOverlay>
+              <LinkOverlay as="button" onClick={() => handleOpenPath(m.to)} color="brand.600">Open</LinkOverlay>
             </Box>
           </LinkBox>
         ))}
@@ -251,7 +251,7 @@ const Welcome: React.FC = () => {
             <Text color={titleColor}>You don't have permission to view this module.</Text>
           </ModalBody>
           <ModalFooter>
-            <Button colorScheme="green" onClick={onDeniedClose}>Back</Button>
+            <Button colorScheme="brand" onClick={onDeniedClose}>Back</Button>
           </ModalFooter>
         </ModalContent>
       </Modal>

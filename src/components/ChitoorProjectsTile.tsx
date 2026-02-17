@@ -94,7 +94,7 @@ const statusLabels: Record<FilterKey, string> = {
 
 const statusBadgeColors: Record<ApprovalStatus, string> = {
   pending: 'yellow',
-  approved: 'green',
+  approved: 'brand',
   rejected: 'red',
 };
 
@@ -656,7 +656,7 @@ const ChitoorProjectsTile = ({
     'serial',
   ]);
 
-  const BarComparisonChart: React.FC<{ months: string[]; a: number[]; b: number[]; labels: [string, string]; colors?: [string, string]; }> = ({ months, a, b, labels, colors = ['green.600', 'green.300'] }) => {
+  const BarComparisonChart: React.FC<{ months: string[]; a: number[]; b: number[]; labels: [string, string]; colors?: [string, string]; }> = ({ months, a, b, labels, colors = ['brand.600', 'brand.300'] }) => {
     const maxVal = Math.max(1, ...a, ...b);
     return (
       <Box border="1px solid" borderColor="gray.100" borderRadius="lg" p={4} bg="white">
@@ -1033,7 +1033,7 @@ const ChitoorProjectsTile = ({
                           as={Button}
                           rightIcon={<ChevronDownIcon />}
                           size="sm"
-                          colorScheme="green"
+                          colorScheme="brand"
                           variant="outline"
                           isLoading={updatingId === record.id}
                           onClick={(e: any) => e.stopPropagation()}
@@ -1121,7 +1121,7 @@ const ChitoorProjectsTile = ({
               <HStack spacing={3}>
                 <Button
                   variant="outline"
-                  colorScheme="green"
+                  colorScheme="brand"
                   onClick={onNavigateToFull}
                 >
                   Go to projects page
@@ -1152,14 +1152,14 @@ const ChitoorProjectsTile = ({
                       <Box
                         key={key}
                         border="1px solid"
-                        borderColor={filter === key ? 'green.200' : 'gray.200'}
+                        borderColor={filter === key ? 'brand.200' : 'gray.200'}
                         borderRadius="lg"
                         p={4}
-                        bg={filter === key ? 'green.50' : 'white'}
+                        bg={filter === key ? 'brand.50' : 'white'}
                         cursor="pointer"
                         onClick={() => setFilter(key)}
                         transition="all 0.2s"
-                        _hover={{ borderColor: 'green.300' }}
+                        _hover={{ borderColor: 'brand.300' }}
                       >
                         <Text fontSize="xs" color="gray.500">
                           {statusLabels[key]}
@@ -1332,7 +1332,7 @@ const ChitoorProjectsTile = ({
             <Button variant="ghost" mr={3} onClick={onClose}>
               Close
             </Button>
-            <Button colorScheme="green" onClick={fetchApprovals}>
+            <Button colorScheme="brand" onClick={fetchApprovals}>
               Refresh data
             </Button>
           </ModalFooter>

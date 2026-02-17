@@ -21,8 +21,8 @@ interface NavButtonProps {
 }
 
 const NavButton: React.FC<NavButtonProps> = ({ icon, label, to, isActive }) => {
-  const activeBg = 'green.50';
-  const activeColor = 'green.600';
+  const activeBg = 'brand.50';
+  const activeColor = 'brand.600';
   const hoverBg = 'gray.50';
   
   return (
@@ -55,8 +55,8 @@ const NavigationHeader: React.FC<{ title?: string }> = () => {
   const { isAdmin } = useAuth();
   const headerBg = 'white';
   const borderColor = 'gray.200';
-  const reportActiveBg = 'green.50';
-  const reportActiveColor = 'green.600';
+  const reportActiveBg = 'brand.50';
+  const reportActiveColor = 'brand.600';
   const reportHoverBg = 'gray.50';
 
   const navigationItems = [
