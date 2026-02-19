@@ -85,7 +85,7 @@ interface TaxInvoiceData {
   updated_at?: string;
 }
 
-const LOGO_URL = 'https://cdn.builder.io/api/v1/image/assets%2F5c07bd532d434c36b4bb2918deeee627%2F221ced27dd51481aa0a6f7a7e0d5c673?format=webp&width=800&height=1200';
+const LOGO_URL = 'https://cdn.builder.io/api/v1/image/assets%2F5c07bd532d434c36b4bb2918deeee627%2Fba52289417064519952371a250647ff3?format=webp&width=800&height=1200';
 const STAMP_URL = 'https://cdn.builder.io/api/v1/image/assets%2Fa31d1200efef4b74975fb36c4890f8c1%2F7b695dbf880d48f38857f81c589061b2?format=webp&width=800';
 
 const COMPANY_INFO = {
@@ -222,7 +222,7 @@ async function generateTaxInvoicePDF(invoice: TaxInvoiceData) {
     try {
       const logoData = await fetchImageAsDataURL(LOGO_URL);
       if (logoData) {
-        doc.addImage(logoData, 'PNG', margin, yPos, 22, 22, undefined, 'FAST');
+        doc.addImage(logoData, 'PNG', margin, yPos, 33, 33, undefined, 'FAST');
       }
     } catch (err) {
       console.error('Logo error:', err);
@@ -1093,7 +1093,7 @@ const TaxInvoice: React.FC = () => {
               <Box bg="white" border="1px solid" borderColor="gray.200" borderRadius="md" p={6}>
                 <Flex justify="space-between" align="flex-start" mb={4}>
                   <HStack align="flex-start" spacing={4}>
-                    <Image src={LOGO_URL} alt="Logo" boxSize="60px" objectFit="contain" />
+                    <Image src={LOGO_URL} alt="Logo" boxSize="100px" objectFit="contain" />
                     <Box>
                       <Heading size="sm" color="brand.600">{COMPANY_INFO.name}</Heading>
                       <Text fontSize="sm">GSTIN {COMPANY_INFO.gstin}</Text>

@@ -91,7 +91,7 @@ const Login = () => {
     }
   }, [fromHR, hrEmail]);
 
-  const logoUrl = "https://cdn.builder.io/api/v1/image/assets%2F5c07bd532d434c36b4bb2918deeee627%2F221ced27dd51481aa0a6f7a7e0d5c673?format=webp&width=800&height=1200";
+  const logoUrl = "https://cdn.builder.io/api/v1/image/assets%2F5c07bd532d434c36b4bb2918deeee627%2Fba52289417064519952371a250647ff3?format=webp&width=800&height=1200";
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -136,7 +136,7 @@ const Login = () => {
           <Image
             src={logoUrl}
             alt="Axivolt Logo"
-            h="120px"
+            h="180px"
             w="auto"
             objectFit="contain"
           />
@@ -157,7 +157,7 @@ const Login = () => {
                 <Image
                   src={logoUrl}
                   alt="Axivolt Logo"
-                  h="100px"
+                  h="150px"
                   w="auto"
                   objectFit="contain"
                 />

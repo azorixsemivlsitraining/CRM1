@@ -176,7 +176,7 @@ const Welcome: React.FC = () => {
   return (
     <Box px={{ base: 4, md: 6 }} py={{ base: 4, md: 6 }} maxW="1200px" mx="auto">
       <Flex mb={6} align="center" gap={4} wrap="wrap">
-        <Image src="https://cdn.builder.io/api/v1/image/assets%2F5c07bd532d434c36b4bb2918deeee627%2F221ced27dd51481aa0a6f7a7e0d5c673?format=webp&width=800&height=1200" alt="Axivolt Logo" h={{ base: '60px', md: '80px' }} w="auto" objectFit="contain" />
+        <Image src="https://cdn.builder.io/api/v1/image/assets%2F5c07bd532d434c36b4bb2918deeee627%2Fba52289417064519952371a250647ff3?format=webp&width=800&height=1200" alt="Axivolt Logo" h={{ base: '90px', md: '120px' }} w="auto" objectFit="contain" />
         <Box>
           <Heading size={{ base: 'sm', md: 'md' }} color="brand.600">AXIVOLT GREEN ENERGY</Heading>
           <Text color={titleColor} fontSize={{ base: 'xs', md: 'sm' }}>Sustainable Energy Platform</Text>

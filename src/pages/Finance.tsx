@@ -202,7 +202,7 @@ const downloadExcel = (columns: string[], rows: (string | number)[][], filename:
 };
 
 // Logo and image handling
-const LOGO_URL = 'https://cdn.builder.io/api/v1/image/assets%2F379fc6e4730f4c788d839578cbf44f7f%2F80c7e07df9c94e6aa14ced8f1edbf799?format=webp&width=800';
+const LOGO_URL = 'https://cdn.builder.io/api/v1/image/assets%2F5c07bd532d434c36b4bb2918deeee627%2Fba52289417064519952371a250647ff3?format=webp&width=800&height=1200';
 const FOOTER_SIGN_STAMP_URL = 'https://cdn.builder.io/api/v1/image/assets%2Fd6ed3a58ddbf4178909cabbd3ef86178%2F0237e5d9ea084a6abe20e0bc958c4e2c?format=webp&width=800';
 
 async function fetchImageAsDataURL(url: string): Promise<string> {
@@ -542,7 +542,7 @@ const Finance: React.FC = () => {
 
       try {
         const { dataUrl: logoData, aspectRatio: logoRatio } = await fetchImageAsset(LOGO_URL);
-        const logoWidth = 68;
+        const logoWidth = 100;
         const logoHeight = logoWidth * logoRatio;
         doc.addImage(logoData, 'PNG', pageWidth - margin - logoWidth, margin - 8, logoWidth, logoHeight, undefined, 'FAST');
       } catch (err) {
@@ -831,7 +831,7 @@ const Finance: React.FC = () => {
       try {
         const logoData = await fetchImageAsDataURL(LOGO_URL);
         if (logoData) {
-          doc.addImage(logoData, 'PNG', margin, yPos, 16, 16);
+          doc.addImage(logoData, 'PNG', margin, yPos, 24, 24);
         }
       } catch (err) {
         console.error('Error loading logo:', err);
@@ -1675,8 +1675,8 @@ const Finance: React.FC = () => {
       // Add logo
       try {
         const { dataUrl: logoData, aspectRatio: logoRatio } = await fetchImageAsset(LOGO_URL);
-        const maxLogoWidth = 68;
-        const maxLogoHeight = 34;
+        const maxLogoWidth = 100;
+        const maxLogoHeight = 50;
         let logoWidth = maxLogoWidth;
         let logoHeight = logoWidth * logoRatio;
         if (logoHeight > maxLogoHeight) {
