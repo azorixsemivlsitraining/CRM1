@@ -93,7 +93,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const bgColor = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.600');
   const sidebarBg = useColorModeValue('gray.50', 'gray.900');
-  const logoUrl = "https://cdn.builder.io/api/v1/image/assets%2F5c07bd532d434c36b4bb2918deeee627%2F221ced27dd51481aa0a6f7a7e0d5c673?format=webp&width=800&height=1200";
+  const logoUrl = "https://cdn.builder.io/api/v1/image/assets%2F5c07bd532d434c36b4bb2918deeee627%2Fba52289417064519952371a250647ff3?format=webp&width=800&height=1200";
 
   React.useEffect(() => {
     document.title = 'Axivolt';
@@ -176,7 +176,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               <img
                 src={logoUrl}
                 alt="Axivolt Logo"
-                style={{ height: '80px', width: 'auto' }}
+                style={{ height: '120px', width: 'auto' }}
               />
             )}
             <IconButton
@@ -445,7 +445,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <img
             src={logoUrl}
             alt="Axivolt Logo"
-            style={{ height: '32px', width: 'auto' }}
+            style={{ height: '48px', width: 'auto' }}
           />
         </Flex>
         <IconButton
