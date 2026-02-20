@@ -19,7 +19,7 @@ const BOX_BG = { r: 240, g: 250, b: 251 }; // Light teal background to match new
 
 // Using local logo from public/images folder
 // For local files, use path relative to public folder root (starts with /)
-const LOGO_URL = 'https://cdn.builder.io/api/v1/image/assets%2F5c07bd532d434c36b4bb2918deeee627%2Fba52289417064519952371a250647ff3?format=webp&width=800&height=1200';
+const LOGO_URL = 'https://cdn.builder.io/api/v1/image/assets%2F5c07bd532d434c36b4bb2918deeee627%2F4476a29c6f934074af6cb4fd77328923?format=webp&width=800&height=1200';
 const FOOTER_SIGN_STAMP_URL = 'https://cdn.builder.io/api/v1/image/assets%2Fd6ed3a58ddbf4178909cabbd3ef86178%2F0237e5d9ea084a6abe20e0bc958c4e2c?format=webp&width=800';
 
 async function fetchImageAsDataURL(url: string): Promise<string> {
@@ -134,8 +134,8 @@ export async function generatePaymentReceiptPDF({
     // Calculate logo size and position after text is drawn
     const { dataUrl: logoData, aspectRatio: logoRatio } = await fetchImageAsset(LOGO_URL);
     // scale logo to fit properly - balanced size for header alignment
-    const maxLogoWidth = 120; // Adjusted for proper header fit
-    const maxLogoHeight = 65; // Adjusted for header alignment
+    const maxLogoWidth = 65; // Slightly larger for better prominence
+    const maxLogoHeight = 35; // Increased height to match header better
     let logoWidth = maxLogoWidth;
     let logoHeight = logoWidth * logoRatio;
     if (logoHeight > maxLogoHeight) {
@@ -144,11 +144,9 @@ export async function generatePaymentReceiptPDF({
     }
 
     // Position logo to align with header text block
-    // - Right position: proper margin from right edge
-    // - Vertical position: start from top after green bar, aligned with company name area
-    // - Logo should be vertically centered with the header text block
-    const logoX = pageWidth - margin - logoWidth; // Standard right margin
-    const logoY = 10; // Start below green bar (9mm) and align with header text block
+    // - Right position: moved further left from right margin as requested
+    const logoX = pageWidth - margin - logoWidth - 10;
+    const logoY = 11; // Adjusted for better vertical centering with header text
     doc.addImage(logoData, 'PNG', logoX, logoY, logoWidth, logoHeight, undefined, 'FAST');
 
     doc.setFont('helvetica', 'normal');
