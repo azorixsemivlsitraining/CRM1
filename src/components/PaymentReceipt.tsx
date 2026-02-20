@@ -134,8 +134,8 @@ export async function generatePaymentReceiptPDF({
     // Calculate logo size and position after text is drawn
     const { dataUrl: logoData, aspectRatio: logoRatio } = await fetchImageAsset(LOGO_URL);
     // scale logo to fit properly - balanced size for header alignment
-    const maxLogoWidth = 55; // Smaller, more professional size
-    const maxLogoHeight = 25; // Balanced height
+    const maxLogoWidth = 65; // Slightly larger for better prominence
+    const maxLogoHeight = 35; // Increased height to match header better
     let logoWidth = maxLogoWidth;
     let logoHeight = logoWidth * logoRatio;
     if (logoHeight > maxLogoHeight) {
@@ -144,9 +144,9 @@ export async function generatePaymentReceiptPDF({
     }
 
     // Position logo to align with header text block
-    // - Right position: proper margin from right edge
-    const logoX = pageWidth - margin - logoWidth;
-    const logoY = 12; // Aligned better with the header text
+    // - Right position: moved further left from right margin as requested
+    const logoX = pageWidth - margin - logoWidth - 10;
+    const logoY = 11; // Adjusted for better vertical centering with header text
     doc.addImage(logoData, 'PNG', logoX, logoY, logoWidth, logoHeight, undefined, 'FAST');
 
     doc.setFont('helvetica', 'normal');
