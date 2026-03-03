@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
+import { formatSupabaseError } from '../utils/error';
 import { Session } from '@supabase/supabase-js';
 import { useNavigate } from 'react-router-dom';
 import { useToast, Center, Spinner } from '@chakra-ui/react';
@@ -281,8 +282,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       return true;
     } catch (error: any) {
-      const message = (error && (error as any).message) || String(error);
-      console.error('Login error:', message, error);
+      let message = formatSupabaseError(error);
+
+      // Add context for network failures
+      if (message.toLowerCase().includes('failed to fetch') || message.toLowerCase().includes('network error')) {
+        message = 'Connectivity Issue: Could not connect to the backend. Please check your internet connection or firewall settings.';
+      }
+
+      console.error('Login error details:', error);
       setIsAuthenticated(false);
       setIsAdmin(false);
       setIsFinance(false);
