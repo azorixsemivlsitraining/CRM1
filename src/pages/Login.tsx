@@ -20,6 +20,10 @@ import {
   HStack,
   Icon,
   Image,
+  Alert,
+  AlertIcon,
+  AlertTitle,
+  AlertDescription,
 } from '@chakra-ui/react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -48,6 +52,21 @@ const Login = () => {
   const locationState = (location.state as LoginLocationState | null) ?? null;
   const toast = useToast();
   const { login, isAuthenticated, isLoading } = useAuth();
+  const [isBackendReachable, setIsBackendReachable] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    // Simple check to see if we can reach the Supabase backend
+    const checkBackend = async () => {
+      try {
+        const res = await fetch('https://oqqzrppoqgnrinavvolz.supabase.co/auth/v1/health', { method: 'HEAD', mode: 'no-cors' });
+        setIsBackendReachable(true);
+      } catch (e) {
+        setIsBackendReachable(false);
+      }
+    };
+    checkBackend();
+  }, []);
+
   const hrEmail = process.env.REACT_APP_HR_EMAIL || '';
   const hrPassword = process.env.REACT_APP_HR_PASSWORD || '';
   const fromHR = Boolean(locationState?.fromHR);
@@ -202,6 +221,18 @@ const Login = () => {
             />
             <form onSubmit={handleLogin}>
               <Stack spacing="6">
+                {isBackendReachable === false && (
+                  <Alert status="error" variant="subtle" borderRadius="md" flexDirection="column" alignItems="center" textAlign="center" py={4}>
+                    <AlertIcon boxSize="40px" mr={0} />
+                    <AlertTitle mt={4} mb={1} fontSize="lg">
+                      Connection Restricted
+                    </AlertTitle>
+                    <AlertDescription maxWidth="sm">
+                      Your current network or device is blocking the connection to our database.
+                      Please try a different Wi-Fi network, turn off VPN, or check your firewall settings.
+                    </AlertDescription>
+                  </Alert>
+                )}
                 <Stack spacing="5">
                 <FormControl isRequired>
                   <FormLabel htmlFor="email" color="gray.600">Email</FormLabel>
