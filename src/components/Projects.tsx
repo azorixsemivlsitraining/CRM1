@@ -51,6 +51,7 @@ import {
   StatNumber,
 } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
+import * as XLSX from 'xlsx';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { formatSupabaseError } from '../utils/error';
@@ -66,6 +67,7 @@ import {
   ChevronDownIcon,
   EmailIcon,
   PhoneIcon,
+  DownloadIcon,
 } from '@chakra-ui/icons';
 
 interface Project {
@@ -449,6 +451,58 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
     setActiveFilters([]);
   };
 
+  const exportToExcel = () => {
+    if (projects.length === 0) {
+      toast({
+        title: 'Export Error',
+        description: 'No projects available to export',
+        status: 'warning',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    const dataToExport = projects.map(project => ({
+      'Project Name': project.name,
+      'Customer Name': project.customer_name,
+      'Email': project.email,
+      'Phone': project.phone,
+      'Address': project.address,
+      'State': project.state || '',
+      'Project Type': project.project_type,
+      'Payment Mode': project.payment_mode,
+      'Proposal Amount': project.proposal_amount,
+      'Advance Payment': project.advance_payment,
+      'Balance Amount': project.balance_amount,
+      'Status': project.status,
+      'Current Stage': project.current_stage,
+      'Capacity (kW)': project.kwh,
+      'Start Date': project.start_date ? new Date(project.start_date).toLocaleDateString() : 'N/A',
+      'Dealing Personal': project.dealing_personal || 'N/A',
+      'Lead Source': project.lead_source || 'N/A',
+      'Lead Finished By': project.lead_finished_by_name || 'N/A',
+      'Lead Finished Date': project.lead_finished_by ? new Date(project.lead_finished_by).toLocaleDateString() : 'N/A',
+      'Created At': project.created_at ? new Date(project.created_at).toLocaleDateString() : 'N/A',
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Projects');
+
+    // Generate Excel file and trigger download
+    const fileName = `projects_export_${new Date().toISOString().split('T')[0]}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
+
+    toast({
+      title: 'Success',
+      description: `Exported ${projects.length} projects to Excel`,
+      status: 'success',
+      duration: 3000,
+      isClosable: true,
+    });
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setNewProject(prev => ({
@@ -690,17 +744,32 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
               </Text>
             </Box>
           </HStack>
-          <Button
-            leftIcon={<AddIcon />}
-            colorScheme="brand"
-            onClick={onOpen}
-            size="lg"
-            borderRadius="lg"
-            _hover={{ transform: 'translateY(-1px)', boxShadow: 'lg' }}
-            transition="all 0.2s"
-          >
-            Create New Project
-          </Button>
+          <HStack spacing={4}>
+            <Button
+              leftIcon={<DownloadIcon />}
+              onClick={exportToExcel}
+              colorScheme="green"
+              variant="outline"
+              size="lg"
+              borderRadius="lg"
+              _hover={{ bg: 'green.50', transform: 'translateY(-1px)' }}
+              transition="all 0.2s"
+              isDisabled={projects.length === 0}
+            >
+              Export to Excel
+            </Button>
+            <Button
+              leftIcon={<AddIcon />}
+              colorScheme="brand"
+              onClick={onOpen}
+              size="lg"
+              borderRadius="lg"
+              _hover={{ transform: 'translateY(-1px)', boxShadow: 'lg' }}
+              transition="all 0.2s"
+            >
+              Create New Project
+            </Button>
+          </HStack>
         </Flex>
 
         {/* Analytics cards */}
