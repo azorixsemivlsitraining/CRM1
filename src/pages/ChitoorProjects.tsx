@@ -45,7 +45,11 @@ import {
 } from '@chakra-ui/react';
 import { supabase } from '../lib/supabase';
 import { formatSupabaseError } from '../utils/error';
+<<<<<<< HEAD
 import { AddIcon, ChevronDownIcon, ViewIcon, EditIcon, DeleteIcon, PhoneIcon, SearchIcon, DownloadIcon, CloseIcon } from '@chakra-ui/icons';
+=======
+import { AddIcon, ChevronDownIcon, ViewIcon, EditIcon, DeleteIcon, PhoneIcon, SearchIcon, DownloadIcon } from '@chakra-ui/icons';
+>>>>>>> 7ec002eeffac73e3e96798f985954d88d9629f25
 import { useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx';
 import CHITOOR_LOCATIONS from '../data/chitoorLocations';
@@ -148,7 +152,10 @@ const ChitoorProjects = () => {
     totalProjects: 0,
     pendingProjects: 0,
     completedProjects: 0,
+<<<<<<< HEAD
     cancelledProjects: 0,
+=======
+>>>>>>> 7ec002eeffac73e3e96798f985954d88d9629f25
     totalRevenue: 0,
     totalCapacity: 0,
   });
@@ -179,11 +186,15 @@ const ChitoorProjects = () => {
       if (data) {
         setAllProjects(data);
         const completedProjects = data.filter((p: any) => (p.project_status || '').toLowerCase() === 'completed');
+<<<<<<< HEAD
         const cancelledProjects = data.filter((p: any) => (p.project_status || '').toLowerCase() === 'cancelled');
         const pendingProjects = data.filter((p: any) =>
           (p.project_status || '').toLowerCase() !== 'completed' &&
           (p.project_status || '').toLowerCase() !== 'cancelled'
         );
+=======
+        const pendingProjects = data.filter((p: any) => (p.project_status || '').toLowerCase() !== 'completed');
+>>>>>>> 7ec002eeffac73e3e96798f985954d88d9629f25
         const totalRevenue = data.reduce((sum: number, p: any) => sum + (p.project_cost || 0), 0);
         const totalCapacity = data.reduce((sum: number, p: any) => sum + (p.capacity || 0), 0);
 
@@ -191,7 +202,10 @@ const ChitoorProjects = () => {
           totalProjects: data.length,
           pendingProjects: pendingProjects.length,
           completedProjects: completedProjects.length,
+<<<<<<< HEAD
           cancelledProjects: cancelledProjects.length,
+=======
+>>>>>>> 7ec002eeffac73e3e96798f985954d88d9629f25
           totalRevenue,
           totalCapacity,
         });
@@ -471,7 +485,10 @@ const ChitoorProjects = () => {
       case 'in progress': return 'blue';
       case 'material sent': return 'purple';
       case 'on hold': return 'red';
+<<<<<<< HEAD
       case 'cancelled': return 'orange';
+=======
+>>>>>>> 7ec002eeffac73e3e96798f985954d88d9629f25
       default: return 'gray';
     }
   };
@@ -493,7 +510,11 @@ const ChitoorProjects = () => {
         </Flex>
 
         {/* Stats Cards */}
+<<<<<<< HEAD
         <SimpleGrid columns={{ base: 1, md: 2, lg: 6 }} spacing={6}>
+=======
+        <SimpleGrid columns={{ base: 1, md: 2, lg: 5 }} spacing={6}>
+>>>>>>> 7ec002eeffac73e3e96798f985954d88d9629f25
           <StatsCard
             title="Total Projects"
             value={stats.totalProjects}
@@ -516,6 +537,7 @@ const ChitoorProjects = () => {
             helpText="Successfully delivered"
           />
           <StatsCard
+<<<<<<< HEAD
             title="Cancelled Projects"
             value={stats.cancelledProjects}
             icon="❌"
@@ -523,6 +545,8 @@ const ChitoorProjects = () => {
             helpText="Withdrawn Leads"
           />
           <StatsCard
+=======
+>>>>>>> 7ec002eeffac73e3e96798f985954d88d9629f25
             title="Total Revenue"
             value={`₹${stats.totalRevenue.toLocaleString()}`}
             icon="💰"
@@ -795,6 +819,7 @@ const ChitoorProjects = () => {
                                   Mark Complete
                                 </MenuItem>
                                 <MenuItem
+<<<<<<< HEAD
                                   icon={<CloseIcon />}
                                   onClick={async () => {
                                     if (!window.confirm('Are you sure you want to cancel this project?')) return;
@@ -814,6 +839,8 @@ const ChitoorProjects = () => {
                                   Mark Cancelled
                                 </MenuItem>
                                 <MenuItem
+=======
+>>>>>>> 7ec002eeffac73e3e96798f985954d88d9629f25
                                   icon={<DeleteIcon />}
                                   color="red.500"
                                   onClick={async () => {
@@ -1054,7 +1081,10 @@ const ChitoorProjects = () => {
                     <option value="Pending">Pending</option>
                     <option value="In Progress">In Progress</option>
                     <option value="Completed">Completed</option>
+<<<<<<< HEAD
                     <option value="Cancelled">Cancelled</option>
+=======
+>>>>>>> 7ec002eeffac73e3e96798f985954d88d9629f25
                     <option value="Installation Completed">Installation Completed</option>
                     <option value="Material Sent">Material Sent</option>
                     <option value="Material Pending">Material Pending</option>
