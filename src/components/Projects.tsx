@@ -171,20 +171,16 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
   const [loading, setLoading] = useState(false);
   const [allProjects, setAllProjects] = useState<Project[]>([]);
   const [allChitoorProjects, setAllChitoorProjects] = useState<any[]>([]);
-<<<<<<< HEAD
   const [combinedTotals, setCombinedTotals] = useState({ totalProjects: 0, totalRevenue: 0, totalKWH: 0, active: 0, completed: 0, cancelled: 0 });
-=======
-  const [combinedTotals, setCombinedTotals] = useState({ totalProjects: 0, totalRevenue: 0, totalKWH: 0, active: 0, completed: 0 });
->>>>>>> 7ec002eeffac73e3e96798f985954d88d9629f25
   const [activeFilters, setActiveFilters] = useState<FilterOptions[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const toast = useToast();
 
   // Filter modal state
-  const { 
-    isOpen: isFilterOpen, 
-    onOpen: onFilterOpen, 
-    onClose: onFilterClose 
+  const {
+    isOpen: isFilterOpen,
+    onOpen: onFilterOpen,
+    onClose: onFilterClose
   } = useDisclosure();
   const [filterField, setFilterField] = useState<string>('');
   const [filterValue, setFilterValue] = useState<string>('');
@@ -221,11 +217,7 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
           duration: 5000,
           isClosable: true,
         });
-<<<<<<< HEAD
         setCombinedTotals({ totalProjects: 0, totalRevenue: 0, totalKWH: 0, active: 0, completed: 0, cancelled: 0 });
-=======
-        setCombinedTotals({ totalProjects: 0, totalRevenue: 0, totalKWH: 0, active: 0, completed: 0 });
->>>>>>> 7ec002eeffac73e3e96798f985954d88d9629f25
         return;
       }
 
@@ -238,19 +230,12 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
         kwh: primaryProjects.reduce((sum, project) => sum + parseNumber(project.kwh), 0),
         active: primaryProjects.filter(p => (p.status || '').toLowerCase() === 'active').length,
         completed: primaryProjects.filter(p => (p.status || '').toLowerCase() === 'completed').length,
-<<<<<<< HEAD
         cancelled: primaryProjects.filter(p => (p.status || '').toLowerCase() === 'cancelled').length,
-=======
->>>>>>> 7ec002eeffac73e3e96798f985954d88d9629f25
       };
 
       const canIncludeChitoor = !stateFilter && (isAdmin || !Array.isArray(assignedRegions) || assignedRegions.length === 0 || assignedRegions.includes('Chitoor'));
 
-<<<<<<< HEAD
       let chitoorTotals = { count: 0, revenue: 0, kwh: 0, active: 0, completed: 0, cancelled: 0 };
-=======
-      let chitoorTotals = { count: 0, revenue: 0, kwh: 0, active: 0, completed: 0 };
->>>>>>> 7ec002eeffac73e3e96798f985954d88d9629f25
       let chitoorProjectsData: any[] = [];
       if (canIncludeChitoor) {
         const { data: chitoorData, error: chErr } = await supabase.from('chitoor_projects').select('*');
@@ -267,22 +252,14 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
           };
           const completed = rows.filter(r => isCompleted((r as any).project_status)).length;
           const inactive = rows.filter(r => isInactive((r as any).project_status)).length;
-<<<<<<< HEAD
           const cancelled = rows.filter(r => (r as any).project_status?.toLowerCase() === 'cancelled').length;
-=======
->>>>>>> 7ec002eeffac73e3e96798f985954d88d9629f25
           chitoorTotals = {
             count: rows.length,
             revenue: rows.reduce((sum, row) => sum + parseNumber((row as any).project_cost), 0),
             kwh: rows.reduce((sum, row) => sum + parseNumber((row as any).capacity), 0),
-<<<<<<< HEAD
             active: Math.max(0, rows.length - completed - inactive - cancelled),
             completed,
             cancelled,
-=======
-            active: Math.max(0, rows.length - completed - inactive),
-            completed,
->>>>>>> 7ec002eeffac73e3e96798f985954d88d9629f25
           };
         } else {
           console.warn('Chitoor projects fetch error:', chErr);
@@ -299,10 +276,7 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
         totalKWH: primaryTotals.kwh + (canIncludeChitoor ? chitoorTotals.kwh : 0),
         active: primaryTotals.active + (canIncludeChitoor ? chitoorTotals.active : 0),
         completed: primaryTotals.completed + (canIncludeChitoor ? chitoorTotals.completed : 0),
-<<<<<<< HEAD
         cancelled: primaryTotals.cancelled + (canIncludeChitoor ? chitoorTotals.cancelled : 0),
-=======
->>>>>>> 7ec002eeffac73e3e96798f985954d88d9629f25
       });
     } catch (error) {
       console.error('Error fetching projects:', error);
@@ -313,11 +287,7 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
         duration: 5000,
         isClosable: true,
       });
-<<<<<<< HEAD
       setCombinedTotals({ totalProjects: 0, totalRevenue: 0, totalKWH: 0, active: 0, completed: 0, cancelled: 0 });
-=======
-      setCombinedTotals({ totalProjects: 0, totalRevenue: 0, totalKWH: 0, active: 0, completed: 0 });
->>>>>>> 7ec002eeffac73e3e96798f985954d88d9629f25
     } finally {
       setLoading(false);
     }
@@ -361,12 +331,8 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
         loan_amount: 0,
         paid_amount: cp.amount_received || 0,
         balance_amount: (cp.project_cost || 0) - (cp.amount_received || 0),
-<<<<<<< HEAD
         status: (cp.project_status || '').toLowerCase() === 'completed' ? 'completed' :
                 (cp.project_status || '').toLowerCase() === 'cancelled' ? 'cancelled' : 'active',
-=======
-        status: (cp.project_status || '').toLowerCase() === 'completed' ? 'completed' : 'active',
->>>>>>> 7ec002eeffac73e3e96798f985954d88d9629f25
         current_stage: cp.project_status || 'Pending',
         start_date: cp.date_of_order || cp.created_at || '',
         created_at: cp.created_at || '',
@@ -745,10 +711,7 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
   const totalProjectsCount = allProjects.length;
   const activeCount = stateFilter ? allProjects.filter(p => (p.status || '').toLowerCase() === 'active').length : (combinedTotals.active || 0);
   const completedCount = stateFilter ? allProjects.filter(p => (p.status || '').toLowerCase() === 'completed').length : (combinedTotals.completed || 0);
-<<<<<<< HEAD
   const cancelledCount = stateFilter ? allProjects.filter(p => (p.status || '').toLowerCase() === 'cancelled').length : (combinedTotals.cancelled || 0);
-=======
->>>>>>> 7ec002eeffac73e3e96798f985954d88d9629f25
 
   const StatTile: React.FC<{ title: string; value: number; icon: string; help?: string }> = ({ title, value, icon, help }) => {
     const tileBg = cardBg;
@@ -816,18 +779,11 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
         </Flex>
 
         {/* Analytics cards */}
-<<<<<<< HEAD
         <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={6}>
           <StatTile title="All projects" value={stateFilter ? totalProjectsCount : (combinedTotals.totalProjects || totalProjectsCount)} icon="📁" help="Total Projects" />
           <StatTile title="In progress" value={activeCount} icon="📈" help="Active Projects" />
           <StatTile title="Successfully delivered" value={completedCount} icon="✅" help="Completed Projects" />
           <StatTile title="Cancelled Projects" value={cancelledCount} icon="❌" help="Withdrawn Projects" />
-=======
-        <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
-          <StatTile title="All projects" value={stateFilter ? totalProjectsCount : (combinedTotals.totalProjects || totalProjectsCount)} icon="📁" help="Total Projects" />
-          <StatTile title="In progress" value={activeCount} icon="📈" help="Active Projects" />
-          <StatTile title="Successfully delivered" value={completedCount} icon="✅" help="Completed Projects" />
->>>>>>> 7ec002eeffac73e3e96798f985954d88d9629f25
         </SimpleGrid>
 
         {/* Search and Filter Bar */}
@@ -1088,7 +1044,6 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
                                       Mark {project.status === 'active' ? 'Complete' : 'Active'}
                                     </MenuItem>
                                     <MenuItem
-<<<<<<< HEAD
                                       icon={<CloseIcon />}
                                       color="orange.500"
                                       onClick={async () => {
@@ -1110,8 +1065,6 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
                                       Mark Cancelled
                                     </MenuItem>
                                     <MenuItem
-=======
->>>>>>> 7ec002eeffac73e3e96798f985954d88d9629f25
                                       icon={<DeleteIcon />}
                                       color="red.500"
                                       onClick={() => {
