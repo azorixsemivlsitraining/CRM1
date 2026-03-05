@@ -45,8 +45,9 @@ import {
 } from '@chakra-ui/react';
 import { supabase } from '../lib/supabase';
 import { formatSupabaseError } from '../utils/error';
-import { AddIcon, ChevronDownIcon, ViewIcon, EditIcon, DeleteIcon, PhoneIcon, SearchIcon } from '@chakra-ui/icons';
+import { AddIcon, ChevronDownIcon, ViewIcon, EditIcon, DeleteIcon, PhoneIcon, SearchIcon, DownloadIcon } from '@chakra-ui/icons';
 import { useNavigate } from 'react-router-dom';
+import * as XLSX from 'xlsx';
 import CHITOOR_LOCATIONS from '../data/chitoorLocations';
 
 interface ChitoorProject {
@@ -310,6 +311,55 @@ const ChitoorProjects = () => {
     }
   }, [selectedMandal, selectedVillage]);
 
+  const exportToExcel = () => {
+    if (projects.length === 0) {
+      toast({
+        title: 'Export Error',
+        description: 'No projects available to export',
+        status: 'warning',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    const dataToExport = projects.map(project => ({
+      'Project ID': `Chitoor-${project.id.slice(-6)}`,
+      'Customer Name': project.customer_name,
+      'Mobile Number': project.mobile_number,
+      'Date of Order': project.date_of_order ? new Date(project.date_of_order).toLocaleDateString() : 'N/A',
+      'Service Number': project.service_number || 'N/A',
+      'Address (Mandal, Village)': project.address_mandal_village,
+      'Capacity (kW)': project.capacity,
+      'Project Cost': project.project_cost,
+      'Amount Received': project.amount_received || 0,
+      'Balance': (project.project_cost || 0) - (project.amount_received || 0),
+      'Subsidy Scope': project.subsidy_scope || 'N/A',
+      'Velugu Officer Payments': project.velugu_officer_payments || 0,
+      'Project Status': project.project_status || 'Pending',
+      'Material Sent Date': project.material_sent_date ? new Date(project.material_sent_date).toLocaleDateString() : 'N/A',
+      'Balamuragan Payment': project.balamuragan_payment || 0,
+      'Lead Source': project.lead_source || 'N/A',
+      'Lead Finished By': project.lead_finished_by_name || 'N/A',
+      'Lead Finished Date': project.lead_finished_by ? new Date(project.lead_finished_by).toLocaleDateString() : 'N/A',
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Chitoor Projects');
+
+    const fileName = `chitoor_projects_export_${new Date().toISOString().split('T')[0]}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
+
+    toast({
+      title: 'Success',
+      description: `Exported ${projects.length} Chitoor projects to Excel`,
+      status: 'success',
+      duration: 3000,
+      isClosable: true,
+    });
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     if (name === 'capacity') {
@@ -505,20 +555,35 @@ const ChitoorProjects = () => {
             <Text color="gray.600">
               {projects.length} of {allProjects.length} projects
               {searchTerm && ` matching "${searchTerm}"`}
-            </Text>
-          </Box>
-          <Button
-            leftIcon={<AddIcon />}
-            colorScheme="green"
-            onClick={onOpen}
-            size="lg"
-            borderRadius="lg"
-            _hover={{ transform: 'translateY(-1px)', boxShadow: 'lg' }}
-            transition="all 0.2s"
-          >
-            Create New Chitoor Project
-          </Button>
-        </Flex>
+              </Text>
+            </Box>
+            <HStack spacing={4}>
+              <Button
+                leftIcon={<DownloadIcon />}
+                onClick={exportToExcel}
+                colorScheme="green"
+                variant="outline"
+                size="lg"
+                borderRadius="lg"
+                _hover={{ bg: 'green.50', transform: 'translateY(-1px)' }}
+                transition="all 0.2s"
+                isDisabled={projects.length === 0}
+              >
+                Export to Excel
+              </Button>
+              <Button
+                leftIcon={<AddIcon />}
+                colorScheme="green"
+                onClick={onOpen}
+                size="lg"
+                borderRadius="lg"
+                _hover={{ transform: 'translateY(-1px)', boxShadow: 'lg' }}
+                transition="all 0.2s"
+              >
+                Create New Chitoor Project
+              </Button>
+            </HStack>
+          </Flex>
 
 
         {/* Projects Table */}
