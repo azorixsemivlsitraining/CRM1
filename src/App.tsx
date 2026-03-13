@@ -25,6 +25,7 @@ import HR from './pages/HR';
 import UsersManagement from './pages/UsersManagement';
 import ResetPassword from './pages/ResetPassword';
 import Sales from './pages/Sales';
+import ProjectAnalysis from './pages/ProjectAnalysis';
 import PrivateRoute from './components/PrivateRoute';
 import Layout from './components/Layout';
 import ModuleGuard from './components/ModuleGuard';
@@ -285,6 +286,18 @@ const App: React.FC = () => {
                     <ModuleGuard moduleKey="sales">
                       <Layout>
                         <RegionGuard allowed={['Chitoor']}><Reports stateFilter="Chitoor" /></RegionGuard>
+                      </Layout>
+                    </ModuleGuard>
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/project-analysis"
+                element={
+                  <PrivateRoute>
+                    <ModuleGuard moduleKey="projects">
+                      <Layout>
+                        <ProjectAnalysis />
                       </Layout>
                     </ModuleGuard>
                   </PrivateRoute>
