@@ -38,6 +38,7 @@ import {
   AccordionIcon,
   Tag,
 } from '@chakra-ui/react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { ChevronDownIcon } from '@chakra-ui/icons';
@@ -147,6 +148,7 @@ const calculateElapsedTime = (startDateStr: string | null) => {
 
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
   const [stats, setStats] = useState({
     totalProjects: 0,
@@ -479,6 +481,37 @@ const Dashboard = () => {
                 });
               })()}
             </Accordion>
+          </CardBody>
+        </Card>
+
+        {/* Project Analysis Tile */}
+        <Card
+          bg={cardBg}
+          shadow="sm"
+          border="1px solid"
+          borderColor="gray.100"
+          cursor="pointer"
+          _hover={{ shadow: 'md', borderColor: 'brand.300' }}
+          transition="all 0.2s"
+          onClick={() => navigate('/project-analysis')}
+        >
+          <CardBody>
+            <Flex justify="space-between" align="center" h="120px">
+              <Box>
+                <Heading size="md" color="gray.800" mb={2}>
+                  📊 Project Analysis
+                </Heading>
+                <Text fontSize="sm" color="gray.600" mb={4}>
+                  View detailed cost and profit analysis for all projects
+                </Text>
+                <Button size="sm" colorScheme="brand">
+                  View Analysis
+                </Button>
+              </Box>
+              <Circle size="80px" bg="brand.50">
+                <Text fontSize="3xl">💹</Text>
+              </Circle>
+            </Flex>
           </CardBody>
         </Card>
 
