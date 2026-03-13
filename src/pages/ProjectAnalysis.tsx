@@ -91,24 +91,36 @@ const ProjectAnalysis = () => {
         .select('*')
         .order('sl_no', { ascending: true });
 
-      if (analysisError && (analysisError as any)?.code !== 'PGRST116') {
-        console.error('Analysis data error:', analysisError);
+      if (analysisError) {
+        const errorCode = (analysisError as any)?.code;
+        const errorMessage = (analysisError as any)?.message || String(analysisError);
+
+        // Only log if it's not a "table doesn't exist" error
+        if (errorCode !== 'PGRST116') {
+          console.error('Analysis data error:', errorCode, errorMessage);
+        }
       }
 
       // If table doesn't exist or is empty, fetch from projects
       if (!analysisData || analysisData.length === 0) {
         const { data: projects, error: projectError } = await supabase
           .from('projects')
-          .select('id, customer_name, phone as mobile_no, proposal_amount, kwh')
+          .select('id, customer_name, phone, proposal_amount, kwh')
           .neq('status', 'deleted')
           .limit(50);
 
         if (projectError) {
-          console.error('Project error:', projectError);
-          throw projectError;
-        }
+          const errorCode = (projectError as any)?.code;
+          const errorMessage = (projectError as any)?.message || String(projectError);
+          console.error('Project error:', errorCode, errorMessage);
 
-        if (projects) {
+          // If projects table is empty, just show empty state
+          if (errorCode === 'PGRST116') {
+            setProjectData([]);
+          } else {
+            throw projectError;
+          }
+        } else if (projects && projects.length > 0) {
           const transformedProjects: ProjectData[] = projects.map((project: any, index: number) => ({
             id: project.id,
             sl_no: index + 1,
@@ -137,19 +149,22 @@ const ProjectAnalysis = () => {
           }));
 
           setProjectData(transformedProjects);
+        } else {
+          setProjectData([]);
         }
       } else {
         setProjectData(analysisData);
       }
-    } catch (error) {
-      console.error('Error fetching project analysis:', error);
+    } catch (error: any) {
+      console.error('Error fetching project analysis:', error?.message || String(error));
       toast({
         title: 'Error',
-        description: 'Failed to fetch project analysis data',
+        description: error?.message || 'Failed to fetch project analysis data',
         status: 'error',
         duration: 3,
         isClosable: true,
       });
+      setProjectData([]);
     } finally {
       setIsLoading(false);
     }
@@ -174,7 +189,15 @@ const ProjectAnalysis = () => {
           { onConflict: 'id' }
         );
 
-      if (error) throw error;
+      if (error) {
+        const errorCode = (error as any)?.code;
+        const errorMessage = (error as any)?.message || String(error);
+        console.error('Error saving project:', errorCode, errorMessage);
+        throw error;
+      }
+
+      // Update local state with the saved project
+      setProjectData(projectData.map(p => p.id === selectedProject.id ? selectedProject : p));
 
       toast({
         title: 'Success',
@@ -184,13 +207,12 @@ const ProjectAnalysis = () => {
         isClosable: true,
       });
 
-      fetchProjectAnalysisData();
       onClose();
-    } catch (error) {
-      console.error('Error saving project:', error);
+    } catch (error: any) {
+      console.error('Error saving project:', error?.message || String(error));
       toast({
         title: 'Error',
-        description: 'Failed to save project analysis',
+        description: error?.message || 'Failed to save project analysis',
         status: 'error',
         duration: 3,
         isClosable: true,
@@ -207,7 +229,12 @@ const ProjectAnalysis = () => {
         .delete()
         .eq('id', id);
 
-      if (error) throw error;
+      if (error) {
+        const errorCode = (error as any)?.code;
+        const errorMessage = (error as any)?.message || String(error);
+        console.error('Error deleting project:', errorCode, errorMessage);
+        throw error;
+      }
 
       setProjectData(projectData.filter((p) => p.id !== id));
       toast({
@@ -217,11 +244,11 @@ const ProjectAnalysis = () => {
         duration: 3,
         isClosable: true,
       });
-    } catch (error) {
-      console.error('Error deleting project:', error);
+    } catch (error: any) {
+      console.error('Error deleting project:', error?.message || String(error));
       toast({
         title: 'Error',
-        description: 'Failed to delete project analysis',
+        description: error?.message || 'Failed to delete project analysis',
         status: 'error',
         duration: 3,
         isClosable: true,
@@ -238,6 +265,9 @@ const ProjectAnalysis = () => {
             Loading project analysis...
           </Text>
           <Progress size="md" isIndeterminate w="300px" colorScheme="brand" borderRadius="full" />
+          <Text fontSize="xs" color="gray.500" maxW="300px" textAlign="center">
+            This may take a moment while we load your project data
+          </Text>
         </VStack>
       </Box>
     );
@@ -386,9 +416,16 @@ const ProjectAnalysis = () => {
                 <Text color="gray.500" fontSize="lg" fontWeight="medium">
                   No projects found
                 </Text>
-                <Text color="gray.400" fontSize="sm">
-                  Projects will appear here once they are created
+                <Text color="gray.400" fontSize="sm" mb={4}>
+                  Projects will appear here once they are created in the Projects section
                 </Text>
+                <Button
+                  size="sm"
+                  colorScheme="brand"
+                  onClick={() => window.location.hash = '#/projects'}
+                >
+                  Go to Projects
+                </Button>
               </Flex>
             )}
           </CardBody>
