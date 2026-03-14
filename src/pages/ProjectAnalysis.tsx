@@ -35,6 +35,7 @@ import {
 import { DeleteIcon } from '@chakra-ui/icons';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import { migrateProjectsToAnalysis, checkProjectAnalysisEmpty } from '../utils/projectAnalysisMigration';
 
 interface ProjectData {
   id: string;
@@ -70,16 +71,31 @@ const ProjectAnalysis = () => {
   const [projectData, setProjectData] = useState<ProjectData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedProject, setSelectedProject] = useState<ProjectData | null>(null);
+  const [isMigrating, setIsMigrating] = useState(false);
+  const [showMigrationPrompt, setShowMigrationPrompt] = useState(false);
   const { isOpen, onOpen, onClose } = useDisclosure();
   const toast = useToast();
   const cardBg = useColorModeValue('white', 'gray.800');
 
   useEffect(() => {
     if (isAuthenticated) {
-      fetchProjectAnalysisData();
+      checkAndInitializeData();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated]);
+
+  const checkAndInitializeData = async () => {
+    try {
+      const isEmpty = await checkProjectAnalysisEmpty();
+      if (isEmpty) {
+        setShowMigrationPrompt(true);
+      }
+      await fetchProjectAnalysisData();
+    } catch (error) {
+      console.error('Error checking data:', error);
+      await fetchProjectAnalysisData();
+    }
+  };
 
   const fetchProjectAnalysisData = async () => {
     try {
@@ -256,6 +272,43 @@ const ProjectAnalysis = () => {
     }
   };
 
+  const handleMigrateData = async () => {
+    setIsMigrating(true);
+    try {
+      const result = await migrateProjectsToAnalysis();
+
+      if (result.success) {
+        toast({
+          title: 'Migration Successful',
+          description: result.message,
+          status: 'success',
+          duration: 4,
+          isClosable: true,
+        });
+        setShowMigrationPrompt(false);
+        await fetchProjectAnalysisData();
+      } else {
+        toast({
+          title: 'Migration Failed',
+          description: result.error || result.message,
+          status: 'error',
+          duration: 4,
+          isClosable: true,
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error?.message || 'Migration failed',
+        status: 'error',
+        duration: 4,
+        isClosable: true,
+      });
+    } finally {
+      setIsMigrating(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" height="70vh">
@@ -276,6 +329,35 @@ const ProjectAnalysis = () => {
   return (
     <Box>
       <VStack spacing={6} align="stretch">
+        {/* Migration Prompt */}
+        {showMigrationPrompt && (
+          <Card bg="blue.50" borderColor="blue.200" borderWidth={1}>
+            <CardBody>
+              <VStack spacing={3} align="stretch">
+                <Flex justify="space-between" align="start" gap={4}>
+                  <Box flex={1}>
+                    <Heading size="sm" color="blue.800" mb={2}>
+                      Migrate Project Data
+                    </Heading>
+                    <Text color="blue.700" fontSize="sm">
+                      Your projects table has data that can be migrated to the project analysis table. This will help you track costs and profits for each project.
+                    </Text>
+                  </Box>
+                  <Button
+                    size="sm"
+                    colorScheme="blue"
+                    onClick={handleMigrateData}
+                    isLoading={isMigrating}
+                    loadingText="Migrating..."
+                  >
+                    Migrate Now
+                  </Button>
+                </Flex>
+              </VStack>
+            </CardBody>
+          </Card>
+        )}
+
         {/* Header */}
         <Flex justify="space-between" align="center" wrap="wrap" gap={4}>
           <Box>
