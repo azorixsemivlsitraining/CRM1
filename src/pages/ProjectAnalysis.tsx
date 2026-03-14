@@ -69,20 +69,44 @@ interface ProjectData {
 const ProjectAnalysis = () => {
   const { isAuthenticated } = useAuth();
   const [projectData, setProjectData] = useState<ProjectData[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [selectedProject, setSelectedProject] = useState<ProjectData | null>(null);
   const [isMigrating, setIsMigrating] = useState(false);
   const [showMigrationPrompt, setShowMigrationPrompt] = useState(false);
   const { isOpen, onOpen, onClose } = useDisclosure();
   const toast = useToast();
   const cardBg = useColorModeValue('white', 'gray.800');
+  const [isAnalysisUnlocked, setIsAnalysisUnlocked] = useState(false);
+  const [passwordInput, setPasswordInput] = useState('');
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && isAnalysisUnlocked) {
       checkAndInitializeData();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated]);
+  }, [isAuthenticated, isAnalysisUnlocked]);
+
+  const handleUnlockAnalysis = () => {
+    if (passwordInput === 'Axiso@2024') {
+      setIsAnalysisUnlocked(true);
+      setPasswordInput('');
+      toast({
+        title: 'Access granted',
+        description: 'Project Analysis unlocked',
+        status: 'success',
+        duration: 3,
+        isClosable: true,
+      });
+    } else {
+      toast({
+        title: 'Incorrect password',
+        description: 'Please enter the correct Project Analysis password',
+        status: 'error',
+        duration: 3,
+        isClosable: true,
+      });
+    }
+  };
 
   const checkAndInitializeData = async () => {
     try {
@@ -308,6 +332,41 @@ const ProjectAnalysis = () => {
       setIsMigrating(false);
     }
   };
+
+  if (!isAnalysisUnlocked) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" height="70vh">
+        <Card w="400px" p={6}>
+          <CardHeader pb={2}>
+            <Heading size="md">Project Analysis Access</Heading>
+            <Text fontSize="sm" color="gray.600" mt={2}>
+              This section is protected with an additional password for extra security.
+            </Text>
+          </CardHeader>
+          <CardBody pt={0}>
+            <VStack spacing={4} align="stretch">
+              <FormControl>
+                <FormLabel fontSize="sm">Enter Access Password</FormLabel>
+                <Input
+                  type="password"
+                  value={passwordInput}
+                  onChange={(e) => setPasswordInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleUnlockAnalysis();
+                    }
+                  }}
+                />
+              </FormControl>
+              <Button colorScheme="blue" onClick={handleUnlockAnalysis}>
+                Unlock Project Analysis
+              </Button>
+            </VStack>
+          </CardBody>
+        </Card>
+      </Box>
+    );
+  }
 
   if (isLoading) {
     return (
