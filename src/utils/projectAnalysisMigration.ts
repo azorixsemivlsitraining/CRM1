@@ -7,6 +7,16 @@ interface MigrationResult {
   error?: string;
 }
 
+interface ProjectRow {
+  id: string;
+  customer_name: string | null;
+  phone: string | null;
+  kwh: number | null;
+  proposal_amount: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
 /**
  * Migrate existing project data from the projects table to project_analysis table
  */
@@ -35,7 +45,7 @@ export const migrateProjectsToAnalysis = async (): Promise<MigrationResult> => {
     }
 
     // Step 2: Transform projects data to project_analysis format
-    const analysisData = projects.map((project, index) => ({
+    const analysisData = projects.map((project: ProjectRow, index: number) => ({
       sl_no: index + 1,
       customer_name: project.customer_name || '',
       mobile_no: project.phone || '',
