@@ -163,7 +163,14 @@ const Dashboard = () => {
   const [projects, setProjects] = useState<Project[]>([]); // eslint-disable-line @typescript-eslint/no-unused-vars
   const [activeProjects, setActiveProjects] = useState<Project[]>([]);
   const [monthlyTrends, setMonthlyTrends] = useState<number[]>(Array(12).fill(0)); // eslint-disable-line @typescript-eslint/no-unused-vars
-  
+  const [projectsByState, setProjectsByState] = useState({
+    all: 0,
+    telangana: 0,
+    andhraPradesh: 0,
+    chitoor: 0,
+  });
+  const [selectedAnalysisFilter, setSelectedAnalysisFilter] = useState<'all' | 'telangana' | 'andhraPradesh' | 'chitoor'>('all');
+
   // Get current year and create an array of years (current year and 4 years back)
   const currentYear = new Date().getFullYear();
   const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - i);
@@ -282,6 +289,22 @@ const Dashboard = () => {
 
         // Total projects across all sources
         const totalProjectsCount = (uniqueProjects?.length || 0) + ((chitoorProjects as any)?.length || 0);
+
+        // Count projects by state type for the Project Analysis filter
+        const telanganaProjects = uniqueProjects.filter((p: any) =>
+          p.state && p.state.toLowerCase().includes('telangana')
+        ).length;
+        const apProjects = uniqueProjects.filter((p: any) =>
+          p.state && p.state.toLowerCase().includes('andhra') || p.state && p.state.toLowerCase().includes('pradesh')
+        ).length;
+        const chitoorCount = (chitoorProjects as any)?.length || 0;
+
+        setProjectsByState({
+          all: totalProjectsCount,
+          telangana: telanganaProjects,
+          andhraPradesh: apProjects,
+          chitoor: chitoorCount,
+        });
 
         setStats({
           totalProjects: totalProjectsCount,
@@ -484,34 +507,113 @@ const Dashboard = () => {
           </CardBody>
         </Card>
 
-        {/* Project Analysis Tile */}
-        <Card
-          bg={cardBg}
-          shadow="sm"
-          border="1px solid"
-          borderColor="gray.100"
-          cursor="pointer"
-          _hover={{ shadow: 'md', borderColor: 'brand.300' }}
-          transition="all 0.2s"
-          onClick={() => navigate('/project-analysis')}
-        >
+        {/* Project Analysis Tile with State Filters */}
+        <Card bg={cardBg} shadow="sm" border="1px solid" borderColor="gray.100">
           <CardBody>
-            <Flex justify="space-between" align="center" h="120px">
+            <VStack align="stretch" spacing={4}>
               <Box>
-                <Heading size="md" color="gray.800" mb={2}>
-                  📊 Project Analysis
+                <Heading size="sm" color="gray.800" mb={1}>
+                  📊 Project Analysis by Type
                 </Heading>
-                <Text fontSize="sm" color="gray.600" mb={4}>
-                  View detailed cost and profit analysis for all projects
+                <Text fontSize="xs" color="gray.600">
+                  Select a project type to view detailed analysis
                 </Text>
-                <Button size="sm" colorScheme="brand">
-                  View Analysis
-                </Button>
               </Box>
-              <Circle size="80px" bg="brand.50">
-                <Text fontSize="3xl">💹</Text>
-              </Circle>
-            </Flex>
+
+              <SimpleGrid columns={{ base: 2, md: 4 }} spacing={3}>
+                {/* All Projects Button */}
+                <Button
+                  onClick={() => {
+                    setSelectedAnalysisFilter('all');
+                    navigate('/project-analysis');
+                  }}
+                  variant={selectedAnalysisFilter === 'all' ? 'solid' : 'outline'}
+                  colorScheme={selectedAnalysisFilter === 'all' ? 'brand' : 'gray'}
+                  height="auto"
+                  py={4}
+                  flexDirection="column"
+                  _hover={{ shadow: 'md' }}
+                  transition="all 0.2s"
+                >
+                  <Box fontSize="xl" mb={2}>📋</Box>
+                  <Text fontWeight="bold" fontSize="sm">
+                    ALL PROJECTS
+                  </Text>
+                  <Text fontSize="lg" fontWeight="bold" color={selectedAnalysisFilter === 'all' ? 'white' : 'brand.600'}>
+                    {projectsByState.all}
+                  </Text>
+                </Button>
+
+                {/* Telangana Button */}
+                <Button
+                  onClick={() => {
+                    setSelectedAnalysisFilter('telangana');
+                    navigate('/project-analysis?state=Telangana');
+                  }}
+                  variant={selectedAnalysisFilter === 'telangana' ? 'solid' : 'outline'}
+                  colorScheme={selectedAnalysisFilter === 'telangana' ? 'blue' : 'gray'}
+                  height="auto"
+                  py={4}
+                  flexDirection="column"
+                  _hover={{ shadow: 'md' }}
+                  transition="all 0.2s"
+                >
+                  <Box fontSize="xl" mb={2}>🔷</Box>
+                  <Text fontWeight="bold" fontSize="sm">
+                    TG
+                  </Text>
+                  <Text fontSize="lg" fontWeight="bold" color={selectedAnalysisFilter === 'telangana' ? 'white' : 'blue.600'}>
+                    {projectsByState.telangana}
+                  </Text>
+                </Button>
+
+                {/* Andhra Pradesh Button */}
+                <Button
+                  onClick={() => {
+                    setSelectedAnalysisFilter('andhraPradesh');
+                    navigate('/project-analysis?state=Andhra%20Pradesh');
+                  }}
+                  variant={selectedAnalysisFilter === 'andhraPradesh' ? 'solid' : 'outline'}
+                  colorScheme={selectedAnalysisFilter === 'andhraPradesh' ? 'purple' : 'gray'}
+                  height="auto"
+                  py={4}
+                  flexDirection="column"
+                  _hover={{ shadow: 'md' }}
+                  transition="all 0.2s"
+                >
+                  <Box fontSize="xl" mb={2}>🟪</Box>
+                  <Text fontWeight="bold" fontSize="sm">
+                    AP
+                  </Text>
+                  <Text fontSize="lg" fontWeight="bold" color={selectedAnalysisFilter === 'andhraPradesh' ? 'white' : 'purple.600'}>
+                    {projectsByState.andhraPradesh}
+                  </Text>
+                </Button>
+
+                {/* Chitoor Button */}
+                <Button
+                  onClick={() => {
+                    setSelectedAnalysisFilter('chitoor');
+                    navigate('/project-analysis?state=Chitoor');
+                  }}
+                  variant={selectedAnalysisFilter === 'chitoor' ? 'solid' : 'outline'}
+                  colorScheme={selectedAnalysisFilter === 'chitoor' ? 'orange' : 'gray'}
+                  height="auto"
+                  py={4}
+                  flexDirection="column"
+                  _hover={{ shadow: 'md' }}
+                  transition="all 0.2s"
+                >
+                  <Box fontSize="xl" mb={2}>🟧</Box>
+                  <Text fontWeight="bold" fontSize="sm">
+                    CHITOOR
+                  </Text>
+                  <Text fontSize="lg" fontWeight="bold" color={selectedAnalysisFilter === 'chitoor' ? 'white' : 'orange.600'}>
+                    {projectsByState.chitoor}
+                  </Text>
+                </Button>
+              </SimpleGrid>
+            </VStack>
           </CardBody>
         </Card>
 

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Box,
   Heading,
@@ -67,10 +68,13 @@ interface ProjectData {
   payment_dates?: string[];
   created_at?: string;
   updated_at?: string;
+  state?: string;
 }
 
 const ProjectAnalysis = () => {
   const { isAuthenticated } = useAuth();
+  const [searchParams] = useSearchParams();
+  const stateFilter = searchParams.get('state') || undefined;
   const [projectData, setProjectData] = useState<ProjectData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedProject, setSelectedProject] = useState<ProjectData | null>(null);
@@ -81,6 +85,7 @@ const ProjectAnalysis = () => {
   const cardBg = useColorModeValue('white', 'gray.800');
   const [isAnalysisUnlocked, setIsAnalysisUnlocked] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
+  const [filteredData, setFilteredData] = useState<ProjectData[]>([]);
 
   useEffect(() => {
     if (isAuthenticated && isAnalysisUnlocked) {
@@ -88,6 +93,19 @@ const ProjectAnalysis = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, isAnalysisUnlocked]);
+
+  useEffect(() => {
+    // Apply state filter to project data
+    if (stateFilter && projectData.length > 0) {
+      const filtered = projectData.filter((project: any) => {
+        const projectState = project.state || '';
+        return projectState.toLowerCase().includes(stateFilter.toLowerCase());
+      });
+      setFilteredData(filtered);
+    } else {
+      setFilteredData(projectData);
+    }
+  }, [stateFilter, projectData]);
 
   const handleUnlockAnalysis = () => {
     if (passwordInput === 'Axiso@2024') {
@@ -425,9 +443,17 @@ const ProjectAnalysis = () => {
           <Box>
             <Heading size="lg" color="gray.800" mb={2}>
               Project Analysis
+              {stateFilter && (
+                <Text as="span" fontSize="md" color="brand.600" ml={2}>
+                  ({stateFilter})
+                </Text>
+              )}
             </Heading>
             <Text color="gray.600">
-              Detailed cost and profit analysis for all projects
+              {stateFilter
+                ? `Detailed cost and profit analysis for ${stateFilter} projects`
+                : 'Detailed cost and profit analysis for all projects'
+              }
             </Text>
           </Box>
         </Flex>
@@ -441,13 +467,18 @@ const ProjectAnalysis = () => {
                   Project Details & Analysis
                 </Heading>
                 <Text fontSize="sm" color="gray.600" mt={1}>
-                  {projectData.length} projects with cost breakdown
+                  {filteredData.length} {stateFilter ? `${stateFilter} ` : ''}projects with cost breakdown
+                  {stateFilter && projectData.length > 0 && (
+                    <Text as="span" fontSize="xs" color="gray.500" ml={2}>
+                      (out of {projectData.length} total)
+                    </Text>
+                  )}
                 </Text>
               </Box>
             </Flex>
           </CardHeader>
           <CardBody pt={0} overflowX="auto">
-            {projectData.length > 0 ? (
+            {filteredData.length > 0 ? (
               <Table variant="simple" size="sm">
                 <Thead bg="gray.50">
                   <Tr>
@@ -487,7 +518,7 @@ const ProjectAnalysis = () => {
                   </Tr>
                 </Thead>
                 <Tbody>
-                  {projectData.map((project) => (
+                  {filteredData.map((project) => (
                     <Tr key={project.id} _hover={{ bg: 'gray.50' }}>
                       <Td>
                         <Text fontSize="sm" fontWeight="medium">
