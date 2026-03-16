@@ -62,6 +62,9 @@ interface ProjectData {
   profit_right_now?: number;
   overall_profit?: number;
   project_id?: string;
+  project_start_date?: string;
+  completion_date?: string;
+  payment_dates?: string[];
   created_at?: string;
   updated_at?: string;
 }
@@ -603,7 +606,95 @@ const ProjectAnalysis = () => {
                   <Input type="number" value={selectedProject.total_quoted_cost} />
                 </FormControl>
 
-                {/* Editable fields */}
+                {/* Timeline Section - BEFORE Cost Details */}
+                <Box borderTop="2px solid" borderColor="gray.200" pt={4}>
+                  <Text fontWeight="bold" mb={4} color="gray.700">
+                    Timeline (Optional)
+                  </Text>
+
+                  <VStack spacing={3}>
+                    <FormControl>
+                      <FormLabel fontSize="sm">Project Start Date</FormLabel>
+                      <Input
+                        type="date"
+                        value={selectedProject.project_start_date || ''}
+                        onChange={(e) =>
+                          setSelectedProject({
+                            ...selectedProject,
+                            project_start_date: e.target.value,
+                          })
+                        }
+                      />
+                    </FormControl>
+
+                    <FormControl>
+                      <FormLabel fontSize="sm">Completion Date</FormLabel>
+                      <Input
+                        type="date"
+                        value={selectedProject.completion_date || ''}
+                        onChange={(e) =>
+                          setSelectedProject({
+                            ...selectedProject,
+                            completion_date: e.target.value,
+                          })
+                        }
+                      />
+                    </FormControl>
+
+                    <Box w="100%">
+                      <FormLabel fontSize="sm" mb={3}>Payment Received Dates</FormLabel>
+                      <VStack spacing={2} align="stretch">
+                        {(selectedProject.payment_dates || []).map((date, index) => (
+                          <HStack key={index} spacing={2}>
+                            <Input
+                              type="date"
+                              value={date || ''}
+                              onChange={(e) => {
+                                const updatedDates = [...(selectedProject.payment_dates || [])];
+                                updatedDates[index] = e.target.value;
+                                setSelectedProject({
+                                  ...selectedProject,
+                                  payment_dates: updatedDates,
+                                });
+                              }}
+                            />
+                            <IconButton
+                              aria-label="Remove date"
+                              icon={<DeleteIcon />}
+                              size="sm"
+                              colorScheme="red"
+                              variant="ghost"
+                              onClick={() => {
+                                const updatedDates = selectedProject.payment_dates?.filter(
+                                  (_, i) => i !== index
+                                ) || [];
+                                setSelectedProject({
+                                  ...selectedProject,
+                                  payment_dates: updatedDates,
+                                });
+                              }}
+                            />
+                          </HStack>
+                        ))}
+                        <Button
+                          size="sm"
+                          colorScheme="blue"
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedProject({
+                              ...selectedProject,
+                              payment_dates: [...(selectedProject.payment_dates || []), ''],
+                            });
+                          }}
+                        >
+                          + Add Payment Date
+                        </Button>
+                      </VStack>
+                    </Box>
+                  </VStack>
+                </Box>
+
+                {/* Cost Details Section */}
                 <Box borderTop="2px solid" borderColor="gray.200" pt={4}>
                   <Text fontWeight="bold" mb={4} color="gray.700">
                     Cost Details (Manual Entry)
