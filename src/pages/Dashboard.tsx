@@ -58,6 +58,7 @@ interface Project {
   updated_at?: string;
   start_date: string;
   kwh: number;
+  state?: string;
 }
 
 interface ChitoorProject {
@@ -188,7 +189,7 @@ const Dashboard = () => {
       console.log('Fetching projects from Supabase...');
       const { data: projects, error } = await supabase
         .from('projects')
-        .select('*')
+        .select('id, name, customer_name, status, current_stage, proposal_amount, created_at, updated_at, start_date, kwh, state')
         .neq('status', 'deleted');
 
       const { data: chitoorProjects, error: chitoorError } = await supabase
