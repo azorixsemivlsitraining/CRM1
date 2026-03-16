@@ -62,6 +62,9 @@ interface ProjectData {
   profit_right_now?: number;
   overall_profit?: number;
   project_id?: string;
+  project_start_date?: string;
+  payment_received_date?: string;
+  completion_date?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -843,6 +846,57 @@ const ProjectAnalysis = () => {
                           setSelectedProject({
                             ...selectedProject,
                             overall_profit: parseFloat(e.target.value) || 0,
+                          })
+                        }
+                      />
+                    </FormControl>
+                  </VStack>
+                </Box>
+
+                {/* Date Fields */}
+                <Box borderTop="2px solid" borderColor="gray.200" pt={4}>
+                  <Text fontWeight="bold" mb={4} color="gray.700">
+                    Project Dates (Optional)
+                  </Text>
+
+                  <VStack spacing={3}>
+                    <FormControl>
+                      <FormLabel fontSize="sm">Project Start Date</FormLabel>
+                      <Input
+                        type="date"
+                        value={selectedProject.project_start_date || ''}
+                        onChange={(e) =>
+                          setSelectedProject({
+                            ...selectedProject,
+                            project_start_date: e.target.value,
+                          })
+                        }
+                      />
+                    </FormControl>
+
+                    <FormControl>
+                      <FormLabel fontSize="sm">Payment Received Date</FormLabel>
+                      <Input
+                        type="date"
+                        value={selectedProject.payment_received_date || ''}
+                        onChange={(e) =>
+                          setSelectedProject({
+                            ...selectedProject,
+                            payment_received_date: e.target.value,
+                          })
+                        }
+                      />
+                    </FormControl>
+
+                    <FormControl>
+                      <FormLabel fontSize="sm">Completion Date</FormLabel>
+                      <Input
+                        type="date"
+                        value={selectedProject.completion_date || ''}
+                        onChange={(e) =>
+                          setSelectedProject({
+                            ...selectedProject,
+                            completion_date: e.target.value,
                           })
                         }
                       />
