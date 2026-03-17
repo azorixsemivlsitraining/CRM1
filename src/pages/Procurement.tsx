@@ -393,7 +393,9 @@ EXECUTE FUNCTION update_updated_at();`}
                         const payload:any={ item_name: editing.item_name, quantity: editing.quantity, supplier: editing.supplier || null, purchase_date: editing.purchase_date || null, price: editing.price ?? null, notes: editing.notes || null };
                         const { data, error } = await supabase.from('procurements').update(payload).eq('id', r.id).select('*');
                         if(error) throw error instanceof Error ? error : new Error(String(error));
-                        setRecords(records.map(x=>x.id===r.id ? (data as any)[0] : x));
+                        if(data && data.length > 0) {
+                          setRecords(records.map(x=>x.id===r.id ? (data as any)[0] : x));
+                        }
                         setEditing(null);
                         toast({ title:'Updated', status:'success', duration:2000});
                       }catch(e:any){ toast({ title:'Failed to update', description:e?.message||String(e), status:'error', duration:4000}); }
