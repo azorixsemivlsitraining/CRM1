@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import {
   Box,
   Heading,
@@ -73,8 +72,6 @@ interface ProjectData {
 
 const ProjectAnalysis = () => {
   const { isAuthenticated } = useAuth();
-  const [searchParams] = useSearchParams();
-  const stateFilter = searchParams.get('state') || undefined;
   const [projectData, setProjectData] = useState<ProjectData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedProject, setSelectedProject] = useState<ProjectData | null>(null);
@@ -86,6 +83,7 @@ const ProjectAnalysis = () => {
   const [isAnalysisUnlocked, setIsAnalysisUnlocked] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
   const [filteredData, setFilteredData] = useState<ProjectData[]>([]);
+  const [selectedFilter, setSelectedFilter] = useState<'All' | 'TG' | 'AP' | 'Chitoor'>('All');
 
   useEffect(() => {
     if (isAuthenticated && isAnalysisUnlocked) {
@@ -96,16 +94,16 @@ const ProjectAnalysis = () => {
 
   useEffect(() => {
     // Apply state filter to project data
-    if (stateFilter && projectData.length > 0) {
+    if (selectedFilter !== 'All' && projectData.length > 0) {
       const filtered = projectData.filter((project: any) => {
         const projectState = project.state || '';
-        return projectState.toLowerCase().includes(stateFilter.toLowerCase());
+        return projectState.toLowerCase() === selectedFilter.toLowerCase();
       });
       setFilteredData(filtered);
     } else {
       setFilteredData(projectData);
     }
-  }, [stateFilter, projectData]);
+  }, [selectedFilter, projectData]);
 
   const handleUnlockAnalysis = () => {
     if (passwordInput === 'Axiso@2024') {
@@ -515,24 +513,32 @@ const ProjectAnalysis = () => {
         )}
 
         {/* Header */}
-        <Flex justify="space-between" align="center" wrap="wrap" gap={4}>
-          <Box>
-            <Heading size="lg" color="gray.800" mb={2}>
-              Project Analysis
-              {stateFilter && (
-                <Text as="span" fontSize="md" color="brand.600" ml={2}>
-                  ({stateFilter})
-                </Text>
-              )}
-            </Heading>
-            <Text color="gray.600">
-              {stateFilter
-                ? `Detailed cost and profit analysis for ${stateFilter} projects`
-                : 'Detailed cost and profit analysis for all projects'
-              }
-            </Text>
-          </Box>
-        </Flex>
+        <Box>
+          <Heading size="lg" color="gray.800" mb={4}>
+            Project Analysis
+          </Heading>
+          <Text color="gray.600" mb={6}>
+            {selectedFilter === 'All'
+              ? 'Detailed cost and profit analysis for all projects'
+              : `Detailed cost and profit analysis for ${selectedFilter} projects`
+            }
+          </Text>
+
+          {/* Filter Buttons */}
+          <HStack spacing={3} wrap="wrap">
+            {(['All', 'TG', 'AP', 'Chitoor'] as const).map((filter) => (
+              <Button
+                key={filter}
+                onClick={() => setSelectedFilter(filter)}
+                colorScheme={selectedFilter === filter ? 'brand' : 'gray'}
+                variant={selectedFilter === filter ? 'solid' : 'outline'}
+                size="sm"
+              >
+                {filter}
+              </Button>
+            ))}
+          </HStack>
+        </Box>
 
         {/* Projects Table */}
         <Card bg={cardBg} shadow="sm" border="1px solid" borderColor="gray.100">
@@ -543,8 +549,8 @@ const ProjectAnalysis = () => {
                   Project Details & Analysis
                 </Heading>
                 <Text fontSize="sm" color="gray.600" mt={1}>
-                  {filteredData.length} {stateFilter ? `${stateFilter} ` : ''}projects with cost breakdown
-                  {stateFilter && projectData.length > 0 && (
+                  {filteredData.length} {selectedFilter !== 'All' ? `${selectedFilter} ` : ''}projects with cost breakdown
+                  {selectedFilter !== 'All' && projectData.length > 0 && (
                     <Text as="span" fontSize="xs" color="gray.500" ml={2}>
                       (out of {projectData.length} total)
                     </Text>
