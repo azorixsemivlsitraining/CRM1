@@ -141,7 +141,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { icon: '🏛️', label: 'AP', to: '/project-analysis/ap', region: 'Andhra Pradesh' },
     { icon: '🏗️', label: 'CHITOOR', to: '/project-analysis/chitoor', region: 'Chitoor' },
   ];
-
   const allowedStates = isAdmin || (assignedRegions?.length || 0) === 0
     ? ['Telangana', 'Andhra Pradesh', 'Chitoor']
     : assignedRegions;
