@@ -328,7 +328,9 @@ const StockWarehouse: React.FC = () => {
                               const payload:any={ item_name:editing.item_name, quantity:editing.quantity, location:editing.location||null, notes:editing.notes||null };
                               const { data, error } = await supabase.from('stock_warehouse').update(payload).eq('id', it.id).select('*');
                               if(error) throw error instanceof Error ? error : new Error(String(error));
-                              setItems(items.map(x=>x.id===it.id ? (data as any)[0] : x));
+                              if(data && data.length > 0) {
+                                setItems(items.map(x=>x.id===it.id ? (data as any)[0] : x));
+                              }
                               setEditing(null);
                               toast({ title:'Updated', status:'success', duration:2000});
                             }catch(e:any){ toast({ title:'Failed to update', description:e?.message||String(e), status:'error', duration:4000}); }

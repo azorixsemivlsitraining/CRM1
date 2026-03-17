@@ -113,7 +113,8 @@ export const inventoryApi = {
       .insert([item])
       .select('*');
     if (error) throw error;
-    return data?.[0] as InventoryItem;
+    if (!data || data.length === 0) throw new Error('Failed to create inventory item');
+    return data[0] as InventoryItem;
   },
 
   async update(id: string, updates: Partial<InventoryItem>) {
@@ -123,7 +124,8 @@ export const inventoryApi = {
       .eq('id', id)
       .select('*');
     if (error) throw error;
-    return data?.[0] as InventoryItem;
+    if (!data || data.length === 0) throw new Error('Failed to update inventory item');
+    return data[0] as InventoryItem;
   },
 
   async delete(id: string) {
@@ -177,7 +179,8 @@ export const supplierApi = {
       .insert([supplier])
       .select('*');
     if (error) throw error;
-    return data?.[0] as Supplier;
+    if (!data || data.length === 0) throw new Error('Failed to create supplier');
+    return data[0] as Supplier;
   },
 
   async update(id: string, updates: Partial<Supplier>) {
@@ -187,7 +190,8 @@ export const supplierApi = {
       .eq('id', id)
       .select('*');
     if (error) throw error;
-    return data?.[0] as Supplier;
+    if (!data || data.length === 0) throw new Error('Failed to update supplier');
+    return data[0] as Supplier;
   },
 
   async delete(id: string) {
@@ -236,7 +240,8 @@ export const shipmentApi = {
       .insert([shipment])
       .select('*');
     if (error) throw error;
-    return data?.[0] as Shipment;
+    if (!data || data.length === 0) throw new Error('Failed to create shipment');
+    return data[0] as Shipment;
   },
 
   async update(id: string, updates: Partial<Shipment>) {
@@ -246,7 +251,8 @@ export const shipmentApi = {
       .eq('id', id)
       .select('*');
     if (error) throw error;
-    return data?.[0] as Shipment;
+    if (!data || data.length === 0) throw new Error('Failed to update shipment');
+    return data[0] as Shipment;
   },
 
   async delete(id: string) {
@@ -285,7 +291,8 @@ export const vehicleApi = {
       .insert([vehicle])
       .select('*');
     if (error) throw error;
-    return data?.[0] as Vehicle;
+    if (!data || data.length === 0) throw new Error('Failed to create vehicle');
+    return data[0] as Vehicle;
   },
 
   async update(id: string, updates: Partial<Vehicle>) {
@@ -295,7 +302,8 @@ export const vehicleApi = {
       .eq('id', id)
       .select('*');
     if (error) throw error;
-    return data?.[0] as Vehicle;
+    if (!data || data.length === 0) throw new Error('Failed to update vehicle');
+    return data[0] as Vehicle;
   },
 
   async delete(id: string) {

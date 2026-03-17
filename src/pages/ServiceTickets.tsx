@@ -251,8 +251,10 @@ const ServiceTickets = () => {
 
       if (error) throw error;
 
-      setTickets(prev => [data[0], ...prev]);
-      
+      if (data && data.length > 0) {
+        setTickets(prev => [data[0], ...prev]);
+      }
+
       toast({
         title: 'Success',
         description: 'Service ticket created successfully',
@@ -302,12 +304,14 @@ const ServiceTickets = () => {
       if (error) throw error;
 
       // Update ticket in state
-      setTickets(prev => 
-        prev.map(ticket => 
-          ticket.id === ticketId ? { ...data[0] } : ticket
-        )
-      );
-      
+      if (data && data.length > 0) {
+        setTickets(prev =>
+          prev.map(ticket =>
+            ticket.id === ticketId ? { ...data[0] } : ticket
+          )
+        );
+      }
+
       toast({
         title: 'Success',
         description: 'Service ticket marked as completed',
