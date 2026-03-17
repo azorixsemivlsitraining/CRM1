@@ -304,6 +304,18 @@ const App: React.FC = () => {
                 }
               />
               <Route
+                path="/project-analysis/:state"
+                element={
+                  <PrivateRoute>
+                    <ModuleGuard moduleKey="projects">
+                      <Layout>
+                        <ProjectAnalysis />
+                      </Layout>
+                    </ModuleGuard>
+                  </PrivateRoute>
+                }
+              />
+              <Route
                 path="/service-tickets"
                 element={
                   <PrivateRoute>

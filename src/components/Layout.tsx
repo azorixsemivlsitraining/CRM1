@@ -135,16 +135,24 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { icon: '📈', label: 'Chitoor Dashboard', to: '/dashboard/chitoor', region: 'Chitoor' },
   ];
 
+  const analysisStateProjects = [
+    { icon: '📊', label: 'ALL PROJECTS', to: '/project-analysis', region: 'all' },
+    { icon: '🏢', label: 'TG', to: '/project-analysis/tg', region: 'Telangana' },
+    { icon: '🏛️', label: 'AP', to: '/project-analysis/ap', region: 'Andhra Pradesh' },
+    { icon: '🏗️', label: 'CHITOOR', to: '/project-analysis/chitoor', region: 'Chitoor' },
+  ];
   const allowedStates = isAdmin || (assignedRegions?.length || 0) === 0
     ? ['Telangana', 'Andhra Pradesh', 'Chitoor']
     : assignedRegions;
 
   const stateProjects = allStateProjects.filter(i => i.region === 'all' || allowedStates.includes(i.region));
+  const analysisProjects = analysisStateProjects.filter(i => i.region === 'all' || allowedStates.includes(i.region));
   const filteredDashboards = stateDashboards.filter(i => allowedStates.includes(i.region));
 
   const path = location.pathname;
   const isOps = path === '/stock' || path.startsWith('/procurement') || path === '/logistics' || path.startsWith('/logistics/');
   const isReports = path === '/reports' || path.startsWith('/reports/');
+  const isProjectAnalysis = path === '/project-analysis' || path.startsWith('/project-analysis/');
   const activeModule = isOps
     ? 'operations'
     : isReports
@@ -153,6 +161,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         ? 'dashboard'
         : path.startsWith('/projects')
           ? 'projects'
+          : isProjectAnalysis
+            ? 'projectAnalysis'
           : path.startsWith('/service-tickets')
             ? 'serviceTickets'
             : path.startsWith('/finance') || path.startsWith('/payments')
@@ -206,12 +216,16 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </Box>
 
         <VStack spacing={2} px={4} flex="1">
-          {['dashboard','projects','reports'].includes(activeModule) && (
+          {['dashboard','projects','reports','projectAnalysis'].includes(activeModule) && (
             <>
               {!isCollapsed && (
                 <Box w="full" my={4}>
                   <Text fontSize="xs" fontWeight="semibold" color="gray.400" px={4} mb={2}>
-                    {activeModule === 'dashboard' ? 'STATE DASHBOARDS' : activeModule === 'projects' ? 'STATE PROJECTS' : 'STATE REPORTS'}
+                    {activeModule === 'dashboard'
+                      ? 'STATE DASHBOARDS'
+                      : activeModule === 'reports'
+                        ? 'STATE REPORTS'
+                        : 'STATE PROJECTS'}
                   </Text>
                 </Box>
               )}
@@ -228,6 +242,20 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               ))}
               {activeModule === 'projects' && stateProjects.map((item) => {
                 const active = item.to === '/projects' ? location.pathname === item.to : location.pathname.startsWith(item.to);
+                return (
+                  <NavItem
+                    key={item.to}
+                    icon={item.icon}
+                    label={item.label}
+                    to={item.to}
+                    isActive={active}
+                    onClick={onClose}
+                    collapsed={isCollapsed}
+                  />
+                );
+              })}
+              {activeModule === 'projectAnalysis' && analysisProjects.map((item) => {
+                const active = item.to === '/project-analysis' ? location.pathname === item.to : location.pathname.startsWith(item.to);
                 return (
                   <NavItem
                     key={item.to}

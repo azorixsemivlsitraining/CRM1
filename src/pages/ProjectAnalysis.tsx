@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import {
   Box,
   Heading,
@@ -8,6 +9,7 @@ import {
   Card,
   CardHeader,
   CardBody,
+  SimpleGrid,
   Table,
   Thead,
   Tbody,
@@ -15,11 +17,16 @@ import {
   Th,
   Td,
   Input,
+  InputGroup,
+  InputLeftElement,
   Button,
   IconButton,
   Progress,
   Flex,
   useColorModeValue,
+  Stat,
+  StatLabel,
+  StatNumber,
   Modal,
   ModalOverlay,
   ModalContent,
@@ -32,7 +39,7 @@ import {
   FormLabel,
   useToast,
 } from '@chakra-ui/react';
-import { DeleteIcon } from '@chakra-ui/icons';
+import { DeleteIcon, SearchIcon } from '@chakra-ui/icons';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { migrateProjectsToAnalysis, checkProjectAnalysisEmpty } from '../utils/projectAnalysisMigration';
@@ -70,7 +77,29 @@ interface ProjectData {
   state?: string;
 }
 
+const normalizeText = (value: unknown) =>
+  String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ');
+
+const getProjectBucket = (project: ProjectData): 'TG' | 'AP' | 'Chitoor' | 'Other' => {
+  const s = normalizeText(project.state);
+
+  // Chitoor is treated as its own category (even if it is AP district)
+  if (s === 'chitoor' || s === 'chittoor' || s.includes('chitoor') || s.includes('chittoor')) return 'Chitoor';
+
+  // Telangana
+  if (s === 'tg' || s === 'ts' || s.includes('telangana')) return 'TG';
+
+  // Andhra Pradesh
+  if (s === 'ap' || s.includes('andhra pradesh') || s.includes('andhra') || s.includes('a.p')) return 'AP';
+
+  return 'Other';
+};
+
 const ProjectAnalysis = () => {
+  const params = useParams();
   const { isAuthenticated } = useAuth();
   const [projectData, setProjectData] = useState<ProjectData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -84,6 +113,62 @@ const ProjectAnalysis = () => {
   const [passwordInput, setPasswordInput] = useState('');
   const [filteredData, setFilteredData] = useState<ProjectData[]>([]);
   const [selectedFilter, setSelectedFilter] = useState<'All' | 'TG' | 'AP' | 'Chitoor'>('All');
+  const [searchTerm, setSearchTerm] = useState('');
+
+  useEffect(() => {
+    const raw = normalizeText(params.state);
+    if (!raw) {
+      setSelectedFilter('All');
+      return;
+    }
+    if (raw === 'tg' || raw === 'telangana') setSelectedFilter('TG');
+    else if (raw === 'ap' || raw === 'andhra' || raw === 'andhrapradesh' || raw === 'andhra-pradesh') setSelectedFilter('AP');
+    else if (raw === 'chitoor' || raw === 'chittoor') setSelectedFilter('Chitoor');
+    else setSelectedFilter('All');
+  }, [params.state]);
+
+  const visibleData = useMemo(() => {
+    const term = normalizeText(searchTerm);
+    if (!term) return filteredData;
+
+    return filteredData.filter((p) => {
+      const haystack = normalizeText(
+        [
+          p.sl_no,
+          p.customer_name,
+          p.mobile_no,
+          p.project_capacity,
+          p.total_quoted_cost,
+          p.total_exp,
+          p.payment_received,
+          p.pending_payment,
+          p.profit_right_now,
+          p.overall_profit,
+          p.state,
+          p.project_id,
+        ].join(' ')
+      );
+      return haystack.includes(term);
+    });
+  }, [filteredData, searchTerm]);
+
+  const analytics = useMemo(() => {
+    const rows = visibleData;
+    const count = rows.length;
+    const sum = (getter: (p: ProjectData) => number) => rows.reduce((acc, p) => acc + (Number(getter(p)) || 0), 0);
+    const avg = (getter: (p: ProjectData) => number) => (count > 0 ? sum(getter) / count : 0);
+
+    return {
+      count,
+      avgCapacity: avg((p) => p.project_capacity || 0),
+      avgQuoted: avg((p) => p.total_quoted_cost || 0),
+      avgExp: avg((p) => p.total_exp || 0),
+      avgReceived: avg((p) => p.payment_received || 0),
+      avgPending: avg((p) => p.pending_payment || 0),
+      avgProfitNow: avg((p) => p.profit_right_now || 0),
+      avgOverallProfit: avg((p) => p.overall_profit || 0),
+    };
+  }, [visibleData]);
 
   useEffect(() => {
     if (isAuthenticated && isAnalysisUnlocked) {
@@ -95,24 +180,41 @@ const ProjectAnalysis = () => {
   useEffect(() => {
     // Apply state filter to project data
     if (selectedFilter !== 'All' && projectData.length > 0) {
-      const filtered = projectData.filter((project: any) => {
-        const projectState = (project.state || '').toLowerCase();
-
-        // Map filter codes to state names
-        if (selectedFilter === 'TG') {
-          return projectState.includes('telangana');
-        } else if (selectedFilter === 'AP') {
-          return projectState.includes('andhra') || projectState.includes('pradesh');
-        } else if (selectedFilter === 'Chitoor') {
-          return projectState === 'chitoor';
-        }
-        return false;
-      });
+      const filtered = projectData.filter((project) => getProjectBucket(project) === selectedFilter);
       setFilteredData(filtered);
     } else {
       setFilteredData(projectData);
     }
   }, [selectedFilter, projectData]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !isAnalysisUnlocked) return;
+
+    // Keep the analysis view "live" as new rows are added/edited.
+    const channel = supabase
+      .channel('project-analysis-live')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'projects' },
+        () => fetchProjectAnalysisData()
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'project_analysis' },
+        () => fetchProjectAnalysisData()
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'chitoor_projects' },
+        () => fetchProjectAnalysisData()
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, isAnalysisUnlocked]);
 
   const handleUnlockAnalysis = () => {
     if (passwordInput === 'Axiso@2024') {
@@ -259,17 +361,49 @@ const ProjectAnalysis = () => {
           setProjectData([]);
         }
       } else {
+        // project_analysis historically may not have `state`. Enrich it from `projects.state` using project_id.
+        const analysisProjectIds = Array.from(
+          new Set(
+            (analysisData as any[])
+              .map((row) => row.project_id || row.id)
+              .filter(Boolean)
+          )
+        );
+
+        const stateByProjectId = new Map<string, string>();
+        if (analysisProjectIds.length > 0) {
+          const { data: projectStates, error: stateError } = await supabase
+            .from('projects')
+            .select('id, state')
+            .in('id', analysisProjectIds)
+            .neq('status', 'deleted');
+
+          if (!stateError && projectStates) {
+            for (const row of projectStates as any[]) {
+              if (row?.id) stateByProjectId.set(row.id, row.state || '');
+            }
+          }
+        }
+
+        const enrichedAnalysisData: ProjectData[] = (analysisData as any[]).map((row) => {
+          const projectId = row.project_id || row.id;
+          return {
+            ...row,
+            state: row.state || stateByProjectId.get(projectId) || '',
+          };
+        });
+
         // If analysisData exists, check for Chitoor projects too
         const { data: chitoorProjects, error: chitoorError } = await supabase
           .from('chitoor_projects')
           .select('*');
 
-        let allData = analysisData;
+        let allData: ProjectData[] = enrichedAnalysisData;
 
         if (!chitoorError && chitoorProjects && chitoorProjects.length > 0) {
           const chitoorTransformed: ProjectData[] = chitoorProjects.map((project: any, index: number) => ({
             id: project.id,
-            sl_no: analysisData.length + index + 1,
+            sl_no: enrichedAnalysisData.length + index + 1,
             customer_name: project.customer_name || '',
             mobile_no: project.mobile_no || '',
             project_capacity: project.capacity || 0,
@@ -294,7 +428,7 @@ const ProjectAnalysis = () => {
             project_id: project.id,
             state: 'Chitoor',
           }));
-          allData = [...analysisData, ...chitoorTransformed];
+          allData = [...enrichedAnalysisData, ...chitoorTransformed];
         }
 
         setProjectData(allData);
@@ -492,84 +626,160 @@ const ProjectAnalysis = () => {
   return (
     <Box>
       <VStack spacing={6} align="stretch">
-        {/* Migration Prompt */}
-        {showMigrationPrompt && (
-          <Card bg="blue.50" borderColor="blue.200" borderWidth={1}>
+          {/* Migration Prompt */}
+          {showMigrationPrompt && (
+            <Card bg="blue.50" borderColor="blue.200" borderWidth={1}>
+              <CardBody>
+                <VStack spacing={3} align="stretch">
+                  <Flex justify="space-between" align="start" gap={4}>
+                    <Box flex={1}>
+                      <Heading size="sm" color="blue.800" mb={2}>
+                        Migrate Project Data
+                      </Heading>
+                      <Text color="blue.700" fontSize="sm">
+                        Your projects table has data that can be migrated to the project analysis table. This will help you track costs and profits for each project.
+                      </Text>
+                    </Box>
+                    <Button
+                      size="sm"
+                      colorScheme="blue"
+                      onClick={handleMigrateData}
+                      isLoading={isMigrating}
+                      loadingText="Migrating..."
+                    >
+                      Migrate Now
+                    </Button>
+                  </Flex>
+                </VStack>
+              </CardBody>
+            </Card>
+          )}
+
+          {/* Header */}
+          <Box>
+            <Heading size="lg" color="gray.800" mb={2}>
+              Project Analysis
+            </Heading>
+            <Text color="gray.600">
+              {selectedFilter === 'All'
+                ? 'Detailed cost and profit analysis for all projects'
+                : `Detailed cost and profit analysis for ${selectedFilter} projects`}
+            </Text>
+          </Box>
+
+          {/* Search bar (top) */}
+          <Card bg={cardBg} shadow="sm" border="1px solid" borderColor="gray.100">
             <CardBody>
               <VStack spacing={3} align="stretch">
-                <Flex justify="space-between" align="start" gap={4}>
-                  <Box flex={1}>
-                    <Heading size="sm" color="blue.800" mb={2}>
-                      Migrate Project Data
-                    </Heading>
-                    <Text color="blue.700" fontSize="sm">
-                      Your projects table has data that can be migrated to the project analysis table. This will help you track costs and profits for each project.
-                    </Text>
-                  </Box>
-                  <Button
-                    size="sm"
-                    colorScheme="blue"
-                    onClick={handleMigrateData}
-                    isLoading={isMigrating}
-                    loadingText="Migrating..."
-                  >
-                    Migrate Now
-                  </Button>
-                </Flex>
+                <InputGroup>
+                  <InputLeftElement>
+                    <SearchIcon color="gray.400" />
+                  </InputLeftElement>
+                  <Input
+                    placeholder="Search by any keyword (name, phone, state, amounts...)"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    bg="gray.50"
+                    border="1px solid"
+                    borderColor="gray.200"
+                    _focus={{ bg: 'white', borderColor: 'brand.400' }}
+                  />
+                </InputGroup>
+                <Text fontSize="sm" color="gray.600">
+                  Showing <b>{visibleData.length}</b> of <b>{projectData.length}</b> projects
+                  {selectedFilter !== 'All' && <> in <b>{selectedFilter}</b></>}
+                </Text>
               </VStack>
             </CardBody>
           </Card>
-        )}
 
-        {/* Header */}
-        <Box>
-          <Heading size="lg" color="gray.800" mb={4}>
-            Project Analysis
-          </Heading>
-          <Text color="gray.600" mb={6}>
-            {selectedFilter === 'All'
-              ? 'Detailed cost and profit analysis for all projects'
-              : `Detailed cost and profit analysis for ${selectedFilter} projects`
-            }
-          </Text>
+          {/* Analytics cards (based on visible rows) */}
+          <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={6}>
+            <Card bg={cardBg} border="1px solid" borderColor="gray.100" shadow="sm">
+              <CardBody>
+                <Stat>
+                  <StatLabel color="gray.600" fontSize="sm" fontWeight="medium">Visible projects</StatLabel>
+                  <StatNumber fontSize="2xl" color="brand.600">{analytics.count.toLocaleString()}</StatNumber>
+                </Stat>
+              </CardBody>
+            </Card>
+            <Card bg={cardBg} border="1px solid" borderColor="gray.100" shadow="sm">
+              <CardBody>
+                <Stat>
+                  <StatLabel color="gray.600" fontSize="sm" fontWeight="medium">Avg capacity</StatLabel>
+                  <StatNumber fontSize="2xl" color="brand.600">{analytics.avgCapacity.toFixed(2)} kW</StatNumber>
+                </Stat>
+              </CardBody>
+            </Card>
+            <Card bg={cardBg} border="1px solid" borderColor="gray.100" shadow="sm">
+              <CardBody>
+                <Stat>
+                  <StatLabel color="gray.600" fontSize="sm" fontWeight="medium">Avg quoted cost</StatLabel>
+                  <StatNumber fontSize="2xl" color="brand.600">₹{Math.round(analytics.avgQuoted).toLocaleString()}</StatNumber>
+                </Stat>
+              </CardBody>
+            </Card>
+            <Card bg={cardBg} border="1px solid" borderColor="gray.100" shadow="sm">
+              <CardBody>
+                <Stat>
+                  <StatLabel color="gray.600" fontSize="sm" fontWeight="medium">Avg total exp</StatLabel>
+                  <StatNumber fontSize="2xl" color="brand.600">₹{Math.round(analytics.avgExp).toLocaleString()}</StatNumber>
+                </Stat>
+              </CardBody>
+            </Card>
+            <Card bg={cardBg} border="1px solid" borderColor="gray.100" shadow="sm">
+              <CardBody>
+                <Stat>
+                  <StatLabel color="gray.600" fontSize="sm" fontWeight="medium">Avg received</StatLabel>
+                  <StatNumber fontSize="2xl" color="green.600">₹{Math.round(analytics.avgReceived).toLocaleString()}</StatNumber>
+                </Stat>
+              </CardBody>
+            </Card>
+            <Card bg={cardBg} border="1px solid" borderColor="gray.100" shadow="sm">
+              <CardBody>
+                <Stat>
+                  <StatLabel color="gray.600" fontSize="sm" fontWeight="medium">Avg pending</StatLabel>
+                  <StatNumber fontSize="2xl" color="orange.600">₹{Math.round(analytics.avgPending).toLocaleString()}</StatNumber>
+                </Stat>
+              </CardBody>
+            </Card>
+            <Card bg={cardBg} border="1px solid" borderColor="gray.100" shadow="sm">
+              <CardBody>
+                <Stat>
+                  <StatLabel color="gray.600" fontSize="sm" fontWeight="medium">Avg profit now</StatLabel>
+                  <StatNumber fontSize="2xl" color="brand.600">₹{Math.round(analytics.avgProfitNow).toLocaleString()}</StatNumber>
+                </Stat>
+              </CardBody>
+            </Card>
+            <Card bg={cardBg} border="1px solid" borderColor="gray.100" shadow="sm">
+              <CardBody>
+                <Stat>
+                  <StatLabel color="gray.600" fontSize="sm" fontWeight="medium">Avg overall profit</StatLabel>
+                  <StatNumber fontSize="2xl" color="brand.600">₹{Math.round(analytics.avgOverallProfit).toLocaleString()}</StatNumber>
+                </Stat>
+              </CardBody>
+            </Card>
+          </SimpleGrid>
 
-          {/* Filter Buttons */}
-          <HStack spacing={3} wrap="wrap">
-            {(['All', 'TG', 'AP', 'Chitoor'] as const).map((filter) => (
-              <Button
-                key={filter}
-                onClick={() => setSelectedFilter(filter)}
-                colorScheme={selectedFilter === filter ? 'brand' : 'gray'}
-                variant={selectedFilter === filter ? 'solid' : 'outline'}
-                size="sm"
-              >
-                {filter}
-              </Button>
-            ))}
-          </HStack>
-        </Box>
-
-        {/* Projects Table */}
-        <Card bg={cardBg} shadow="sm" border="1px solid" borderColor="gray.100">
-          <CardHeader>
-            <Flex justify="space-between" align="center">
-              <Box>
-                <Heading size="md" color="gray.800">
-                  Project Details & Analysis
-                </Heading>
-                <Text fontSize="sm" color="gray.600" mt={1}>
-                  {filteredData.length} {selectedFilter !== 'All' ? `${selectedFilter} ` : ''}projects with cost breakdown
-                  {selectedFilter !== 'All' && projectData.length > 0 && (
+          {/* Projects Table */}
+          <Card bg={cardBg} shadow="sm" border="1px solid" borderColor="gray.100">
+            <CardHeader>
+              <Flex justify="space-between" align="center">
+                <Box>
+                  <Heading size="md" color="gray.800">
+                    Project Details & Analysis
+                  </Heading>
+                  <Text fontSize="sm" color="gray.600" mt={1}>
+                    {visibleData.length} {selectedFilter !== 'All' ? `${selectedFilter} ` : ''}projects with cost breakdown
                     <Text as="span" fontSize="xs" color="gray.500" ml={2}>
                       (out of {projectData.length} total)
                     </Text>
-                  )}
-                </Text>
-              </Box>
-            </Flex>
-          </CardHeader>
-          <CardBody pt={0} overflowX="auto">
-            {filteredData.length > 0 ? (
+                  </Text>
+                </Box>
+              </Flex>
+            </CardHeader>
+            <CardBody pt={0} overflowX="auto">
+              {visibleData.length > 0 ? (
               <Table variant="simple" size="sm">
                 <Thead bg="gray.50">
                   <Tr>
@@ -609,7 +819,7 @@ const ProjectAnalysis = () => {
                   </Tr>
                 </Thead>
                 <Tbody>
-                  {filteredData.map((project) => (
+                  {visibleData.map((project) => (
                     <Tr key={project.id} _hover={{ bg: 'gray.50' }}>
                       <Td>
                         <Text fontSize="sm" fontWeight="medium">
@@ -683,7 +893,9 @@ const ProjectAnalysis = () => {
                   No projects found
                 </Text>
                 <Text color="gray.400" fontSize="sm" mb={4}>
-                  Projects will appear here once they are created in the Projects section
+                  {searchTerm.trim()
+                    ? 'No projects match your search. Try a different keyword.'
+                    : 'Projects will appear here once they are created in the Projects section'}
                 </Text>
                 <Button
                   size="sm"
@@ -694,8 +906,8 @@ const ProjectAnalysis = () => {
                 </Button>
               </Flex>
             )}
-          </CardBody>
-        </Card>
+            </CardBody>
+          </Card>
       </VStack>
 
       {/* Edit Modal */}
