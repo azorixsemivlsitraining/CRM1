@@ -96,8 +96,17 @@ const ProjectAnalysis = () => {
     // Apply state filter to project data
     if (selectedFilter !== 'All' && projectData.length > 0) {
       const filtered = projectData.filter((project: any) => {
-        const projectState = project.state || '';
-        return projectState.toLowerCase() === selectedFilter.toLowerCase();
+        const projectState = (project.state || '').toLowerCase();
+
+        // Map filter codes to state names
+        if (selectedFilter === 'TG') {
+          return projectState.includes('telangana');
+        } else if (selectedFilter === 'AP') {
+          return projectState.includes('andhra') || projectState.includes('pradesh');
+        } else if (selectedFilter === 'Chitoor') {
+          return projectState === 'chitoor';
+        }
+        return false;
       });
       setFilteredData(filtered);
     } else {
