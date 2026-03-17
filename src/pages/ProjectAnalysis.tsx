@@ -67,6 +67,7 @@ interface ProjectData {
   payment_dates?: string[];
   created_at?: string;
   updated_at?: string;
+  state?: string;
 }
 
 const ProjectAnalysis = () => {
@@ -81,6 +82,8 @@ const ProjectAnalysis = () => {
   const cardBg = useColorModeValue('white', 'gray.800');
   const [isAnalysisUnlocked, setIsAnalysisUnlocked] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
+  const [filteredData, setFilteredData] = useState<ProjectData[]>([]);
+  const [selectedFilter, setSelectedFilter] = useState<'All' | 'TG' | 'AP' | 'Chitoor'>('All');
 
   useEffect(() => {
     if (isAuthenticated && isAnalysisUnlocked) {
@@ -88,6 +91,19 @@ const ProjectAnalysis = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, isAnalysisUnlocked]);
+
+  useEffect(() => {
+    // Apply state filter to project data
+    if (selectedFilter !== 'All' && projectData.length > 0) {
+      const filtered = projectData.filter((project: any) => {
+        const projectState = project.state || '';
+        return projectState.toLowerCase() === selectedFilter.toLowerCase();
+      });
+      setFilteredData(filtered);
+    } else {
+      setFilteredData(projectData);
+    }
+  }, [selectedFilter, projectData]);
 
   const handleUnlockAnalysis = () => {
     if (passwordInput === 'Axiso@2024') {
@@ -148,9 +164,8 @@ const ProjectAnalysis = () => {
       if (!analysisData || analysisData.length === 0) {
         const { data: projects, error: projectError } = await supabase
           .from('projects')
-          .select('id, customer_name, phone, proposal_amount, kwh')
-          .neq('status', 'deleted')
-          .limit(50);
+          .select('id, customer_name, phone, proposal_amount, kwh, state')
+          .neq('status', 'deleted');
 
         if (projectError) {
           const errorCode = (projectError as any)?.code;
@@ -189,14 +204,91 @@ const ProjectAnalysis = () => {
             profit_right_now: 0,
             overall_profit: 0,
             project_id: project.id,
+            state: project.state || '',
           }));
 
-          setProjectData(transformedProjects);
+          // Also fetch Chitoor projects for complete data
+          const { data: chitoorProjects, error: chitoorError } = await supabase
+            .from('chitoor_projects')
+            .select('*');
+
+          let allProjects = transformedProjects;
+
+          if (!chitoorError && chitoorProjects && chitoorProjects.length > 0) {
+            const chitoorTransformed: ProjectData[] = chitoorProjects.map((project: any, index: number) => ({
+              id: project.id,
+              sl_no: transformedProjects.length + index + 1,
+              customer_name: project.customer_name || '',
+              mobile_no: project.mobile_no || '',
+              project_capacity: project.capacity || 0,
+              total_quoted_cost: project.project_cost || 0,
+              application_charges: 0,
+              modules_cost: 0,
+              inverter_cost: 0,
+              structure_cost: 0,
+              hardware_cost: 0,
+              electrical_equipment: 0,
+              transport_segment: 0,
+              transport_total: 0,
+              installation_cost: 0,
+              subsidy_application: 0,
+              misc_dept_charges: 0,
+              dept_charges: 0,
+              total_exp: 0,
+              payment_received: 0,
+              pending_payment: 0,
+              profit_right_now: 0,
+              overall_profit: 0,
+              project_id: project.id,
+              state: 'Chitoor',
+            }));
+            allProjects = [...transformedProjects, ...chitoorTransformed];
+          }
+
+          setProjectData(allProjects);
         } else {
           setProjectData([]);
         }
       } else {
-        setProjectData(analysisData);
+        // If analysisData exists, check for Chitoor projects too
+        const { data: chitoorProjects, error: chitoorError } = await supabase
+          .from('chitoor_projects')
+          .select('*');
+
+        let allData = analysisData;
+
+        if (!chitoorError && chitoorProjects && chitoorProjects.length > 0) {
+          const chitoorTransformed: ProjectData[] = chitoorProjects.map((project: any, index: number) => ({
+            id: project.id,
+            sl_no: analysisData.length + index + 1,
+            customer_name: project.customer_name || '',
+            mobile_no: project.mobile_no || '',
+            project_capacity: project.capacity || 0,
+            total_quoted_cost: project.project_cost || 0,
+            application_charges: 0,
+            modules_cost: 0,
+            inverter_cost: 0,
+            structure_cost: 0,
+            hardware_cost: 0,
+            electrical_equipment: 0,
+            transport_segment: 0,
+            transport_total: 0,
+            installation_cost: 0,
+            subsidy_application: 0,
+            misc_dept_charges: 0,
+            dept_charges: 0,
+            total_exp: 0,
+            payment_received: 0,
+            pending_payment: 0,
+            profit_right_now: 0,
+            overall_profit: 0,
+            project_id: project.id,
+            state: 'Chitoor',
+          }));
+          allData = [...analysisData, ...chitoorTransformed];
+        }
+
+        setProjectData(allData);
       }
     } catch (error: any) {
       console.error('Error fetching project analysis:', error?.message || String(error));
@@ -421,16 +513,32 @@ const ProjectAnalysis = () => {
         )}
 
         {/* Header */}
-        <Flex justify="space-between" align="center" wrap="wrap" gap={4}>
-          <Box>
-            <Heading size="lg" color="gray.800" mb={2}>
-              Project Analysis
-            </Heading>
-            <Text color="gray.600">
-              Detailed cost and profit analysis for all projects
-            </Text>
-          </Box>
-        </Flex>
+        <Box>
+          <Heading size="lg" color="gray.800" mb={4}>
+            Project Analysis
+          </Heading>
+          <Text color="gray.600" mb={6}>
+            {selectedFilter === 'All'
+              ? 'Detailed cost and profit analysis for all projects'
+              : `Detailed cost and profit analysis for ${selectedFilter} projects`
+            }
+          </Text>
+
+          {/* Filter Buttons */}
+          <HStack spacing={3} wrap="wrap">
+            {(['All', 'TG', 'AP', 'Chitoor'] as const).map((filter) => (
+              <Button
+                key={filter}
+                onClick={() => setSelectedFilter(filter)}
+                colorScheme={selectedFilter === filter ? 'brand' : 'gray'}
+                variant={selectedFilter === filter ? 'solid' : 'outline'}
+                size="sm"
+              >
+                {filter}
+              </Button>
+            ))}
+          </HStack>
+        </Box>
 
         {/* Projects Table */}
         <Card bg={cardBg} shadow="sm" border="1px solid" borderColor="gray.100">
@@ -441,13 +549,18 @@ const ProjectAnalysis = () => {
                   Project Details & Analysis
                 </Heading>
                 <Text fontSize="sm" color="gray.600" mt={1}>
-                  {projectData.length} projects with cost breakdown
+                  {filteredData.length} {selectedFilter !== 'All' ? `${selectedFilter} ` : ''}projects with cost breakdown
+                  {selectedFilter !== 'All' && projectData.length > 0 && (
+                    <Text as="span" fontSize="xs" color="gray.500" ml={2}>
+                      (out of {projectData.length} total)
+                    </Text>
+                  )}
                 </Text>
               </Box>
             </Flex>
           </CardHeader>
           <CardBody pt={0} overflowX="auto">
-            {projectData.length > 0 ? (
+            {filteredData.length > 0 ? (
               <Table variant="simple" size="sm">
                 <Thead bg="gray.50">
                   <Tr>
@@ -487,7 +600,7 @@ const ProjectAnalysis = () => {
                   </Tr>
                 </Thead>
                 <Tbody>
-                  {projectData.map((project) => (
+                  {filteredData.map((project) => (
                     <Tr key={project.id} _hover={{ bg: 'gray.50' }}>
                       <Td>
                         <Text fontSize="sm" fontWeight="medium">
