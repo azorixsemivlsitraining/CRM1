@@ -85,11 +85,7 @@ const App: React.FC = () => {
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route
                 path="/"
-                element={
-                  <PrivateRoute>
-                    <Navigate to="/welcome" replace />
-                  </PrivateRoute>
-                }
+                element={<Navigate to="/login" replace />}
               />
               <Route
                 path="/dashboard"
