@@ -39,7 +39,8 @@ import {
   FormLabel,
   useToast,
 } from '@chakra-ui/react';
-import { DeleteIcon, SearchIcon } from '@chakra-ui/icons';
+import { DeleteIcon, SearchIcon, DownloadIcon } from '@chakra-ui/icons';
+import * as XLSX from 'xlsx';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { migrateProjectsToAnalysis, checkProjectAnalysisEmpty } from '../utils/projectAnalysisMigration';
@@ -259,7 +260,7 @@ const ProjectAnalysis = () => {
       const { data: analysisData, error: analysisError } = await supabase
         .from('project_analysis')
         .select('*')
-        .order('sl_no', { ascending: true });
+        .order('created_at', { ascending: false });
 
       if (analysisError) {
         const errorCode = (analysisError as any)?.code;
@@ -290,9 +291,9 @@ const ProjectAnalysis = () => {
             throw projectError;
           }
         } else if (projects && projects.length > 0) {
-          const transformedProjects: ProjectData[] = projects.map((project: any, index: number) => ({
+          const transformedProjects: ProjectData[] = projects.map((project: any) => ({
             id: project.id,
-            sl_no: index + 1,
+            sl_no: 0, // Will be set by database
             customer_name: project.customer_name || '',
             mobile_no: project.phone || '',
             project_capacity: project.kwh || 0,
@@ -316,6 +317,7 @@ const ProjectAnalysis = () => {
             overall_profit: 0,
             project_id: project.id,
             state: project.state || '',
+            created_at: project.created_at || '',
           }));
 
           // Also fetch Chitoor projects for complete data
@@ -326,9 +328,9 @@ const ProjectAnalysis = () => {
           let allProjects = transformedProjects;
 
           if (!chitoorError && chitoorProjects && chitoorProjects.length > 0) {
-            const chitoorTransformed: ProjectData[] = chitoorProjects.map((project: any, index: number) => ({
+            const chitoorTransformed: ProjectData[] = chitoorProjects.map((project: any) => ({
               id: project.id,
-              sl_no: transformedProjects.length + index + 1,
+              sl_no: 0, // Will be set by database
               customer_name: project.customer_name || '',
               mobile_no: project.mobile_no || '',
               project_capacity: project.capacity || 0,
@@ -352,6 +354,7 @@ const ProjectAnalysis = () => {
               overall_profit: 0,
               project_id: project.id,
               state: 'Chitoor',
+              created_at: project.created_at || '',
             }));
             allProjects = [...transformedProjects, ...chitoorTransformed];
           }
@@ -401,9 +404,9 @@ const ProjectAnalysis = () => {
         let allData: ProjectData[] = enrichedAnalysisData;
 
         if (!chitoorError && chitoorProjects && chitoorProjects.length > 0) {
-          const chitoorTransformed: ProjectData[] = chitoorProjects.map((project: any, index: number) => ({
+          const chitoorTransformed: ProjectData[] = chitoorProjects.map((project: any) => ({
             id: project.id,
-            sl_no: enrichedAnalysisData.length + index + 1,
+            sl_no: 0, // Will be set by database
             customer_name: project.customer_name || '',
             mobile_no: project.mobile_no || '',
             project_capacity: project.capacity || 0,
@@ -427,6 +430,7 @@ const ProjectAnalysis = () => {
             overall_profit: 0,
             project_id: project.id,
             state: 'Chitoor',
+            created_at: project.created_at || '',
           }));
           allData = [...enrichedAnalysisData, ...chitoorTransformed];
         }
@@ -532,6 +536,48 @@ const ProjectAnalysis = () => {
         isClosable: true,
       });
     }
+  };
+
+  const exportToExcel = () => {
+    if (visibleData.length === 0) {
+      toast({
+        title: 'Export Error',
+        description: 'No projects available to export',
+        status: 'warning',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    const dataToExport = visibleData.map(project => ({
+      'Customer Name': project.customer_name,
+      'Mobile No': project.mobile_no,
+      'Capacity (kW)': project.project_capacity,
+      'Total Quoted Cost': project.total_quoted_cost,
+      'Total Exp': project.total_exp || 0,
+      'Payment Received': project.payment_received || 0,
+      'Pending Payment': project.pending_payment || 0,
+      'Profit Right Now': project.profit_right_now || 0,
+      'Overall Profit': project.overall_profit || 0,
+      'State': project.state || '',
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Project Analysis');
+
+    // Generate Excel file and trigger download
+    const fileName = `project_analysis_export_${new Date().toISOString().split('T')[0]}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
+
+    toast({
+      title: 'Success',
+      description: `Exported ${visibleData.length} projects to Excel`,
+      status: 'success',
+      duration: 3000,
+      isClosable: true,
+    });
   };
 
   const handleMigrateData = async () => {
@@ -667,24 +713,35 @@ const ProjectAnalysis = () => {
             </Text>
           </Box>
 
-          {/* Search bar (top) */}
+          {/* Search bar and Export button (top) */}
           <Card bg={cardBg} shadow="sm" border="1px solid" borderColor="gray.100">
             <CardBody>
               <VStack spacing={3} align="stretch">
-                <InputGroup>
-                  <InputLeftElement>
-                    <SearchIcon color="gray.400" />
-                  </InputLeftElement>
-                  <Input
-                    placeholder="Search by any keyword (name, phone, state, amounts...)"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    bg="gray.50"
-                    border="1px solid"
-                    borderColor="gray.200"
-                    _focus={{ bg: 'white', borderColor: 'brand.400' }}
-                  />
-                </InputGroup>
+                <Flex gap={3} align="end">
+                  <InputGroup flex={1}>
+                    <InputLeftElement>
+                      <SearchIcon color="gray.400" />
+                    </InputLeftElement>
+                    <Input
+                      placeholder="Search by any keyword (name, phone, state, amounts...)"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      bg="gray.50"
+                      border="1px solid"
+                      borderColor="gray.200"
+                      _focus={{ bg: 'white', borderColor: 'brand.400' }}
+                    />
+                  </InputGroup>
+                  <Button
+                    leftIcon={<DownloadIcon />}
+                    onClick={exportToExcel}
+                    colorScheme="green"
+                    variant="outline"
+                    isDisabled={visibleData.length === 0}
+                  >
+                    Export to Excel
+                  </Button>
+                </Flex>
                 <Text fontSize="sm" color="gray.600">
                   Showing <b>{visibleData.length}</b> of <b>{projectData.length}</b> projects
                   {selectedFilter !== 'All' && <> in <b>{selectedFilter}</b></>}
@@ -784,9 +841,6 @@ const ProjectAnalysis = () => {
                 <Thead bg="gray.50">
                   <Tr>
                     <Th color="gray.600" fontSize="xs" fontWeight="semibold">
-                      SL No
-                    </Th>
-                    <Th color="gray.600" fontSize="xs" fontWeight="semibold">
                       Customer Name
                     </Th>
                     <Th color="gray.600" fontSize="xs" fontWeight="semibold">
@@ -821,11 +875,6 @@ const ProjectAnalysis = () => {
                 <Tbody>
                   {visibleData.map((project) => (
                     <Tr key={project.id} _hover={{ bg: 'gray.50' }}>
-                      <Td>
-                        <Text fontSize="sm" fontWeight="medium">
-                          {project.sl_no}
-                        </Text>
-                      </Td>
                       <Td>
                         <Text fontSize="sm">{project.customer_name}</Text>
                       </Td>
