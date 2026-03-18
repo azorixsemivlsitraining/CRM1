@@ -461,8 +461,43 @@ const ProjectAnalysis = () => {
     }
   };
 
-  const handleEditProject = (project: ProjectData) => {
+  const handleEditProject = async (project: ProjectData) => {
     setSelectedProject(project);
+
+    // Fetch payment history from payment_history table
+    try {
+      const projectId = project.project_id || project.id;
+
+      // Try to fetch from payment_history first (for regular projects)
+      const { data: paymentHistory, error } = await supabase
+        .from('payment_history')
+        .select('payment_date, amount')
+        .eq('project_id', projectId)
+        .order('created_at', { ascending: true });
+
+      if (paymentHistory && paymentHistory.length > 0) {
+        // Map payment history to array of dates with amounts
+        const paymentDates = paymentHistory.map((payment: any) => {
+          const dateStr = payment.payment_date || '';
+          const amount = payment.amount || 0;
+          return dateStr ? `${dateStr} (₹${Number(amount).toLocaleString()})` : '';
+        }).filter(Boolean);
+
+        setSelectedProject((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            payment_dates: paymentDates.length > 0 ? paymentDates : prev.payment_dates || [],
+          };
+        });
+      } else if (error && (error as any)?.code !== 'PGRST116') {
+        // If error is not "table doesn't exist", log it
+        console.error('Error fetching payment history:', error);
+      }
+    } catch (err) {
+      console.error('Error in handleEditProject:', err);
+    }
+
     onOpen();
   };
 
@@ -1102,38 +1137,64 @@ const ProjectAnalysis = () => {
                     <Box w="100%">
                       <FormLabel fontSize="sm" mb={3}>Payment Received Dates</FormLabel>
                       <VStack spacing={2} align="stretch">
-                        {(selectedProject.payment_dates || []).map((date, index) => (
-                          <HStack key={index} spacing={2}>
-                            <Input
-                              type="date"
-                              value={date || ''}
-                              onChange={(e) => {
-                                const updatedDates = [...(selectedProject.payment_dates || [])];
-                                updatedDates[index] = e.target.value;
-                                setSelectedProject({
-                                  ...selectedProject,
-                                  payment_dates: updatedDates,
-                                });
-                              }}
-                            />
-                            <IconButton
-                              aria-label="Remove date"
-                              icon={<DeleteIcon />}
-                              size="sm"
-                              colorScheme="red"
-                              variant="ghost"
-                              onClick={() => {
-                                const updatedDates = selectedProject.payment_dates?.filter(
-                                  (_, i) => i !== index
-                                ) || [];
-                                setSelectedProject({
-                                  ...selectedProject,
-                                  payment_dates: updatedDates,
-                                });
-                              }}
-                            />
-                          </HStack>
-                        ))}
+                        {(selectedProject.payment_dates || []).map((dateEntry, index) => {
+                          // Parse date entry - might be "YYYY-MM-DD" or "YYYY-MM-DD (₹amount)"
+                          const dateMatch = (dateEntry || '').match(/^(\d{4}-\d{2}-\d{2})/);
+                          const dateValue = dateMatch ? dateMatch[1] : dateEntry;
+                          const amountMatch = (dateEntry || '').match(/\(₹([\d,]+)\)/);
+                          const amount = amountMatch ? amountMatch[1] : '';
+
+                          return (
+                            <HStack key={index} spacing={2} align="start">
+                              <FormControl>
+                                <FormLabel fontSize="xs" color="gray.600">Date</FormLabel>
+                                <Input
+                                  type="date"
+                                  value={dateValue || ''}
+                                  onChange={(e) => {
+                                    const updatedDates = [...(selectedProject.payment_dates || [])];
+                                    const newEntry = amount ? `${e.target.value} (₹${amount})` : e.target.value;
+                                    updatedDates[index] = newEntry;
+                                    setSelectedProject({
+                                      ...selectedProject,
+                                      payment_dates: updatedDates,
+                                    });
+                                  }}
+                                  size="sm"
+                                />
+                              </FormControl>
+                              {amount && (
+                                <FormControl>
+                                  <FormLabel fontSize="xs" color="gray.600">Amount</FormLabel>
+                                  <Input
+                                    type="text"
+                                    value={`₹${amount}`}
+                                    isReadOnly
+                                    bg="gray.100"
+                                    size="sm"
+                                  />
+                                </FormControl>
+                              )}
+                              <IconButton
+                                aria-label="Remove date"
+                                icon={<DeleteIcon />}
+                                size="sm"
+                                colorScheme="red"
+                                variant="ghost"
+                                mt={6}
+                                onClick={() => {
+                                  const updatedDates = selectedProject.payment_dates?.filter(
+                                    (_, i) => i !== index
+                                  ) || [];
+                                  setSelectedProject({
+                                    ...selectedProject,
+                                    payment_dates: updatedDates,
+                                  });
+                                }}
+                              />
+                            </HStack>
+                          );
+                        })}
                         <Button
                           size="sm"
                           colorScheme="blue"
