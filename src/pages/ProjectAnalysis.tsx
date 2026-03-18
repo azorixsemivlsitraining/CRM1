@@ -168,6 +168,13 @@ const ProjectAnalysis = () => {
       avgPending: avg((p) => p.pending_payment || 0),
       avgProfitNow: avg((p) => p.profit_right_now || 0),
       avgOverallProfit: avg((p) => p.overall_profit || 0),
+      totalCapacity: sum((p) => p.project_capacity || 0),
+      totalQuoted: sum((p) => p.total_quoted_cost || 0),
+      totalExp: sum((p) => p.total_exp || 0),
+      totalReceived: sum((p) => p.payment_received || 0),
+      totalPending: sum((p) => p.pending_payment || 0),
+      totalProfitNow: sum((p) => p.profit_right_now || 0),
+      totalOverallProfit: sum((p) => p.overall_profit || 0),
     };
   }, [visibleData]);
 
@@ -323,7 +330,8 @@ const ProjectAnalysis = () => {
           // Also fetch Chitoor projects for complete data
           const { data: chitoorProjects, error: chitoorError } = await supabase
             .from('chitoor_projects')
-            .select('*');
+            .select('*')
+            .order('created_at', { ascending: false });
 
           let allProjects = transformedProjects;
 
@@ -399,7 +407,8 @@ const ProjectAnalysis = () => {
         // If analysisData exists, check for Chitoor projects too
         const { data: chitoorProjects, error: chitoorError } = await supabase
           .from('chitoor_projects')
-          .select('*');
+          .select('*')
+          .order('created_at', { ascending: false });
 
         let allData: ProjectData[] = enrichedAnalysisData;
 
@@ -751,72 +760,138 @@ const ProjectAnalysis = () => {
           </Card>
 
           {/* Analytics cards (based on visible rows) */}
-          <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={6}>
-            <Card bg={cardBg} border="1px solid" borderColor="gray.100" shadow="sm">
-              <CardBody>
-                <Stat>
-                  <StatLabel color="gray.600" fontSize="sm" fontWeight="medium">Visible projects</StatLabel>
-                  <StatNumber fontSize="2xl" color="brand.600">{analytics.count.toLocaleString()}</StatNumber>
-                </Stat>
-              </CardBody>
-            </Card>
-            <Card bg={cardBg} border="1px solid" borderColor="gray.100" shadow="sm">
-              <CardBody>
-                <Stat>
-                  <StatLabel color="gray.600" fontSize="sm" fontWeight="medium">Avg capacity</StatLabel>
-                  <StatNumber fontSize="2xl" color="brand.600">{analytics.avgCapacity.toFixed(2)} kW</StatNumber>
-                </Stat>
-              </CardBody>
-            </Card>
-            <Card bg={cardBg} border="1px solid" borderColor="gray.100" shadow="sm">
-              <CardBody>
-                <Stat>
-                  <StatLabel color="gray.600" fontSize="sm" fontWeight="medium">Avg quoted cost</StatLabel>
-                  <StatNumber fontSize="2xl" color="brand.600">₹{Math.round(analytics.avgQuoted).toLocaleString()}</StatNumber>
-                </Stat>
-              </CardBody>
-            </Card>
-            <Card bg={cardBg} border="1px solid" borderColor="gray.100" shadow="sm">
-              <CardBody>
-                <Stat>
-                  <StatLabel color="gray.600" fontSize="sm" fontWeight="medium">Avg total exp</StatLabel>
-                  <StatNumber fontSize="2xl" color="brand.600">₹{Math.round(analytics.avgExp).toLocaleString()}</StatNumber>
-                </Stat>
-              </CardBody>
-            </Card>
-            <Card bg={cardBg} border="1px solid" borderColor="gray.100" shadow="sm">
-              <CardBody>
-                <Stat>
-                  <StatLabel color="gray.600" fontSize="sm" fontWeight="medium">Avg received</StatLabel>
-                  <StatNumber fontSize="2xl" color="green.600">₹{Math.round(analytics.avgReceived).toLocaleString()}</StatNumber>
-                </Stat>
-              </CardBody>
-            </Card>
-            <Card bg={cardBg} border="1px solid" borderColor="gray.100" shadow="sm">
-              <CardBody>
-                <Stat>
-                  <StatLabel color="gray.600" fontSize="sm" fontWeight="medium">Avg pending</StatLabel>
-                  <StatNumber fontSize="2xl" color="orange.600">₹{Math.round(analytics.avgPending).toLocaleString()}</StatNumber>
-                </Stat>
-              </CardBody>
-            </Card>
-            <Card bg={cardBg} border="1px solid" borderColor="gray.100" shadow="sm">
-              <CardBody>
-                <Stat>
-                  <StatLabel color="gray.600" fontSize="sm" fontWeight="medium">Avg profit now</StatLabel>
-                  <StatNumber fontSize="2xl" color="brand.600">₹{Math.round(analytics.avgProfitNow).toLocaleString()}</StatNumber>
-                </Stat>
-              </CardBody>
-            </Card>
-            <Card bg={cardBg} border="1px solid" borderColor="gray.100" shadow="sm">
-              <CardBody>
-                <Stat>
-                  <StatLabel color="gray.600" fontSize="sm" fontWeight="medium">Avg overall profit</StatLabel>
-                  <StatNumber fontSize="2xl" color="brand.600">₹{Math.round(analytics.avgOverallProfit).toLocaleString()}</StatNumber>
-                </Stat>
-              </CardBody>
-            </Card>
-          </SimpleGrid>
+          <Box>
+            <Heading size="sm" color="gray.700" mb={4}>Average Values</Heading>
+            <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={6}>
+              <Card bg={cardBg} border="1px solid" borderColor="gray.100" shadow="sm">
+                <CardBody>
+                  <Stat>
+                    <StatLabel color="gray.600" fontSize="sm" fontWeight="medium">Visible projects</StatLabel>
+                    <StatNumber fontSize="2xl" color="brand.600">{analytics.count.toLocaleString()}</StatNumber>
+                  </Stat>
+                </CardBody>
+              </Card>
+              <Card bg={cardBg} border="1px solid" borderColor="gray.100" shadow="sm">
+                <CardBody>
+                  <Stat>
+                    <StatLabel color="gray.600" fontSize="sm" fontWeight="medium">Avg capacity</StatLabel>
+                    <StatNumber fontSize="2xl" color="brand.600">{analytics.avgCapacity.toFixed(2)} kW</StatNumber>
+                  </Stat>
+                </CardBody>
+              </Card>
+              <Card bg={cardBg} border="1px solid" borderColor="gray.100" shadow="sm">
+                <CardBody>
+                  <Stat>
+                    <StatLabel color="gray.600" fontSize="sm" fontWeight="medium">Avg quoted cost</StatLabel>
+                    <StatNumber fontSize="2xl" color="brand.600">₹{Math.round(analytics.avgQuoted).toLocaleString()}</StatNumber>
+                  </Stat>
+                </CardBody>
+              </Card>
+              <Card bg={cardBg} border="1px solid" borderColor="gray.100" shadow="sm">
+                <CardBody>
+                  <Stat>
+                    <StatLabel color="gray.600" fontSize="sm" fontWeight="medium">Avg total exp</StatLabel>
+                    <StatNumber fontSize="2xl" color="brand.600">₹{Math.round(analytics.avgExp).toLocaleString()}</StatNumber>
+                  </Stat>
+                </CardBody>
+              </Card>
+              <Card bg={cardBg} border="1px solid" borderColor="gray.100" shadow="sm">
+                <CardBody>
+                  <Stat>
+                    <StatLabel color="gray.600" fontSize="sm" fontWeight="medium">Avg received</StatLabel>
+                    <StatNumber fontSize="2xl" color="green.600">₹{Math.round(analytics.avgReceived).toLocaleString()}</StatNumber>
+                  </Stat>
+                </CardBody>
+              </Card>
+              <Card bg={cardBg} border="1px solid" borderColor="gray.100" shadow="sm">
+                <CardBody>
+                  <Stat>
+                    <StatLabel color="gray.600" fontSize="sm" fontWeight="medium">Avg pending</StatLabel>
+                    <StatNumber fontSize="2xl" color="orange.600">₹{Math.round(analytics.avgPending).toLocaleString()}</StatNumber>
+                  </Stat>
+                </CardBody>
+              </Card>
+              <Card bg={cardBg} border="1px solid" borderColor="gray.100" shadow="sm">
+                <CardBody>
+                  <Stat>
+                    <StatLabel color="gray.600" fontSize="sm" fontWeight="medium">Avg profit now</StatLabel>
+                    <StatNumber fontSize="2xl" color="brand.600">₹{Math.round(analytics.avgProfitNow).toLocaleString()}</StatNumber>
+                  </Stat>
+                </CardBody>
+              </Card>
+              <Card bg={cardBg} border="1px solid" borderColor="gray.100" shadow="sm">
+                <CardBody>
+                  <Stat>
+                    <StatLabel color="gray.600" fontSize="sm" fontWeight="medium">Avg overall profit</StatLabel>
+                    <StatNumber fontSize="2xl" color="brand.600">₹{Math.round(analytics.avgOverallProfit).toLocaleString()}</StatNumber>
+                  </Stat>
+                </CardBody>
+              </Card>
+            </SimpleGrid>
+          </Box>
+
+          {/* Total values cards */}
+          <Box>
+            <Heading size="sm" color="gray.700" mb={4}>Total Values</Heading>
+            <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={6}>
+              <Card bg={cardBg} border="1px solid" borderColor="gray.100" shadow="sm">
+                <CardBody>
+                  <Stat>
+                    <StatLabel color="gray.600" fontSize="sm" fontWeight="medium">Total capacity</StatLabel>
+                    <StatNumber fontSize="2xl" color="brand.600">{analytics.totalCapacity.toFixed(2)} kW</StatNumber>
+                  </Stat>
+                </CardBody>
+              </Card>
+              <Card bg={cardBg} border="1px solid" borderColor="gray.100" shadow="sm">
+                <CardBody>
+                  <Stat>
+                    <StatLabel color="gray.600" fontSize="sm" fontWeight="medium">Total quoted cost</StatLabel>
+                    <StatNumber fontSize="2xl" color="brand.600">₹{Math.round(analytics.totalQuoted).toLocaleString()}</StatNumber>
+                  </Stat>
+                </CardBody>
+              </Card>
+              <Card bg={cardBg} border="1px solid" borderColor="gray.100" shadow="sm">
+                <CardBody>
+                  <Stat>
+                    <StatLabel color="gray.600" fontSize="sm" fontWeight="medium">Total expenditure</StatLabel>
+                    <StatNumber fontSize="2xl" color="brand.600">₹{Math.round(analytics.totalExp).toLocaleString()}</StatNumber>
+                  </Stat>
+                </CardBody>
+              </Card>
+              <Card bg={cardBg} border="1px solid" borderColor="gray.100" shadow="sm">
+                <CardBody>
+                  <Stat>
+                    <StatLabel color="gray.600" fontSize="sm" fontWeight="medium">Total received</StatLabel>
+                    <StatNumber fontSize="2xl" color="green.600">₹{Math.round(analytics.totalReceived).toLocaleString()}</StatNumber>
+                  </Stat>
+                </CardBody>
+              </Card>
+              <Card bg={cardBg} border="1px solid" borderColor="gray.100" shadow="sm">
+                <CardBody>
+                  <Stat>
+                    <StatLabel color="gray.600" fontSize="sm" fontWeight="medium">Total pending</StatLabel>
+                    <StatNumber fontSize="2xl" color="orange.600">₹{Math.round(analytics.totalPending).toLocaleString()}</StatNumber>
+                  </Stat>
+                </CardBody>
+              </Card>
+              <Card bg={cardBg} border="1px solid" borderColor="gray.100" shadow="sm">
+                <CardBody>
+                  <Stat>
+                    <StatLabel color="gray.600" fontSize="sm" fontWeight="medium">Total profit now</StatLabel>
+                    <StatNumber fontSize="2xl" color="brand.600">₹{Math.round(analytics.totalProfitNow).toLocaleString()}</StatNumber>
+                  </Stat>
+                </CardBody>
+              </Card>
+              <Card bg={cardBg} border="1px solid" borderColor="gray.100" shadow="sm">
+                <CardBody>
+                  <Stat>
+                    <StatLabel color="gray.600" fontSize="sm" fontWeight="medium">Total profit</StatLabel>
+                    <StatNumber fontSize="2xl" color="brand.600">₹{Math.round(analytics.totalOverallProfit).toLocaleString()}</StatNumber>
+                  </Stat>
+                </CardBody>
+              </Card>
+            </SimpleGrid>
+          </Box>
 
           {/* Projects Table */}
           <Card bg={cardBg} shadow="sm" border="1px solid" borderColor="gray.100">
