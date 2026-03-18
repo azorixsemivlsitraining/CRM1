@@ -504,11 +504,11 @@ async function generateTaxInvoicePDF(invoice: TaxInvoiceData) {
     doc.text('₹ ' + grandTotalRate.toFixed(2), summaryX + summaryWidth - 2, summaryY, { align: 'right' });
 
     summaryY += summaryItemHeight;
-    doc.text(`CGST (${invoice.items[0]?.cgst_rate || 9}%)`, summaryX + 2, summaryY);
+    doc.text(`CGST (${invoice.items?.[0]?.cgst_rate ?? 9}%)`, summaryX + 2, summaryY);
     doc.text('₹ ' + grandTotalCgst.toFixed(2), summaryX + summaryWidth - 2, summaryY, { align: 'right' });
 
     summaryY += summaryItemHeight;
-    doc.text(`SGST (${invoice.items[0]?.sgst_rate || 9}%)`, summaryX + 2, summaryY);
+    doc.text(`SGST (${invoice.items?.[0]?.sgst_rate ?? 9}%)`, summaryX + 2, summaryY);
     doc.text('₹ ' + grandTotalSgst.toFixed(2), summaryX + summaryWidth - 2, summaryY, { align: 'right' });
 
     summaryY += summaryItemHeight + 1.5;

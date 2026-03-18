@@ -402,7 +402,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               {!isCollapsed && (
                 <Box>
                   <Text fontWeight="medium" isTruncated>
-                    {user?.email?.split('@')[0] || 'User'}
+                    {(user?.email || '').split('@')[0] || 'User'}
                   </Text>
                   <Text fontSize="xs" color="gray.500">
                     {isFinance ? 'Finance User' : 'Standard User'}
