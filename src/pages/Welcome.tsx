@@ -186,7 +186,7 @@ const Welcome: React.FC = () => {
         <HStack spacing={3} align="center">
           <Avatar size="sm" name={user?.email || 'User'} />
           <Box textAlign="right">
-            <Text fontSize="sm" fontWeight="medium">{user?.email?.split('@')[0] || 'User'}</Text>
+            <Text fontSize="sm" fontWeight="medium">{(user?.email || '').split('@')[0] || 'User'}</Text>
             <Text fontSize="xs" color="gray.500">{isFinance ? 'Finance User' : 'Standard User'}</Text>
           </Box>
           <Button onClick={handleLogout} colorScheme="red" variant="outline" size="sm">Logout</Button>

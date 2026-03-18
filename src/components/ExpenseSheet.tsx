@@ -229,7 +229,7 @@ const ExpenseSheet: React.FC = () => {
 
   const handleAddClick = () => {
     setSelectedExpense(null);
-    const firstMainCode = ACCOUNTING_CATEGORIES[0].code;
+    const firstMainCode = ACCOUNTING_CATEGORIES[0]?.code || '5000';
     const firstLeaves = getLeafSubcategoriesByMainCode(firstMainCode);
     const firstSubCode = firstLeaves[0]?.code || '';
     setMainCategoryCode(firstMainCode);
