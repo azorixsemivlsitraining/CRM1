@@ -88,10 +88,19 @@ const ChitoorProjectDetails = () => {
   const {
     isOpen: isReceiptPreviewOpen,
     onOpen: onReceiptPreviewOpen,
-    onClose: onReceiptPreviewClose
+    onClose: onReceiptPreviewCloseBase
   } = useDisclosure();
   const [receiptPreviewUrl, setReceiptPreviewUrl] = useState<string | null>(null);
   const [isGeneratingReceipt, setIsGeneratingReceipt] = useState(false);
+
+  // Custom close handler that revokes blob URLs
+  const onReceiptPreviewClose = () => {
+    if (receiptPreviewUrl && receiptPreviewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(receiptPreviewUrl);
+    }
+    setReceiptPreviewUrl(null);
+    onReceiptPreviewCloseBase();
+  };
 
   const [project, setProject] = useState<ChitoorProject | null>(null);
   const [projectImages, setProjectImages] = useState<any[]>([]);
@@ -971,7 +980,8 @@ const ChitoorProjectDetails = () => {
                                   placeOfSupply: 'Andhra Pradesh',
                                   customerAddress: project.address_mandal_village,
                                 });
-                                setReceiptPreviewUrl(result.dataUrl);
+                                const blobUrl = URL.createObjectURL(result.blob);
+                                setReceiptPreviewUrl(blobUrl);
                                 onReceiptPreviewOpen();
                               } catch (e) {
                                 console.error('Receipt generation failed', e);

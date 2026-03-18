@@ -159,10 +159,19 @@ const [paymentMode, setPaymentMode] = useState(() => {
   const {
     isOpen: isReceiptPreviewOpen,
     onOpen: onReceiptPreviewOpen,
-    onClose: onReceiptPreviewClose
+    onClose: onReceiptPreviewCloseBase
   } = useDisclosure();
   const [receiptPreviewUrl, setReceiptPreviewUrl] = useState<string | null>(null);
   const [isGeneratingReceipt, setIsGeneratingReceipt] = useState(false);
+
+  // Custom close handler that revokes blob URLs
+  const onReceiptPreviewClose = () => {
+    if (receiptPreviewUrl && receiptPreviewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(receiptPreviewUrl);
+    }
+    setReceiptPreviewUrl(null);
+    onReceiptPreviewCloseBase();
+  };
   const [projectEditForm, setProjectEditForm] = useState({
     name: '',
     status: '',
@@ -334,8 +343,8 @@ const [paymentMode, setPaymentMode] = useState(() => {
           data.map((a: any) => ({
             id: a.id,
             customer_name: a.customer_name,
-            module: Array.isArray(a.modules) ? a.modules[0] : a.modules,
-            inverter: Array.isArray(a.inverters) ? a.inverters[0] : a.inverters,
+            module: Array.isArray(a.modules) && a.modules.length > 0 ? a.modules[0] : a.modules,
+            inverter: Array.isArray(a.inverters) && a.inverters.length > 0 ? a.inverters[0] : a.inverters,
             quantity: a.quantity,
           }))
         );
@@ -512,7 +521,8 @@ const handleDownloadReceipt = async (payment: PaymentHistory) => {
     };
 
     const result = await generatePaymentReceiptPDF(receiptData);
-    setReceiptPreviewUrl(result.dataUrl);
+    const blobUrl = URL.createObjectURL(result.blob);
+    setReceiptPreviewUrl(blobUrl);
     onReceiptPreviewOpen();
   } catch (error) {
     console.error('Error generating receipt:', error);
