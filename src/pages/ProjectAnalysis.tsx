@@ -393,25 +393,35 @@ const ProjectAnalysis = () => {
         );
 
         const stateByProjectId = new Map<string, string>();
+        const paymentByProjectId = new Map<string, { paid_amount: number; balance_amount: number }>();
         if (analysisProjectIds.length > 0) {
-          const { data: projectStates, error: stateError } = await supabase
+          const { data: projectDetails, error: stateError } = await supabase
             .from('projects')
-            .select('id, state')
+            .select('id, state, paid_amount, balance_amount')
             .in('id', analysisProjectIds)
             .neq('status', 'deleted');
 
-          if (!stateError && projectStates) {
-            for (const row of projectStates as any[]) {
-              if (row?.id) stateByProjectId.set(row.id, row.state || '');
+          if (!stateError && projectDetails) {
+            for (const row of projectDetails as any[]) {
+              if (row?.id) {
+                stateByProjectId.set(row.id, row.state || '');
+                paymentByProjectId.set(row.id, {
+                  paid_amount: row.paid_amount || 0,
+                  balance_amount: row.balance_amount || 0,
+                });
+              }
             }
           }
         }
 
         const enrichedAnalysisData: ProjectData[] = (analysisData as any[]).map((row) => {
           const projectId = row.project_id || row.id;
+          const paymentData = paymentByProjectId.get(projectId) || { paid_amount: 0, balance_amount: 0 };
           return {
             ...row,
             state: row.state || stateByProjectId.get(projectId) || '',
+            payment_received: row.payment_received || paymentData.paid_amount || 0,
+            pending_payment: row.pending_payment || paymentData.balance_amount || 0,
           };
         });
 
@@ -424,34 +434,39 @@ const ProjectAnalysis = () => {
         let allData: ProjectData[] = enrichedAnalysisData;
 
         if (!chitoorError && chitoorProjects && chitoorProjects.length > 0) {
-          const chitoorTransformed: ProjectData[] = chitoorProjects.map((project: any) => ({
-            id: project.id,
-            sl_no: 0, // Will be set by database
-            customer_name: project.customer_name || '',
-            mobile_no: project.mobile_no || '',
-            project_capacity: project.capacity || 0,
-            total_quoted_cost: project.project_cost || 0,
-            application_charges: 0,
-            modules_cost: 0,
-            inverter_cost: 0,
-            structure_cost: 0,
-            hardware_cost: 0,
-            electrical_equipment: 0,
-            transport_segment: 0,
-            transport_total: 0,
-            installation_cost: 0,
-            subsidy_application: 0,
-            misc_dept_charges: 0,
-            dept_charges: 0,
-            total_exp: 0,
-            payment_received: 0,
-            pending_payment: 0,
-            profit_right_now: 0,
-            overall_profit: 0,
-            project_id: project.id,
-            state: 'Chitoor',
-            created_at: project.created_at || '',
-          }));
+          const chitoorTransformed: ProjectData[] = chitoorProjects.map((project: any) => {
+            const paymentReceived = project.amount_received || 0;
+            const totalCost = project.project_cost || 0;
+            const pendingPayment = totalCost - paymentReceived;
+            return {
+              id: project.id,
+              sl_no: 0, // Will be set by database
+              customer_name: project.customer_name || '',
+              mobile_no: project.mobile_no || '',
+              project_capacity: project.capacity || 0,
+              total_quoted_cost: totalCost,
+              application_charges: 0,
+              modules_cost: 0,
+              inverter_cost: 0,
+              structure_cost: 0,
+              hardware_cost: 0,
+              electrical_equipment: 0,
+              transport_segment: 0,
+              transport_total: 0,
+              installation_cost: 0,
+              subsidy_application: 0,
+              misc_dept_charges: 0,
+              dept_charges: 0,
+              total_exp: 0,
+              payment_received: paymentReceived,
+              pending_payment: pendingPayment,
+              profit_right_now: 0,
+              overall_profit: 0,
+              project_id: project.id,
+              state: 'Chitoor',
+              created_at: project.created_at || '',
+            };
+          });
           allData = [...enrichedAnalysisData, ...chitoorTransformed];
         }
 
