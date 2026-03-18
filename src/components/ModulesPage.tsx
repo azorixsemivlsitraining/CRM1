@@ -81,8 +81,8 @@ const ModulesPage: React.FC = () => {
         (assignmentsData || []).map((a: any) => ({
           id: a.id,
           customer_name: a.customer_name,
-          module: Array.isArray(a.modules) ? a.modules[0] : a.modules,
-          inverter: Array.isArray(a.inverters) ? a.inverters[0] : a.inverters,
+          module: Array.isArray(a.modules) && a.modules.length > 0 ? a.modules[0] : a.modules,
+          inverter: Array.isArray(a.inverters) && a.inverters.length > 0 ? a.inverters[0] : a.inverters,
           quantity: a.quantity,
         }))
       );
@@ -130,8 +130,8 @@ const ModulesPage: React.FC = () => {
         ...data.map((a: any) => ({
           id: a.id,
           customer_name: a.customer_name,
-          module: Array.isArray(a.modules) ? a.modules[0] : a.modules,
-          inverter: Array.isArray(a.inverters) ? a.inverters[0] : a.inverters,
+          module: Array.isArray(a.modules) && a.modules.length > 0 ? a.modules[0] : a.modules,
+          inverter: Array.isArray(a.inverters) && a.inverters.length > 0 ? a.inverters[0] : a.inverters,
           quantity: a.quantity,
         })),
       ]);
