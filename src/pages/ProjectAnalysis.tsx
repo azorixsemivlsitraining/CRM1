@@ -464,23 +464,57 @@ const ProjectAnalysis = () => {
   const handleEditProject = async (project: ProjectData) => {
     setSelectedProject(project);
 
-    // Fetch payment history from payment_history table
+    // Fetch ALL payment receipts including advance payments
     try {
       const projectId = project.project_id || project.id;
 
-      // Try to fetch from payment_history first (for regular projects)
+      // Fetch from payment_history table for regular projects
       const { data: paymentHistory, error } = await supabase
         .from('payment_history')
-        .select('payment_date, amount')
+        .select('*')
         .eq('project_id', projectId)
         .order('created_at', { ascending: true });
 
-      if (paymentHistory && paymentHistory.length > 0) {
-        // Map payment history to array of dates with amounts
-        const paymentDates = paymentHistory.map((payment: any) => {
-          const dateStr = payment.payment_date || '';
+      if (!error || (error as any)?.code === 'PGRST116') {
+        let allPayments: any[] = paymentHistory || [];
+
+        // Try to fetch the project details to check for advance payment
+        const { data: projectDetails } = await supabase
+          .from('projects')
+          .select('advance_payment, start_date, created_at, payment_mode')
+          .eq('id', projectId)
+          .single();
+
+        // If advance payment exists, add it as the first payment
+        if (projectDetails && projectDetails.advance_payment && projectDetails.advance_payment > 0) {
+          const advanceDate = projectDetails.start_date || projectDetails.created_at;
+          const advancePayment = {
+            id: 'advance',
+            amount: projectDetails.advance_payment,
+            created_at: advanceDate || new Date().toISOString(),
+            payment_date: advanceDate || new Date().toISOString(),
+            payment_mode: projectDetails.payment_mode || 'Cash',
+            is_advance: true,
+          };
+
+          // Check if advance payment is already in the list (to avoid duplicates)
+          const advanceExists = allPayments.some((p: any) =>
+            p.amount === advancePayment.amount &&
+            p.payment_date === advancePayment.payment_date
+          );
+
+          if (!advanceExists) {
+            allPayments = [advancePayment, ...allPayments];
+          }
+        }
+
+        // Map all payments to array of dates with amounts
+        const paymentDates = allPayments.map((payment: any) => {
+          const dateStr = payment.payment_date || payment.created_at || '';
           const amount = payment.amount || 0;
-          return dateStr ? `${dateStr} (₹${Number(amount).toLocaleString()})` : '';
+          const dateFormatted = dateStr.split('T')[0]; // Get YYYY-MM-DD from ISO date
+          const label = payment.is_advance ? '(Advance)' : '';
+          return dateFormatted ? `${dateFormatted} (₹${Number(amount).toLocaleString()}) ${label}`.trim() : '';
         }).filter(Boolean);
 
         setSelectedProject((prev) => {
@@ -490,8 +524,7 @@ const ProjectAnalysis = () => {
             payment_dates: paymentDates.length > 0 ? paymentDates : prev.payment_dates || [],
           };
         });
-      } else if (error && (error as any)?.code !== 'PGRST116') {
-        // If error is not "table doesn't exist", log it
+      } else if (error) {
         console.error('Error fetching payment history:', error);
       }
     } catch (err) {
@@ -1138,11 +1171,13 @@ const ProjectAnalysis = () => {
                       <FormLabel fontSize="sm" mb={3}>Payment Received Dates</FormLabel>
                       <VStack spacing={2} align="stretch">
                         {(selectedProject.payment_dates || []).map((dateEntry, index) => {
-                          // Parse date entry - might be "YYYY-MM-DD" or "YYYY-MM-DD (₹amount)"
+                          // Parse date entry - format is "YYYY-MM-DD (₹amount) [optional label]"
                           const dateMatch = (dateEntry || '').match(/^(\d{4}-\d{2}-\d{2})/);
                           const dateValue = dateMatch ? dateMatch[1] : dateEntry;
                           const amountMatch = (dateEntry || '').match(/\(₹([\d,]+)\)/);
                           const amount = amountMatch ? amountMatch[1] : '';
+                          const labelMatch = (dateEntry || '').match(/\((Advance)\)$/);
+                          const isAdvance = !!labelMatch;
 
                           return (
                             <HStack key={index} spacing={2} align="start">
@@ -1153,7 +1188,8 @@ const ProjectAnalysis = () => {
                                   value={dateValue || ''}
                                   onChange={(e) => {
                                     const updatedDates = [...(selectedProject.payment_dates || [])];
-                                    const newEntry = amount ? `${e.target.value} (₹${amount})` : e.target.value;
+                                    const label = isAdvance ? ' (₹' + amount + ') (Advance)' : (amount ? ` (₹${amount})` : '');
+                                    const newEntry = e.target.value + label;
                                     updatedDates[index] = newEntry;
                                     setSelectedProject({
                                       ...selectedProject,
@@ -1174,6 +1210,23 @@ const ProjectAnalysis = () => {
                                     size="sm"
                                   />
                                 </FormControl>
+                              )}
+                              {isAdvance && (
+                                <Box>
+                                  <FormLabel fontSize="xs" color="gray.600">Type</FormLabel>
+                                  <Box
+                                    px={2}
+                                    py={1}
+                                    bg="blue.100"
+                                    color="blue.700"
+                                    borderRadius="md"
+                                    fontSize="xs"
+                                    fontWeight="medium"
+                                    textAlign="center"
+                                  >
+                                    Advance
+                                  </Box>
+                                </Box>
                               )}
                               <IconButton
                                 aria-label="Remove date"
