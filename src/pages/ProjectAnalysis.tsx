@@ -38,6 +38,12 @@ import {
   FormControl,
   FormLabel,
   useToast,
+  Tabs,
+  TabList,
+  TabPanels,
+  Tab,
+  TabPanel,
+  Badge,
 } from '@chakra-ui/react';
 import { DeleteIcon, SearchIcon, DownloadIcon } from '@chakra-ui/icons';
 import * as XLSX from 'xlsx';
@@ -168,6 +174,13 @@ const ProjectAnalysis = () => {
       avgPending: avg((p) => p.pending_payment || 0),
       avgProfitNow: avg((p) => p.profit_right_now || 0),
       avgOverallProfit: avg((p) => p.overall_profit || 0),
+      totalCapacity: sum((p) => p.project_capacity || 0),
+      totalQuoted: sum((p) => p.total_quoted_cost || 0),
+      totalExp: sum((p) => p.total_exp || 0),
+      totalReceived: sum((p) => p.payment_received || 0),
+      totalPending: sum((p) => p.pending_payment || 0),
+      totalProfitNow: sum((p) => p.profit_right_now || 0),
+      totalOverallProfit: sum((p) => p.overall_profit || 0),
     };
   }, [visibleData]);
 
@@ -323,7 +336,8 @@ const ProjectAnalysis = () => {
           // Also fetch Chitoor projects for complete data
           const { data: chitoorProjects, error: chitoorError } = await supabase
             .from('chitoor_projects')
-            .select('*');
+            .select('*')
+            .order('created_at', { ascending: false });
 
           let allProjects = transformedProjects;
 
@@ -399,7 +413,8 @@ const ProjectAnalysis = () => {
         // If analysisData exists, check for Chitoor projects too
         const { data: chitoorProjects, error: chitoorError } = await supabase
           .from('chitoor_projects')
-          .select('*');
+          .select('*')
+          .order('created_at', { ascending: false });
 
         let allData: ProjectData[] = enrichedAnalysisData;
 
@@ -452,8 +467,76 @@ const ProjectAnalysis = () => {
     }
   };
 
-  const handleEditProject = (project: ProjectData) => {
+  const handleEditProject = async (project: ProjectData) => {
     setSelectedProject(project);
+
+    // Fetch ALL payment receipts including advance payments
+    try {
+      const projectId = project.project_id || project.id;
+
+      // Fetch from payment_history table for regular projects
+      const { data: paymentHistory, error } = await supabase
+        .from('payment_history')
+        .select('*')
+        .eq('project_id', projectId)
+        .order('created_at', { ascending: true });
+
+      if (!error || (error as any)?.code === 'PGRST116') {
+        let allPayments: any[] = paymentHistory || [];
+
+        // Try to fetch the project details to check for advance payment
+        const { data: projectDetails } = await supabase
+          .from('projects')
+          .select('advance_payment, start_date, created_at, payment_mode')
+          .eq('id', projectId)
+          .single();
+
+        // If advance payment exists, add it as the first payment
+        if (projectDetails && projectDetails.advance_payment && projectDetails.advance_payment > 0) {
+          const advanceDate = projectDetails.start_date || projectDetails.created_at;
+          const advancePayment = {
+            id: 'advance',
+            amount: projectDetails.advance_payment,
+            created_at: advanceDate || new Date().toISOString(),
+            payment_date: advanceDate || new Date().toISOString(),
+            payment_mode: projectDetails.payment_mode || 'Cash',
+            is_advance: true,
+          };
+
+          // Check if advance payment is already in the list (to avoid duplicates)
+          const advanceExists = allPayments.some((p: any) =>
+            p.amount === advancePayment.amount &&
+            p.payment_date === advancePayment.payment_date
+          );
+
+          if (!advanceExists) {
+            allPayments = [advancePayment, ...allPayments];
+          }
+        }
+
+        // Map all payments to array of dates with amounts
+        const paymentDates = allPayments.map((payment: any) => {
+          const dateStr = payment.payment_date || payment.created_at || '';
+          const amount = payment.amount || 0;
+          const dateFormatted = dateStr.split('T')[0]; // Get YYYY-MM-DD from ISO date
+          const label = payment.is_advance ? '(Advance)' : '';
+          return dateFormatted ? `${dateFormatted} (₹${Number(amount).toLocaleString()}) ${label}`.trim() : '';
+        }).filter(Boolean);
+
+        setSelectedProject((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            payment_dates: paymentDates.length > 0 ? paymentDates : prev.payment_dates || [],
+          };
+        });
+      } else if (error) {
+        console.error('Error fetching payment history:', error);
+      }
+    } catch (err) {
+      console.error('Error in handleEditProject:', err);
+    }
+
     onOpen();
   };
 
@@ -750,73 +833,155 @@ const ProjectAnalysis = () => {
             </CardBody>
           </Card>
 
-          {/* Analytics cards (based on visible rows) */}
-          <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={6}>
-            <Card bg={cardBg} border="1px solid" borderColor="gray.100" shadow="sm">
-              <CardBody>
-                <Stat>
-                  <StatLabel color="gray.600" fontSize="sm" fontWeight="medium">Visible projects</StatLabel>
-                  <StatNumber fontSize="2xl" color="brand.600">{analytics.count.toLocaleString()}</StatNumber>
-                </Stat>
-              </CardBody>
-            </Card>
-            <Card bg={cardBg} border="1px solid" borderColor="gray.100" shadow="sm">
-              <CardBody>
-                <Stat>
-                  <StatLabel color="gray.600" fontSize="sm" fontWeight="medium">Avg capacity</StatLabel>
-                  <StatNumber fontSize="2xl" color="brand.600">{analytics.avgCapacity.toFixed(2)} kW</StatNumber>
-                </Stat>
-              </CardBody>
-            </Card>
-            <Card bg={cardBg} border="1px solid" borderColor="gray.100" shadow="sm">
-              <CardBody>
-                <Stat>
-                  <StatLabel color="gray.600" fontSize="sm" fontWeight="medium">Avg quoted cost</StatLabel>
-                  <StatNumber fontSize="2xl" color="brand.600">₹{Math.round(analytics.avgQuoted).toLocaleString()}</StatNumber>
-                </Stat>
-              </CardBody>
-            </Card>
-            <Card bg={cardBg} border="1px solid" borderColor="gray.100" shadow="sm">
-              <CardBody>
-                <Stat>
-                  <StatLabel color="gray.600" fontSize="sm" fontWeight="medium">Avg total exp</StatLabel>
-                  <StatNumber fontSize="2xl" color="brand.600">₹{Math.round(analytics.avgExp).toLocaleString()}</StatNumber>
-                </Stat>
-              </CardBody>
-            </Card>
-            <Card bg={cardBg} border="1px solid" borderColor="gray.100" shadow="sm">
-              <CardBody>
-                <Stat>
-                  <StatLabel color="gray.600" fontSize="sm" fontWeight="medium">Avg received</StatLabel>
-                  <StatNumber fontSize="2xl" color="green.600">₹{Math.round(analytics.avgReceived).toLocaleString()}</StatNumber>
-                </Stat>
-              </CardBody>
-            </Card>
-            <Card bg={cardBg} border="1px solid" borderColor="gray.100" shadow="sm">
-              <CardBody>
-                <Stat>
-                  <StatLabel color="gray.600" fontSize="sm" fontWeight="medium">Avg pending</StatLabel>
-                  <StatNumber fontSize="2xl" color="orange.600">₹{Math.round(analytics.avgPending).toLocaleString()}</StatNumber>
-                </Stat>
-              </CardBody>
-            </Card>
-            <Card bg={cardBg} border="1px solid" borderColor="gray.100" shadow="sm">
-              <CardBody>
-                <Stat>
-                  <StatLabel color="gray.600" fontSize="sm" fontWeight="medium">Avg profit now</StatLabel>
-                  <StatNumber fontSize="2xl" color="brand.600">₹{Math.round(analytics.avgProfitNow).toLocaleString()}</StatNumber>
-                </Stat>
-              </CardBody>
-            </Card>
-            <Card bg={cardBg} border="1px solid" borderColor="gray.100" shadow="sm">
-              <CardBody>
-                <Stat>
-                  <StatLabel color="gray.600" fontSize="sm" fontWeight="medium">Avg overall profit</StatLabel>
-                  <StatNumber fontSize="2xl" color="brand.600">₹{Math.round(analytics.avgOverallProfit).toLocaleString()}</StatNumber>
-                </Stat>
-              </CardBody>
-            </Card>
-          </SimpleGrid>
+          {/* Analytics cards - Compact Tab View */}
+          <Card bg={cardBg} shadow="sm" border="1px solid" borderColor="gray.100">
+            <CardHeader pb={2}>
+              <Heading size="sm" color="gray.800">Quick Analytics</Heading>
+            </CardHeader>
+            <CardBody pt={0}>
+              <Tabs variant="enclosed" size="sm">
+                <TabList mb={3}>
+                  <Tab fontSize="sm" fontWeight="medium">Overview</Tab>
+                  <Tab fontSize="sm" fontWeight="medium">Average</Tab>
+                  <Tab fontSize="sm" fontWeight="medium">Totals</Tab>
+                </TabList>
+
+                <TabPanels>
+                  {/* Overview Tab */}
+                  <TabPanel>
+                    <SimpleGrid columns={{ base: 2, md: 3, lg: 4 }} spacing={4}>
+                      <Box p={3} bg="brand.50" borderRadius="lg" border="1px solid" borderColor="brand.100">
+                        <Text fontSize="xs" color="gray.600" fontWeight="medium" mb={1}>Projects Count</Text>
+                        <Text fontSize="xl" fontWeight="bold" color="brand.600">{analytics.count}</Text>
+                      </Box>
+                      <Box p={3} bg="green.50" borderRadius="lg" border="1px solid" borderColor="green.100">
+                        <Text fontSize="xs" color="gray.600" fontWeight="medium" mb={1}>Avg Received</Text>
+                        <Text fontSize="lg" fontWeight="bold" color="green.600">₹{Math.round(analytics.avgReceived / 1000)}K</Text>
+                      </Box>
+                      <Box p={3} bg="orange.50" borderRadius="lg" border="1px solid" borderColor="orange.100">
+                        <Text fontSize="xs" color="gray.600" fontWeight="medium" mb={1}>Avg Pending</Text>
+                        <Text fontSize="lg" fontWeight="bold" color="orange.600">₹{Math.round(analytics.avgPending / 1000)}K</Text>
+                      </Box>
+                      <Box p={3} bg="purple.50" borderRadius="lg" border="1px solid" borderColor="purple.100">
+                        <Text fontSize="xs" color="gray.600" fontWeight="medium" mb={1}>Avg Profit</Text>
+                        <Text fontSize="lg" fontWeight="bold" color="purple.600">₹{Math.round(analytics.avgProfitNow / 1000)}K</Text>
+                      </Box>
+                    </SimpleGrid>
+                  </TabPanel>
+
+                  {/* Average Tab */}
+                  <TabPanel>
+                    <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
+                      <Box p={3} bg="gray.50" borderRadius="lg">
+                        <Flex justify="space-between" align="center">
+                          <VStack align="start" spacing={0}>
+                            <Text fontSize="xs" color="gray.600" fontWeight="medium">Avg Capacity</Text>
+                            <Text fontSize="lg" fontWeight="bold" color="gray.800">{analytics.avgCapacity.toFixed(2)}</Text>
+                          </VStack>
+                          <Badge colorScheme="blue" px={2} py={1}>kW</Badge>
+                        </Flex>
+                      </Box>
+                      <Box p={3} bg="gray.50" borderRadius="lg">
+                        <Flex justify="space-between" align="center">
+                          <VStack align="start" spacing={0}>
+                            <Text fontSize="xs" color="gray.600" fontWeight="medium">Avg Quoted Cost</Text>
+                            <Text fontSize="lg" fontWeight="bold" color="gray.800">₹{Math.round(analytics.avgQuoted / 1000)}K</Text>
+                          </VStack>
+                        </Flex>
+                      </Box>
+                      <Box p={3} bg="gray.50" borderRadius="lg">
+                        <Flex justify="space-between" align="center">
+                          <VStack align="start" spacing={0}>
+                            <Text fontSize="xs" color="gray.600" fontWeight="medium">Avg Expenditure</Text>
+                            <Text fontSize="lg" fontWeight="bold" color="gray.800">₹{Math.round(analytics.avgExp / 1000)}K</Text>
+                          </VStack>
+                        </Flex>
+                      </Box>
+                      <Box p={3} bg="green.50" borderRadius="lg">
+                        <Flex justify="space-between" align="center">
+                          <VStack align="start" spacing={0}>
+                            <Text fontSize="xs" color="gray.600" fontWeight="medium">Avg Received</Text>
+                            <Text fontSize="lg" fontWeight="bold" color="green.700">₹{Math.round(analytics.avgReceived / 1000)}K</Text>
+                          </VStack>
+                        </Flex>
+                      </Box>
+                      <Box p={3} bg="orange.50" borderRadius="lg">
+                        <Flex justify="space-between" align="center">
+                          <VStack align="start" spacing={0}>
+                            <Text fontSize="xs" color="gray.600" fontWeight="medium">Avg Pending</Text>
+                            <Text fontSize="lg" fontWeight="bold" color="orange.700">₹{Math.round(analytics.avgPending / 1000)}K</Text>
+                          </VStack>
+                        </Flex>
+                      </Box>
+                      <Box p={3} bg="purple.50" borderRadius="lg">
+                        <Flex justify="space-between" align="center">
+                          <VStack align="start" spacing={0}>
+                            <Text fontSize="xs" color="gray.600" fontWeight="medium">Avg Profit</Text>
+                            <Text fontSize="lg" fontWeight="bold" color="purple.700">₹{Math.round(analytics.avgProfitNow / 1000)}K</Text>
+                          </VStack>
+                        </Flex>
+                      </Box>
+                    </SimpleGrid>
+                  </TabPanel>
+
+                  {/* Totals Tab */}
+                  <TabPanel>
+                    <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
+                      <Box p={3} bg="gray.50" borderRadius="lg">
+                        <Flex justify="space-between" align="center">
+                          <VStack align="start" spacing={0}>
+                            <Text fontSize="xs" color="gray.600" fontWeight="medium">Total Capacity</Text>
+                            <Text fontSize="lg" fontWeight="bold" color="gray.800">{analytics.totalCapacity.toFixed(2)}</Text>
+                          </VStack>
+                          <Badge colorScheme="blue" px={2} py={1}>kW</Badge>
+                        </Flex>
+                      </Box>
+                      <Box p={3} bg="gray.50" borderRadius="lg">
+                        <Flex justify="space-between" align="center">
+                          <VStack align="start" spacing={0}>
+                            <Text fontSize="xs" color="gray.600" fontWeight="medium">Total Quoted Cost</Text>
+                            <Text fontSize="lg" fontWeight="bold" color="gray.800">₹{Math.round(analytics.totalQuoted / 1000)}K</Text>
+                          </VStack>
+                        </Flex>
+                      </Box>
+                      <Box p={3} bg="gray.50" borderRadius="lg">
+                        <Flex justify="space-between" align="center">
+                          <VStack align="start" spacing={0}>
+                            <Text fontSize="xs" color="gray.600" fontWeight="medium">Total Expenditure</Text>
+                            <Text fontSize="lg" fontWeight="bold" color="gray.800">₹{Math.round(analytics.totalExp / 1000)}K</Text>
+                          </VStack>
+                        </Flex>
+                      </Box>
+                      <Box p={3} bg="green.50" borderRadius="lg">
+                        <Flex justify="space-between" align="center">
+                          <VStack align="start" spacing={0}>
+                            <Text fontSize="xs" color="gray.600" fontWeight="medium">Total Received</Text>
+                            <Text fontSize="lg" fontWeight="bold" color="green.700">₹{Math.round(analytics.totalReceived / 1000)}K</Text>
+                          </VStack>
+                        </Flex>
+                      </Box>
+                      <Box p={3} bg="orange.50" borderRadius="lg">
+                        <Flex justify="space-between" align="center">
+                          <VStack align="start" spacing={0}>
+                            <Text fontSize="xs" color="gray.600" fontWeight="medium">Total Pending</Text>
+                            <Text fontSize="lg" fontWeight="bold" color="orange.700">₹{Math.round(analytics.totalPending / 1000)}K</Text>
+                          </VStack>
+                        </Flex>
+                      </Box>
+                      <Box p={3} bg="purple.50" borderRadius="lg">
+                        <Flex justify="space-between" align="center">
+                          <VStack align="start" spacing={0}>
+                            <Text fontSize="xs" color="gray.600" fontWeight="medium">Total Profit</Text>
+                            <Text fontSize="lg" fontWeight="bold" color="purple.700">₹{Math.round(analytics.totalOverallProfit / 1000)}K</Text>
+                          </VStack>
+                        </Flex>
+                      </Box>
+                    </SimpleGrid>
+                  </TabPanel>
+                </TabPanels>
+              </Tabs>
+            </CardBody>
+          </Card>
 
           {/* Projects Table */}
           <Card bg={cardBg} shadow="sm" border="1px solid" borderColor="gray.100">
@@ -1027,38 +1192,84 @@ const ProjectAnalysis = () => {
                     <Box w="100%">
                       <FormLabel fontSize="sm" mb={3}>Payment Received Dates</FormLabel>
                       <VStack spacing={2} align="stretch">
-                        {(selectedProject.payment_dates || []).map((date, index) => (
-                          <HStack key={index} spacing={2}>
-                            <Input
-                              type="date"
-                              value={date || ''}
-                              onChange={(e) => {
-                                const updatedDates = [...(selectedProject.payment_dates || [])];
-                                updatedDates[index] = e.target.value;
-                                setSelectedProject({
-                                  ...selectedProject,
-                                  payment_dates: updatedDates,
-                                });
-                              }}
-                            />
-                            <IconButton
-                              aria-label="Remove date"
-                              icon={<DeleteIcon />}
-                              size="sm"
-                              colorScheme="red"
-                              variant="ghost"
-                              onClick={() => {
-                                const updatedDates = selectedProject.payment_dates?.filter(
-                                  (_, i) => i !== index
-                                ) || [];
-                                setSelectedProject({
-                                  ...selectedProject,
-                                  payment_dates: updatedDates,
-                                });
-                              }}
-                            />
-                          </HStack>
-                        ))}
+                        {(selectedProject.payment_dates || []).map((dateEntry, index) => {
+                          // Parse date entry - format is "YYYY-MM-DD (₹amount) [optional label]"
+                          const dateMatch = (dateEntry || '').match(/^(\d{4}-\d{2}-\d{2})/);
+                          const dateValue = dateMatch ? dateMatch[1] : dateEntry;
+                          const amountMatch = (dateEntry || '').match(/\(₹([\d,]+)\)/);
+                          const amount = amountMatch ? amountMatch[1] : '';
+                          const labelMatch = (dateEntry || '').match(/\((Advance)\)$/);
+                          const isAdvance = !!labelMatch;
+
+                          return (
+                            <HStack key={index} spacing={2} align="start">
+                              <FormControl>
+                                <FormLabel fontSize="xs" color="gray.600">Date</FormLabel>
+                                <Input
+                                  type="date"
+                                  value={dateValue || ''}
+                                  onChange={(e) => {
+                                    const updatedDates = [...(selectedProject.payment_dates || [])];
+                                    const label = isAdvance ? ' (₹' + amount + ') (Advance)' : (amount ? ` (₹${amount})` : '');
+                                    const newEntry = e.target.value + label;
+                                    updatedDates[index] = newEntry;
+                                    setSelectedProject({
+                                      ...selectedProject,
+                                      payment_dates: updatedDates,
+                                    });
+                                  }}
+                                  size="sm"
+                                />
+                              </FormControl>
+                              {amount && (
+                                <FormControl>
+                                  <FormLabel fontSize="xs" color="gray.600">Amount</FormLabel>
+                                  <Input
+                                    type="text"
+                                    value={`₹${amount}`}
+                                    isReadOnly
+                                    bg="gray.100"
+                                    size="sm"
+                                  />
+                                </FormControl>
+                              )}
+                              {isAdvance && (
+                                <Box>
+                                  <FormLabel fontSize="xs" color="gray.600">Type</FormLabel>
+                                  <Box
+                                    px={2}
+                                    py={1}
+                                    bg="blue.100"
+                                    color="blue.700"
+                                    borderRadius="md"
+                                    fontSize="xs"
+                                    fontWeight="medium"
+                                    textAlign="center"
+                                  >
+                                    Advance
+                                  </Box>
+                                </Box>
+                              )}
+                              <IconButton
+                                aria-label="Remove date"
+                                icon={<DeleteIcon />}
+                                size="sm"
+                                colorScheme="red"
+                                variant="ghost"
+                                mt={6}
+                                onClick={() => {
+                                  const updatedDates = selectedProject.payment_dates?.filter(
+                                    (_, i) => i !== index
+                                  ) || [];
+                                  setSelectedProject({
+                                    ...selectedProject,
+                                    payment_dates: updatedDates,
+                                  });
+                                }}
+                              />
+                            </HStack>
+                          );
+                        })}
                         <Button
                           size="sm"
                           colorScheme="blue"
