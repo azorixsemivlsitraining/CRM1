@@ -449,25 +449,23 @@ const handleCustomerEditSave = async () => {
 
 const handlePayment = async () => {
   if (!project) return;
-  if (!paymentAmount || !paymentDate || !paymentMode) {
-    toast({
-      title: 'Missing Fields',
-      description: 'Please fill all payment details.',
-      status: 'warning',
-      duration: 3000,
-      isClosable: true,
-    });
-    return;
-  }
   try {
     setPaymentLoading(true);
+
+    // Allow saving even if user left some inputs empty.
+    // Normalize to safe defaults to avoid client-side blocking.
+    const amountNum = paymentAmount === '' || paymentAmount == null ? 0 : Number.parseFloat(paymentAmount);
+    const safeAmount = Number.isFinite(amountNum) ? amountNum : 0;
+    const safeDate = paymentDate || new Date().toISOString().split('T')[0];
+    const safeMode = paymentMode || 'Cash';
+
     const { error } = await supabase
       .from('payment_history')
       .insert([{
         project_id: project.id,
-        amount: parseFloat(paymentAmount),
-        payment_mode: paymentMode,
-        payment_date: paymentDate,
+        amount: safeAmount,
+        payment_mode: safeMode,
+        payment_date: safeDate,
       }]);
     if (error) throw error;
     toast({
@@ -1122,7 +1120,7 @@ return (
             onClick={handlePayment}
             isLoading={paymentLoading}
             loadingText="Adding"
-            isDisabled={!paymentAmount || parseFloat(paymentAmount) <= 0 || (project && parseFloat(paymentAmount) > (project.proposal_amount - (project.advance_payment + (project.paid_amount || 0)))) || paymentLoading}
+            isDisabled={paymentLoading || !project}
           >
             Add Payment
           </Button>

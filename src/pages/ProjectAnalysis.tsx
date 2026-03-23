@@ -65,11 +65,25 @@ interface ProjectData {
   hardware_cost?: number;
   electrical_equipment?: number;
   transport_segment?: number;
+  /**
+   * Breakdown of transportation items/heads stored in DB as JSONB.
+   * Structure:
+   * [
+   *   { "label": "ETTX", "amount": 1000 },
+   *   { "label": "DD element", "amount": 500 }
+   * ]
+   */
+  transport_segments?: Array<{ label?: string; amount?: number }>;
   transport_total?: number;
   installation_cost?: number;
   subsidy_application?: number;
   misc_dept_charges?: number;
   dept_charges?: number;
+  /**
+   * Breakdown of department charges items/heads stored in DB as JSONB.
+   * Same structure as transport segments: [{ label, amount }]
+   */
+  dept_charges_segments?: Array<{ label?: string; amount?: number }>;
   total_exp?: number;
   payment_received?: number;
   pending_payment?: number;
@@ -130,6 +144,21 @@ const calculateProfitRightNow = (project: ProjectData): number => {
 const calculateOverallProfit = (project: ProjectData): number => {
   const totalExp = calculateTotalExpenses(project);
   return (project.total_quoted_cost || 0) - totalExp;
+};
+
+const normalizeTransportSegments = (segments: unknown): Array<{ label: string; amount: number }> => {
+  if (!Array.isArray(segments)) return [];
+  return segments
+    .map((s: any) => {
+      const label = String(s?.label ?? s?.name ?? s?.text ?? '').trim();
+      const amount =
+        typeof s?.amount === 'number' ? s.amount : parseFloat(String(s?.amount ?? 0)) || 0;
+      return { label, amount };
+    })
+};
+
+const sumTransportSegments = (segments: unknown): number => {
+  return normalizeTransportSegments(segments).reduce((acc, cur) => acc + (Number(cur.amount) || 0), 0);
 };
 
 const ProjectAnalysis = () => {
@@ -316,7 +345,8 @@ const ProjectAnalysis = () => {
       if (!analysisData || analysisData.length === 0) {
         const { data: projects, error: projectError } = await supabase
           .from('projects')
-          .select('id, customer_name, phone, proposal_amount, kwh, state, paid_amount, balance_amount')
+          .select('id, customer_name, phone, proposal_amount, kwh, state, paid_amount, advance_payment, balance_amount')
+          
           .neq('status', 'deleted');
 
         if (projectError) {
@@ -345,13 +375,16 @@ const ProjectAnalysis = () => {
             hardware_cost: 0,
             electrical_equipment: 0,
             transport_segment: 0,
+            transport_segments: [],
             transport_total: 0,
             installation_cost: 0,
             subsidy_application: 0,
             misc_dept_charges: 0,
             dept_charges: 0,
+            dept_charges_segments: [],
             total_exp: 0,
-            payment_received: project.paid_amount || 0,
+            // Match Projects tile: total received includes advance + paid amounts
+            payment_received: (project.advance_payment || 0) + (project.paid_amount || 0),
             pending_payment: project.balance_amount || 0,
             profit_right_now: 0,
             overall_profit: 0,
@@ -387,11 +420,13 @@ const ProjectAnalysis = () => {
                 hardware_cost: 0,
                 electrical_equipment: 0,
                 transport_segment: 0,
+                transport_segments: [],
                 transport_total: 0,
                 installation_cost: 0,
                 subsidy_application: 0,
                 misc_dept_charges: 0,
                 dept_charges: 0,
+                dept_charges_segments: [],
                 total_exp: 0,
                 payment_received: paymentReceived,
                 pending_payment: pendingPayment,
@@ -420,11 +455,11 @@ const ProjectAnalysis = () => {
         );
 
         const stateByProjectId = new Map<string, string>();
-        const paymentByProjectId = new Map<string, { paid_amount: number; balance_amount: number }>();
+        const paymentByProjectId = new Map<string, { paid_amount: number; advance_payment: number; balance_amount: number }>();
         if (analysisProjectIds.length > 0) {
           const { data: projectDetails, error: stateError } = await supabase
             .from('projects')
-            .select('id, state, paid_amount, balance_amount')
+            .select('id, state, paid_amount, advance_payment, balance_amount')
             .in('id', analysisProjectIds)
             .neq('status', 'deleted');
 
@@ -434,6 +469,7 @@ const ProjectAnalysis = () => {
                 stateByProjectId.set(row.id, row.state || '');
                 paymentByProjectId.set(row.id, {
                   paid_amount: row.paid_amount || 0,
+                  advance_payment: row.advance_payment || 0,
                   balance_amount: row.balance_amount || 0,
                 });
               }
@@ -443,12 +479,30 @@ const ProjectAnalysis = () => {
 
         const enrichedAnalysisData: ProjectData[] = (analysisData as any[]).map((row) => {
           const projectId = row.project_id || row.id;
-          const paymentData = paymentByProjectId.get(projectId) || { paid_amount: 0, balance_amount: 0 };
+          const paymentData =
+            paymentByProjectId.get(projectId) || { paid_amount: 0, advance_payment: 0, balance_amount: 0 };
+          const transportSegments = row.transport_segments || [];
+          const transportSegmentFinal =
+            Array.isArray(transportSegments) && transportSegments.length > 0 ? sumTransportSegments(transportSegments) : row.transport_segment || 0;
+          const deptSegments = row.dept_charges_segments || [];
+          const deptChargesFinal =
+            Array.isArray(deptSegments) && deptSegments.length > 0 ? sumTransportSegments(deptSegments) : row.dept_charges || 0;
           return {
             ...row,
             state: row.state || stateByProjectId.get(projectId) || '',
-            payment_received: row.payment_received || paymentData.paid_amount || 0,
-            pending_payment: row.pending_payment || paymentData.balance_amount || 0,
+            transport_segments: transportSegments,
+            transport_segment: transportSegmentFinal,
+            dept_charges_segments: deptSegments,
+            dept_charges: deptChargesFinal,
+            // Keep Project Analysis in sync with the Projects tile:
+            // always derive totals from `projects` to avoid stale/incorrect values stored in `project_analysis`.
+            // Projects tile uses: payment_received = advance_payment + paid_amount
+            payment_received:
+              paymentData.advance_payment != null || paymentData.paid_amount != null
+                ? Number(paymentData.advance_payment || 0) + Number(paymentData.paid_amount || 0)
+                : 0,
+            pending_payment:
+              paymentData.balance_amount != null ? Number(paymentData.balance_amount) : 0,
           };
         });
 
@@ -479,11 +533,13 @@ const ProjectAnalysis = () => {
               hardware_cost: 0,
               electrical_equipment: 0,
               transport_segment: 0,
+              transport_segments: [],
               transport_total: 0,
               installation_cost: 0,
               subsidy_application: 0,
               misc_dept_charges: 0,
               dept_charges: 0,
+              dept_charges_segments: [],
               total_exp: 0,
               payment_received: paymentReceived,
               pending_payment: pendingPayment,
@@ -591,10 +647,20 @@ const ProjectAnalysis = () => {
     if (!selectedProject) return;
 
     try {
+      const computedTransportSegment = sumTransportSegments(selectedProject.transport_segments);
+      const deptSegments = selectedProject.dept_charges_segments || [];
+      const computedDeptCharges = sumTransportSegments(deptSegments);
+      const deptChargesFinal = deptSegments.length > 0 ? computedDeptCharges : selectedProject.dept_charges || 0;
+      const projectForCalc: ProjectData = {
+        ...selectedProject,
+        transport_segment: computedTransportSegment,
+        dept_charges: deptChargesFinal,
+      };
+
       // Calculate totals automatically
-      const totalExp = calculateTotalExpenses(selectedProject);
-      const profitRightNow = calculateProfitRightNow(selectedProject);
-      const overallProfit = calculateOverallProfit(selectedProject);
+      const totalExp = calculateTotalExpenses(projectForCalc);
+      const profitRightNow = calculateProfitRightNow(projectForCalc);
+      const overallProfit = calculateOverallProfit(projectForCalc);
 
       // Only include columns that exist in the database schema
       const projectDataToSave = {
@@ -610,12 +676,14 @@ const ProjectAnalysis = () => {
         structure_cost: selectedProject.structure_cost || 0,
         hardware_cost: selectedProject.hardware_cost || 0,
         electrical_equipment: selectedProject.electrical_equipment || 0,
-        transport_segment: selectedProject.transport_segment || 0,
+        transport_segment: computedTransportSegment,
+        transport_segments: normalizeTransportSegments(selectedProject.transport_segments),
         transport_total: selectedProject.transport_total || 0,
         installation_cost: selectedProject.installation_cost || 0,
         subsidy_application: selectedProject.subsidy_application || 0,
         misc_dept_charges: selectedProject.misc_dept_charges || 0,
-        dept_charges: selectedProject.dept_charges || 0,
+        dept_charges: deptChargesFinal,
+        dept_charges_segments: normalizeTransportSegments(deptSegments),
         total_exp: totalExp,
         payment_received: selectedProject.payment_received || 0,
         pending_payment: selectedProject.pending_payment || 0,
@@ -624,7 +692,6 @@ const ProjectAnalysis = () => {
         project_id: selectedProject.project_id,
         project_start_date: selectedProject.project_start_date,
         completion_date: selectedProject.completion_date,
-        state: selectedProject.state,
         created_at: selectedProject.created_at,
         updated_at: new Date().toISOString(),
       };
@@ -1460,17 +1527,105 @@ const ProjectAnalysis = () => {
                     </FormControl>
 
                     <FormControl>
-                      <FormLabel fontSize="sm">Transport Segment (₹)</FormLabel>
-                      <Input
-                        type="number"
-                        value={selectedProject.transport_segment || 0}
-                        onChange={(e) =>
-                          setSelectedProject({
-                            ...selectedProject,
-                            transport_segment: parseFloat(e.target.value) || 0,
-                          })
-                        }
-                      />
+                      <FormLabel fontSize="sm">Transport Segments (₹)</FormLabel>
+                      <VStack align="stretch" spacing={3}>
+                        {normalizeTransportSegments(selectedProject.transport_segments).map((seg, idx) => (
+                          <HStack key={`${idx}-${seg.label}`} spacing={2} align="flex-start">
+                            <Input
+                              placeholder="Element text (e.g., ETTX / DD element)"
+                              value={seg.label}
+                              onChange={(e) =>
+                                setSelectedProject((prev) => {
+                                  if (!prev) return prev;
+                                  const current = normalizeTransportSegments(prev.transport_segments);
+                                  const next = current.map((x, i) =>
+                                    i === idx ? { ...x, label: e.target.value } : x
+                                  );
+                                  const nextSum = sumTransportSegments(next);
+                                  return {
+                                    ...prev,
+                                    transport_segments: next,
+                                    transport_segment: nextSum,
+                                  };
+                                })
+                              }
+                            />
+                            <Input
+                              type="number"
+                              placeholder="Amount"
+                              value={seg.amount}
+                              w="160px"
+                              onChange={(e) =>
+                                setSelectedProject((prev) => {
+                                  if (!prev) return prev;
+                                  const current = normalizeTransportSegments(prev.transport_segments);
+                                  const amt = parseFloat(e.target.value) || 0;
+                                  const next = current.map((x, i) =>
+                                    i === idx ? { ...x, amount: amt } : x
+                                  );
+                                  const nextSum = sumTransportSegments(next);
+                                  return {
+                                    ...prev,
+                                    transport_segments: next,
+                                    transport_segment: nextSum,
+                                  };
+                                })
+                              }
+                            />
+                            <IconButton
+                              aria-label="Remove transport element"
+                              icon={<DeleteIcon />}
+                              size="sm"
+                              variant="ghost"
+                              colorScheme="red"
+                              onClick={() =>
+                                setSelectedProject((prev) => {
+                                  if (!prev) return prev;
+                                  const current = normalizeTransportSegments(prev.transport_segments);
+                                  const next = current.filter((_, i) => i !== idx);
+                                  const nextSum = sumTransportSegments(next);
+                                  return {
+                                    ...prev,
+                                    transport_segments: next,
+                                    transport_segment: nextSum,
+                                  };
+                                })
+                              }
+                            />
+                          </HStack>
+                        ))}
+
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          colorScheme="green"
+                          onClick={() =>
+                            setSelectedProject((prev) => {
+                              if (!prev) return prev;
+                              const current = normalizeTransportSegments(prev.transport_segments);
+                              const next =
+                                current.length === 0
+                                  ? [{ label: '', amount: prev.transport_segment || 0 }]
+                                  : [...current, { label: '', amount: 0 }];
+                              const nextSum = sumTransportSegments(next);
+                              return {
+                                ...prev,
+                                transport_segments: next,
+                                transport_segment: nextSum,
+                              };
+                            })
+                          }
+                        >
+                          + Add element
+                        </Button>
+
+                        <HStack justify="space-between">
+                          <Text fontSize="sm" color="gray.600">Transport Segment Total</Text>
+                          <Text fontSize="sm" fontWeight="bold" color="gray.800">
+                            ₹{sumTransportSegments(selectedProject.transport_segments).toLocaleString()}
+                          </Text>
+                        </HStack>
+                      </VStack>
                     </FormControl>
 
                     <FormControl>
@@ -1531,16 +1686,107 @@ const ProjectAnalysis = () => {
 
                     <FormControl>
                       <FormLabel fontSize="sm">Dept Charges (₹)</FormLabel>
-                      <Input
-                        type="number"
-                        value={selectedProject.dept_charges || 0}
-                        onChange={(e) =>
-                          setSelectedProject({
-                            ...selectedProject,
-                            dept_charges: parseFloat(e.target.value) || 0,
-                          })
-                        }
-                      />
+                      <VStack align="stretch" spacing={3}>
+                        {normalizeTransportSegments(selectedProject.dept_charges_segments).map((seg, idx) => (
+                          <HStack key={`${idx}-${seg.label}`} spacing={2} align="flex-start">
+                            <Input
+                              placeholder="Element text (e.g., Dept head)"
+                              value={seg.label}
+                              onChange={(e) =>
+                                setSelectedProject((prev) => {
+                                  if (!prev) return prev;
+                                  const current = normalizeTransportSegments(prev.dept_charges_segments);
+                                  const next = current.map((x, i) =>
+                                    i === idx ? { ...x, label: e.target.value } : x
+                                  );
+                                  const nextSum = sumTransportSegments(next);
+                                  return {
+                                    ...prev,
+                                    dept_charges_segments: next,
+                                    dept_charges: nextSum,
+                                  };
+                                })
+                              }
+                            />
+                            <Input
+                              type="number"
+                              placeholder="Amount"
+                              value={seg.amount}
+                              w="160px"
+                              onChange={(e) =>
+                                setSelectedProject((prev) => {
+                                  if (!prev) return prev;
+                                  const current = normalizeTransportSegments(prev.dept_charges_segments);
+                                  const amt = parseFloat(e.target.value) || 0;
+                                  const next = current.map((x, i) =>
+                                    i === idx ? { ...x, amount: amt } : x
+                                  );
+                                  const nextSum = sumTransportSegments(next);
+                                  return {
+                                    ...prev,
+                                    dept_charges_segments: next,
+                                    dept_charges: nextSum,
+                                  };
+                                })
+                              }
+                            />
+                            <IconButton
+                              aria-label="Remove dept charge element"
+                              icon={<DeleteIcon />}
+                              size="sm"
+                              variant="ghost"
+                              colorScheme="red"
+                              onClick={() =>
+                                setSelectedProject((prev) => {
+                                  if (!prev) return prev;
+                                  const current = normalizeTransportSegments(prev.dept_charges_segments);
+                                  const next = current.filter((_, i) => i !== idx);
+                                  const nextSum = sumTransportSegments(next);
+                                  return {
+                                    ...prev,
+                                    dept_charges_segments: next,
+                                    dept_charges: nextSum,
+                                  };
+                                })
+                              }
+                            />
+                          </HStack>
+                        ))}
+
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          colorScheme="green"
+                          onClick={() =>
+                            setSelectedProject((prev) => {
+                              if (!prev) return prev;
+                              const current = normalizeTransportSegments(prev.dept_charges_segments);
+                              const next =
+                                current.length === 0
+                                  ? [{ label: '', amount: prev.dept_charges || 0 }]
+                                  : [...current, { label: '', amount: 0 }];
+                              const nextSum = sumTransportSegments(next);
+                              return {
+                                ...prev,
+                                dept_charges_segments: next,
+                                dept_charges: nextSum,
+                              };
+                            })
+                          }
+                        >
+                          + Add element
+                        </Button>
+
+                        <HStack justify="space-between">
+                          <Text fontSize="sm" color="gray.600">Dept Charges Total</Text>
+                          <Text fontSize="sm" fontWeight="bold" color="gray.800">
+                            ₹
+                            {normalizeTransportSegments(selectedProject.dept_charges_segments).length > 0
+                              ? sumTransportSegments(selectedProject.dept_charges_segments).toLocaleString()
+                              : (selectedProject.dept_charges || 0).toLocaleString()}
+                          </Text>
+                        </HStack>
+                      </VStack>
                     </FormControl>
 
                     <FormControl>
