@@ -105,6 +105,33 @@ const getProjectBucket = (project: ProjectData): 'TG' | 'AP' | 'Chitoor' | 'Othe
   return 'Other';
 };
 
+const calculateTotalExpenses = (project: ProjectData): number => {
+  return (
+    (project.application_charges || 0) +
+    (project.modules_cost || 0) +
+    (project.inverter_cost || 0) +
+    (project.structure_cost || 0) +
+    (project.hardware_cost || 0) +
+    (project.electrical_equipment || 0) +
+    (project.transport_segment || 0) +
+    (project.transport_total || 0) +
+    (project.installation_cost || 0) +
+    (project.subsidy_application || 0) +
+    (project.misc_dept_charges || 0) +
+    (project.dept_charges || 0)
+  );
+};
+
+const calculateProfitRightNow = (project: ProjectData): number => {
+  const totalExp = calculateTotalExpenses(project);
+  return (project.payment_received || 0) - totalExp;
+};
+
+const calculateOverallProfit = (project: ProjectData): number => {
+  const totalExp = calculateTotalExpenses(project);
+  return (project.total_quoted_cost || 0) - totalExp;
+};
+
 const ProjectAnalysis = () => {
   const params = useParams();
   const { isAuthenticated } = useAuth();
@@ -564,15 +591,47 @@ const ProjectAnalysis = () => {
     if (!selectedProject) return;
 
     try {
+      // Calculate totals automatically
+      const totalExp = calculateTotalExpenses(selectedProject);
+      const profitRightNow = calculateProfitRightNow(selectedProject);
+      const overallProfit = calculateOverallProfit(selectedProject);
+
+      // Only include columns that exist in the database schema
+      const projectDataToSave = {
+        id: selectedProject.id,
+        sl_no: selectedProject.sl_no,
+        customer_name: selectedProject.customer_name,
+        mobile_no: selectedProject.mobile_no,
+        project_capacity: selectedProject.project_capacity,
+        total_quoted_cost: selectedProject.total_quoted_cost,
+        application_charges: selectedProject.application_charges || 0,
+        modules_cost: selectedProject.modules_cost || 0,
+        inverter_cost: selectedProject.inverter_cost || 0,
+        structure_cost: selectedProject.structure_cost || 0,
+        hardware_cost: selectedProject.hardware_cost || 0,
+        electrical_equipment: selectedProject.electrical_equipment || 0,
+        transport_segment: selectedProject.transport_segment || 0,
+        transport_total: selectedProject.transport_total || 0,
+        installation_cost: selectedProject.installation_cost || 0,
+        subsidy_application: selectedProject.subsidy_application || 0,
+        misc_dept_charges: selectedProject.misc_dept_charges || 0,
+        dept_charges: selectedProject.dept_charges || 0,
+        total_exp: totalExp,
+        payment_received: selectedProject.payment_received || 0,
+        pending_payment: selectedProject.pending_payment || 0,
+        profit_right_now: profitRightNow,
+        overall_profit: overallProfit,
+        project_id: selectedProject.project_id,
+        project_start_date: selectedProject.project_start_date,
+        completion_date: selectedProject.completion_date,
+        state: selectedProject.state,
+        created_at: selectedProject.created_at,
+        updated_at: new Date().toISOString(),
+      };
+
       const { error } = await supabase
         .from('project_analysis')
-        .upsert(
-          {
-            ...selectedProject,
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: 'id' }
-        );
+        .upsert(projectDataToSave, { onConflict: 'id' });
 
       if (error) {
         const errorCode = (error as any)?.code;
@@ -582,7 +641,8 @@ const ProjectAnalysis = () => {
       }
 
       // Update local state with the saved project
-      setProjectData(projectData.map(p => p.id === selectedProject.id ? selectedProject : p));
+      const updatedProject = { ...selectedProject, ...projectDataToSave };
+      setProjectData(projectData.map(p => p.id === selectedProject.id ? updatedProject : p));
 
       toast({
         title: 'Success',
@@ -1487,13 +1547,9 @@ const ProjectAnalysis = () => {
                       <FormLabel fontSize="sm">Total Exp (₹)</FormLabel>
                       <Input
                         type="number"
-                        value={selectedProject.total_exp || 0}
-                        onChange={(e) =>
-                          setSelectedProject({
-                            ...selectedProject,
-                            total_exp: parseFloat(e.target.value) || 0,
-                          })
-                        }
+                        value={calculateTotalExpenses(selectedProject)}
+                        isReadOnly
+                        bg="gray.100"
                       />
                     </FormControl>
 
@@ -1529,13 +1585,9 @@ const ProjectAnalysis = () => {
                       <FormLabel fontSize="sm">Profit Right Now (₹)</FormLabel>
                       <Input
                         type="number"
-                        value={selectedProject.profit_right_now || 0}
-                        onChange={(e) =>
-                          setSelectedProject({
-                            ...selectedProject,
-                            profit_right_now: parseFloat(e.target.value) || 0,
-                          })
-                        }
+                        value={calculateProfitRightNow(selectedProject)}
+                        isReadOnly
+                        bg="gray.100"
                       />
                     </FormControl>
 
@@ -1543,13 +1595,9 @@ const ProjectAnalysis = () => {
                       <FormLabel fontSize="sm">Overall Profit (₹)</FormLabel>
                       <Input
                         type="number"
-                        value={selectedProject.overall_profit || 0}
-                        onChange={(e) =>
-                          setSelectedProject({
-                            ...selectedProject,
-                            overall_profit: parseFloat(e.target.value) || 0,
-                          })
-                        }
+                        value={calculateOverallProfit(selectedProject)}
+                        isReadOnly
+                        bg="gray.100"
                       />
                     </FormControl>
                   </VStack>
