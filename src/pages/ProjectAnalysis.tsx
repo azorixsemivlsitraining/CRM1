@@ -696,9 +696,18 @@ const ProjectAnalysis = () => {
         updated_at: new Date().toISOString(),
       };
 
-      const { error } = await supabase
+      let { error } = await supabase
         .from('project_analysis')
         .upsert(projectDataToSave, { onConflict: 'id' });
+
+      // Backward compatibility: some DBs do not yet have `dept_charges_segments`.
+      if (error && String((error as any)?.message || '').includes("dept_charges_segments")) {
+        const { dept_charges_segments, ...legacyPayload } = projectDataToSave;
+        const retry = await supabase
+          .from('project_analysis')
+          .upsert(legacyPayload, { onConflict: 'id' });
+        error = retry.error;
+      }
 
       if (error) {
         const errorCode = (error as any)?.code;
