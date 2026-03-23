@@ -604,9 +604,12 @@ const ProjectAnalysis = () => {
         updated_at: new Date().toISOString(),
       };
 
+      // Remove payment_dates as it's not a column in the database
+      const { payment_dates, ...projectDataToSave } = projectToSave;
+
       const { error } = await supabase
         .from('project_analysis')
-        .upsert(projectToSave, { onConflict: 'id' });
+        .upsert(projectDataToSave, { onConflict: 'id' });
 
       if (error) {
         const errorCode = (error as any)?.code;
