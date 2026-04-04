@@ -31,8 +31,6 @@ import {
   SimpleGrid,
   useColorModeValue,
   Circle,
-  Accordion,
-  AccordionItem,
   AccordionButton,
   AccordionPanel,
   AccordionIcon,

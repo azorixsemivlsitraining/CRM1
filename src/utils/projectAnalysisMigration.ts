@@ -74,7 +74,7 @@ export const migrateProjectsToAnalysis = async (): Promise<MigrationResult> => {
     }));
 
     // Step 3: Insert all records into project_analysis
-    const { data: insertedData, error: insertError } = await supabase
+    const { error: insertError } = await supabase
       .from('project_analysis')
       .insert(analysisData)
       .select();
