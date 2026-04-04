@@ -29,7 +29,6 @@ import {
   Stat,
   StatLabel,
   StatNumber,
-  StatGroup,
   Badge,
   Wrap,
   WrapItem,
@@ -87,6 +86,7 @@ const CSA: React.FC = () => {
   const cardBg = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
   const titleColor = useColorModeValue('gray.700', 'gray.200');
+  const ratingBoxBg = useColorModeValue('gray.50', 'gray.700');
   const canAccessCsa = ['gopi@axisogreen.in', 'admin@axisogreen.in'].includes(user?.email?.toLowerCase() || '');
 
   useEffect(() => {
@@ -254,7 +254,7 @@ const CSA: React.FC = () => {
                       </Heading>
                       <VStack spacing={5} align="stretch">
                         {ratingFields.map((field) => (
-                          <Box key={field.key} p={3} borderRadius="lg" bg={useColorModeValue('gray.50', 'gray.700')}>
+                          <Box key={field.key} p={3} borderRadius="lg" bg={ratingBoxBg}>
                             <Text fontWeight="semibold" mb={3}>{field.label}</Text>
                             <RadioGroup value={form[field.key as keyof CsaFormState]} onChange={(value) => handleChange(field.key as keyof CsaFormState, value)}>
                               <Stack direction="row" spacing={3} flexWrap="wrap">
@@ -366,7 +366,7 @@ const CSA: React.FC = () => {
                             };
                             const percentage = (avg / 5) * 100;
                             return (
-                              <Box key={field} p={3} borderRadius="lg" bg={useColorModeValue('gray.50', 'gray.700')}>
+                              <Box key={field} p={3} borderRadius="lg" bg={ratingBoxBg}>
                                 <HStack justify="space-between" mb={2}>
                                   <Text fontWeight="semibold">{labels[field]}</Text>
                                   <HStack>
@@ -391,13 +391,16 @@ const CSA: React.FC = () => {
                           {Object.entries(wordFrequency).length > 0 ? (
                             <>
                               <Wrap spacing={2}>
-                                {Object.entries(wordFrequency).map(([word, count]) => (
-                                  <WrapItem key={word}>
-                                    <Badge colorScheme={count >= 5 ? 'red' : count >= 3 ? 'orange' : 'blue'} fontSize="md" px={3} py={1}>
-                                      {word} <Text as="span" ml={1} fontWeight="bold">×{count}</Text>
-                                    </Badge>
-                                  </WrapItem>
-                                ))}
+                                {Object.entries(wordFrequency).map(([word, count]) => {
+                                  const numCount = count as unknown as number;
+                                  return (
+                                    <WrapItem key={word}>
+                                      <Badge colorScheme={numCount >= 5 ? 'red' : numCount >= 3 ? 'orange' : 'blue'} fontSize="md" px={3} py={1}>
+                                        {word} ×{numCount}
+                                      </Badge>
+                                    </WrapItem>
+                                  );
+                                })}
                               </Wrap>
                             </>
                           ) : (

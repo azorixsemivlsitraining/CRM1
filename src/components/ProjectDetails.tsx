@@ -1,5 +1,5 @@
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { generatePaymentReceiptPDF } from './PaymentReceipt';
 import { Spinner } from '@chakra-ui/react';
 
@@ -188,7 +188,7 @@ const [paymentMode, setPaymentMode] = useState(() => {
   });
 
   // Prefill project edit form when opening
-  const handleProjectEditOpen = () => {
+  const handleProjectEditOpen = useCallback(() => {
     if (project) {
       setProjectEditForm({
         name: project.name || '',
@@ -206,7 +206,7 @@ const [paymentMode, setPaymentMode] = useState(() => {
       });
     }
     onProjectEditOpen();
-  };
+  }, [project, onProjectEditOpen]);
 
   const fetchProjectAndPayments = React.useCallback(async () => {
     if (!id) return;
@@ -382,22 +382,22 @@ const [paymentMode, setPaymentMode] = useState(() => {
   }
 }, [project, isEditOpen]);
 
-// Reset form data when opening the modal
-const handleEditOpen = () => {
-  if (project) {
-    setCustomerFormData({
-      customer_name: project.customer_name || '',
-      email: project.email || '',
-      phone: project.phone || '',
-      address: project.address || '',
-      kwh: project.kwh || 0,
-      loan_amount: project.loan_amount || 0,
-      start_date: project.start_date || '',
-      dealing_personal: project.dealing_personal || 'Yellesh',
-    });
-  }
-  onEditOpen();
-};
+  // Reset form data when opening the modal
+  const handleEditOpen = useCallback(() => {
+    if (project) {
+      setCustomerFormData({
+        customer_name: project.customer_name || '',
+        email: project.email || '',
+        phone: project.phone || '',
+        address: project.address || '',
+        kwh: project.kwh || 0,
+        loan_amount: project.loan_amount || 0,
+        start_date: project.start_date || '',
+        dealing_personal: project.dealing_personal || 'Yellesh',
+      });
+    }
+    onEditOpen();
+  }, [project, onEditOpen]);
 
 const location = useLocation();
 useEffect(() => {
@@ -408,7 +408,7 @@ useEffect(() => {
   } else if (edit === 'project') {
     handleProjectEditOpen();
   }
-}, [location.search, handleEditOpen, handleProjectEditOpen]);
+}, [location.search]);
 
 const handleCustomerFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
   const { name, value } = e.target;
