@@ -64,7 +64,7 @@ const Welcome: React.FC = () => {
     { label: 'Logistics', description: 'Dispatches and deliveries', icon: '🚚', to: '/logistics' },
     { label: 'Modules & Inventory', description: 'Module listings and intake', icon: '📦', to: '/logistics/modules' },
   ];
-  const csaTile: Tile[] = user?.email?.toLowerCase() === 'gopi@axisogreen.in'
+  const csaTile: Tile[] = ['gopi@axisogreen.in', 'admin@axisogreen.in'].includes(user?.email?.toLowerCase() || '')
     ? [{ label: 'CSA', description: 'Capture customer satisfaction feedback', icon: '📝', to: '/csa' }]
     : [];
 
