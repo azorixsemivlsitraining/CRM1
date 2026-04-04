@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Box,
   Button,
@@ -20,6 +20,7 @@ import {
   useToast,
   VStack,
 } from '@chakra-ui/react';
+import { useLocation } from 'react-router-dom';
 
 interface CsaFormState {
   customerName: string;
@@ -62,9 +63,24 @@ const ratingOptions = ['1', '2', '3', '4', '5'];
 const CSA: React.FC = () => {
   const [form, setForm] = useState<CsaFormState>(initialFormState);
   const toast = useToast();
+  const location = useLocation();
   const cardBg = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
   const titleColor = useColorModeValue('gray.700', 'gray.200');
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const nextValues = {
+      customerName: params.get('customerName') || '',
+      contactNumber: params.get('contactNumber') || '',
+      projectLocation: params.get('projectLocation') || '',
+      projectManager: params.get('projectManager') || '',
+    };
+
+    if (Object.values(nextValues).some(Boolean)) {
+      setForm((current) => ({ ...current, ...nextValues }));
+    }
+  }, [location.search]);
 
   const ratingFields = useMemo(
     () => [
