@@ -467,7 +467,7 @@ const ChitoorProjectsTile = ({
         try {
           const ids = (data ?? []).map((p: any) => p.id).filter(Boolean);
           if (ids.length > 0) {
-            const { data: imgs } = await supabase
+            await supabase
               .from('project_images')
               .select('*')
               .in('project_id', ids)
