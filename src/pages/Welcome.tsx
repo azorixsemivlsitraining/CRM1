@@ -46,7 +46,6 @@ const tiles: Tile[] = [
   { label: 'Finance', description: 'Billing, payments and receipts', icon: '💰', to: '/finance' },
   { label: 'HR', description: 'User access and team management', icon: '👥', to: '/hr' },
   { label: 'Admin Settings', description: 'System configuration and controls', icon: '⚙️', to: '/admin' },
-  { label: 'CSA', description: 'Capture customer satisfaction feedback', icon: '📝', to: '/csa' },
 ];
 
 const Welcome: React.FC = () => {
@@ -65,6 +64,9 @@ const Welcome: React.FC = () => {
     { label: 'Logistics', description: 'Dispatches and deliveries', icon: '🚚', to: '/logistics' },
     { label: 'Modules & Inventory', description: 'Module listings and intake', icon: '📦', to: '/logistics/modules' },
   ];
+  const csaTile: Tile[] = user?.email?.toLowerCase() === 'gopi@axisogreen.in'
+    ? [{ label: 'CSA', description: 'Capture customer satisfaction feedback', icon: '📝', to: '/csa' }]
+    : [];
 
   const renderTile = (tile: Tile, isMobileVariant: boolean) => {
     if (tile.label === 'Chitoor Projects') {
@@ -198,13 +200,13 @@ const Welcome: React.FC = () => {
       <Text fontSize="xs" color={titleColor} mb={2} display={{ base: 'block', lg: 'none' }}>Swipe to explore modules →</Text>
       <Box display={{ base: 'block', lg: 'none' }} overflowX="auto" pb={2} className="mobile-tiles-scroll" sx={{ scrollbarWidth: 'thin', WebkitOverflowScrolling: 'touch' }}>
         <Flex gap={4} minW="max-content" pr={2}>
-          {tiles.map((tile) => renderTile(tile, true))}
+          {[...tiles, ...csaTile].map((tile) => renderTile(tile, true))}
         </Flex>
       </Box>
 
       {/* Desktop/Tablet: grid tiles */}
       <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={5} display={{ base: 'none', lg: 'grid' }}>
-        {tiles.map((tile) => renderTile(tile, false))}
+        {[...tiles, ...csaTile].map((tile) => renderTile(tile, false))}
       </SimpleGrid>
 
       <Divider my={8} />

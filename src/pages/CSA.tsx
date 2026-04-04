@@ -21,6 +21,7 @@ import {
   VStack,
 } from '@chakra-ui/react';
 import { useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 interface CsaFormState {
   customerName: string;
@@ -64,9 +65,11 @@ const CSA: React.FC = () => {
   const [form, setForm] = useState<CsaFormState>(initialFormState);
   const toast = useToast();
   const location = useLocation();
+  const { user } = useAuth();
   const cardBg = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
   const titleColor = useColorModeValue('gray.700', 'gray.200');
+  const canAccessCsa = user?.email?.toLowerCase() === 'gopi@axisogreen.in';
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -108,6 +111,21 @@ const CSA: React.FC = () => {
       isClosable: true,
     });
   };
+
+  if (!canAccessCsa) {
+    return (
+      <Card bg={cardBg} border="1px solid" borderColor={borderColor} borderRadius="xl" boxShadow="sm">
+        <CardBody py={10} textAlign="center">
+          <Heading size="lg" color="red.500" mb={3}>
+            Access denied
+          </Heading>
+          <Text color={titleColor}>
+            CSA is available only for gopi@axisogreen.in.
+          </Text>
+        </CardBody>
+      </Card>
+    );
+  }
 
   return (
     <Box>
