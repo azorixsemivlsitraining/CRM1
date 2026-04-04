@@ -69,7 +69,7 @@ const CSA: React.FC = () => {
   const cardBg = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
   const titleColor = useColorModeValue('gray.700', 'gray.200');
-  const canAccessCsa = user?.email?.toLowerCase() === 'gopi@axisogreen.in';
+  const canAccessCsa = ['gopi@axisogreen.in', 'admin@axisogreen.in'].includes(user?.email?.toLowerCase() || '');
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -120,7 +120,7 @@ const CSA: React.FC = () => {
             Access denied
           </Heading>
           <Text color={titleColor}>
-            CSA is available only for gopi@axisogreen.in.
+            CSA is available only for authorized users.
           </Text>
         </CardBody>
       </Card>
