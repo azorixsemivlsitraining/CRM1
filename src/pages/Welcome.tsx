@@ -46,6 +46,7 @@ const tiles: Tile[] = [
   { label: 'Finance', description: 'Billing, payments and receipts', icon: '💰', to: '/finance' },
   { label: 'HR', description: 'User access and team management', icon: '👥', to: '/hr' },
   { label: 'Admin Settings', description: 'System configuration and controls', icon: '⚙️', to: '/admin' },
+  { label: 'CSA', description: 'Capture customer satisfaction feedback', icon: '📝', to: '/csa' },
 ];
 
 const Welcome: React.FC = () => {
