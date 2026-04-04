@@ -14,6 +14,7 @@ import Finance from './pages/Finance';
 import Payments from './pages/Payments';
 import TaxInvoice from './pages/TaxInvoice';
 import ServiceTickets from './pages/ServiceTickets';
+import CSA from './pages/CSA';
 import TelanganaProjects from './pages/TelanganaProjects';
 import APProjects from './pages/APProjects';
 import ChitoorProjects from './pages/ChitoorProjects';
@@ -100,12 +101,16 @@ const App: React.FC = () => {
                 }
               />
               <Route
-                path="/welcome"
+                path="/home"
                 element={
                   <PrivateRoute>
                     <Welcome />
                   </PrivateRoute>
                 }
+              />
+              <Route
+                path="/welcome"
+                element={<Navigate to="/home" replace />}
               />
               <Route
                 path="/dashboard/tg"
@@ -320,6 +325,16 @@ const App: React.FC = () => {
                         <ServiceTickets />
                       </Layout>
                     </ModuleGuard>
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/csa"
+                element={
+                  <PrivateRoute>
+                    <Layout>
+                      <CSA />
+                    </Layout>
                   </PrivateRoute>
                 }
               />

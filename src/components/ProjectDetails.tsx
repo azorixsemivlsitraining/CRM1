@@ -312,6 +312,19 @@ const [paymentMode, setPaymentMode] = useState(() => {
     }
   };
 
+  const handleOpenCSA = () => {
+    if (!project) return;
+
+    const params = new URLSearchParams({
+      customerName: project.customer_name || '',
+      contactNumber: project.phone || '',
+      projectLocation: project.address || '',
+      projectManager: project.dealing_personal || '',
+    });
+
+    navigate(`/csa?${params.toString()}`);
+  };
+
   // Add useEffect for timestamp updates
   useEffect(() => {
     const interval = setInterval(() => {
@@ -653,6 +666,14 @@ return (
                 size="sm"
               >
                 Edit Customer
+              </Button>
+              <Button
+                colorScheme="purple"
+                variant="outline"
+                onClick={handleOpenCSA}
+                size="sm"
+              >
+                CSA
               </Button>
               <Button
                 leftIcon={<EditIcon />}
