@@ -237,6 +237,64 @@ const CSA: React.FC = () => {
   const averageRatings = calculateAverageRatings();
   const wordFrequency = extractWordFrequency();
 
+  const renderReportsTable = () => {
+    if (submissions.length === 0) {
+      return null;
+    }
+
+    return (
+      <Box>
+        <Heading size="md" color="brand.600" mb={4}>
+          📋 CSA Reports
+        </Heading>
+        <Box overflowX="auto" border="1px solid" borderColor={borderColor} borderRadius="lg">
+          <Table variant="simple">
+            <Thead bg={ratingBoxBg}>
+              <Tr>
+                <Th>Customer</Th>
+                <Th>Location</Th>
+                <Th>Project Manager</Th>
+                <Th>Overall</Th>
+                <Th>Recommend</Th>
+                <Th>Testimonial</Th>
+                <Th>Actions</Th>
+              </Tr>
+            </Thead>
+            <Tbody>
+              {submissions.map((submission, index) => (
+                <Tr key={`${submission.customerName}-${index}`}>
+                  <Td>
+                    <Text fontWeight="semibold">{submission.customerName || '-'}</Text>
+                    <Text fontSize="sm" color={titleColor}>{submission.contactNumber || '-'}</Text>
+                  </Td>
+                  <Td>{submission.projectLocation || '-'}</Td>
+                  <Td>{submission.projectManager || '-'}</Td>
+                  <Td>{submission.overallSatisfaction || '-'}</Td>
+                  <Td>
+                    <Badge colorScheme={submission.wouldRecommend === 'Yes' ? 'green' : 'red'}>{submission.wouldRecommend || '-'}</Badge>
+                  </Td>
+                  <Td>
+                    <Badge colorScheme={submission.permissionToUseTestimonial === 'Yes' ? 'blue' : 'gray'}>{submission.permissionToUseTestimonial || '-'}</Badge>
+                  </Td>
+                  <Td>
+                    <HStack spacing={2}>
+                      <Button size="sm" variant="outline" borderColor={borderColor} onClick={() => handleEditSubmission(submission, index)}>
+                        Edit
+                      </Button>
+                      <Button size="sm" colorScheme="red" variant="outline" onClick={() => handleDeleteSubmission(index)}>
+                        Delete
+                      </Button>
+                    </HStack>
+                  </Td>
+                </Tr>
+              ))}
+            </Tbody>
+          </Table>
+        </Box>
+      </Box>
+    );
+  };
+
   return (
     <Box>
       <Card bg={cardBg} border="1px solid" borderColor={borderColor} borderRadius="xl" boxShadow="sm">
@@ -384,6 +442,13 @@ const CSA: React.FC = () => {
                         {submissions.length} submissions received
                       </Text>
                     </Stack>
+
+                    {submissions.length > 0 && (
+                      <>
+                        <Divider />
+                        {renderReportsTable()}
+                      </>
+                    )}
                   </VStack>
                 </Box>
               </TabPanel>
@@ -398,55 +463,7 @@ const CSA: React.FC = () => {
                     </Box>
                   ) : (
                     <VStack spacing={6} align="stretch">
-                      <Box>
-                        <Heading size="md" color="brand.600" mb={4}>
-                          📋 CSA Reports
-                        </Heading>
-                        <Box overflowX="auto" border="1px solid" borderColor={borderColor} borderRadius="lg">
-                          <Table variant="simple">
-                            <Thead bg={ratingBoxBg}>
-                              <Tr>
-                                <Th>Customer</Th>
-                                <Th>Location</Th>
-                                <Th>Project Manager</Th>
-                                <Th>Overall</Th>
-                                <Th>Recommend</Th>
-                                <Th>Testimonial</Th>
-                                <Th>Actions</Th>
-                              </Tr>
-                            </Thead>
-                            <Tbody>
-                              {submissions.map((submission, index) => (
-                                <Tr key={`${submission.customerName}-${index}`}>
-                                  <Td>
-                                    <Text fontWeight="semibold">{submission.customerName || '-'}</Text>
-                                    <Text fontSize="sm" color={titleColor}>{submission.contactNumber || '-'}</Text>
-                                  </Td>
-                                  <Td>{submission.projectLocation || '-'}</Td>
-                                  <Td>{submission.projectManager || '-'}</Td>
-                                  <Td>{submission.overallSatisfaction || '-'}</Td>
-                                  <Td>
-                                    <Badge colorScheme={submission.wouldRecommend === 'Yes' ? 'green' : 'red'}>{submission.wouldRecommend || '-'}</Badge>
-                                  </Td>
-                                  <Td>
-                                    <Badge colorScheme={submission.permissionToUseTestimonial === 'Yes' ? 'blue' : 'gray'}>{submission.permissionToUseTestimonial || '-'}</Badge>
-                                  </Td>
-                                  <Td>
-                                    <HStack spacing={2}>
-                                      <Button size="sm" variant="outline" borderColor={borderColor} onClick={() => handleEditSubmission(submission, index)}>
-                                        Edit
-                                      </Button>
-                                      <Button size="sm" colorScheme="red" variant="outline" onClick={() => handleDeleteSubmission(index)}>
-                                        Delete
-                                      </Button>
-                                    </HStack>
-                                  </Td>
-                                </Tr>
-                              ))}
-                            </Tbody>
-                          </Table>
-                        </Box>
-                      </Box>
+                      {renderReportsTable()}
 
                       <Divider />
 
