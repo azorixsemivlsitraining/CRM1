@@ -9,13 +9,21 @@ import {
   FormControl,
   FormLabel,
   Heading,
+  HStack,
   Input,
+  Progress,
   Radio,
   RadioGroup,
   SimpleGrid,
   Stack,
+  Table,
+  Tbody,
+  Td,
   Text,
   Textarea,
+  Th,
+  Thead,
+  Tr,
   useColorModeValue,
   useToast,
   VStack,
@@ -24,8 +32,6 @@ import {
   TabPanels,
   Tab,
   TabPanel,
-  Progress,
-  HStack,
   Stat,
   StatLabel,
   StatNumber,
@@ -80,6 +86,8 @@ const CSA: React.FC = () => {
     const saved = localStorage.getItem('csa_submissions');
     return saved ? JSON.parse(saved) : [];
   });
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState(0);
   const toast = useToast();
   const location = useLocation();
   const { user } = useAuth();
@@ -121,18 +129,52 @@ const CSA: React.FC = () => {
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
 
-    const newSubmissions = [...submissions, form];
-    setSubmissions(newSubmissions);
-    localStorage.setItem('csa_submissions', JSON.stringify(newSubmissions));
+    const nextSubmissions = editingIndex === null
+      ? [...submissions, form]
+      : submissions.map((submission, index) => (index === editingIndex ? form : submission));
+
+    setSubmissions(nextSubmissions);
+    localStorage.setItem('csa_submissions', JSON.stringify(nextSubmissions));
 
     setForm(initialFormState);
+    setEditingIndex(null);
+    setActiveTab(1);
     toast({
-      title: 'CSA form submitted',
+      title: editingIndex === null ? 'CSA form submitted' : 'CSA report updated',
       description: 'The customer satisfaction assessment has been saved successfully.',
       status: 'success',
       duration: 3500,
       isClosable: true,
     });
+  };
+
+  const handleEditSubmission = (submission: CsaFormState, index: number) => {
+    setForm(submission);
+    setEditingIndex(index);
+    setActiveTab(0);
+  };
+
+  const handleDeleteSubmission = (index: number) => {
+    const nextSubmissions = submissions.filter((_, submissionIndex) => submissionIndex !== index);
+    setSubmissions(nextSubmissions);
+    localStorage.setItem('csa_submissions', JSON.stringify(nextSubmissions));
+
+    if (editingIndex === index) {
+      setForm(initialFormState);
+      setEditingIndex(null);
+    }
+
+    toast({
+      title: 'CSA report deleted',
+      status: 'info',
+      duration: 3000,
+      isClosable: true,
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setForm(initialFormState);
+    setEditingIndex(null);
   };
 
   const calculateAverageRatings = () => {
@@ -195,6 +237,64 @@ const CSA: React.FC = () => {
   const averageRatings = calculateAverageRatings();
   const wordFrequency = extractWordFrequency();
 
+  const renderReportsTable = () => {
+    if (submissions.length === 0) {
+      return null;
+    }
+
+    return (
+      <Box>
+        <Heading size="md" color="brand.600" mb={4}>
+          📋 CSA Reports
+        </Heading>
+        <Box overflowX="auto" border="1px solid" borderColor={borderColor} borderRadius="lg">
+          <Table variant="simple">
+            <Thead bg={ratingBoxBg}>
+              <Tr>
+                <Th>Customer</Th>
+                <Th>Location</Th>
+                <Th>Project Manager</Th>
+                <Th>Overall</Th>
+                <Th>Recommend</Th>
+                <Th>Testimonial</Th>
+                <Th>Actions</Th>
+              </Tr>
+            </Thead>
+            <Tbody>
+              {submissions.map((submission, index) => (
+                <Tr key={`${submission.customerName}-${index}`}>
+                  <Td>
+                    <Text fontWeight="semibold">{submission.customerName || '-'}</Text>
+                    <Text fontSize="sm" color={titleColor}>{submission.contactNumber || '-'}</Text>
+                  </Td>
+                  <Td>{submission.projectLocation || '-'}</Td>
+                  <Td>{submission.projectManager || '-'}</Td>
+                  <Td>{submission.overallSatisfaction || '-'}</Td>
+                  <Td>
+                    <Badge colorScheme={submission.wouldRecommend === 'Yes' ? 'green' : 'red'}>{submission.wouldRecommend || '-'}</Badge>
+                  </Td>
+                  <Td>
+                    <Badge colorScheme={submission.permissionToUseTestimonial === 'Yes' ? 'blue' : 'gray'}>{submission.permissionToUseTestimonial || '-'}</Badge>
+                  </Td>
+                  <Td>
+                    <HStack spacing={2}>
+                      <Button size="sm" variant="outline" borderColor={borderColor} onClick={() => handleEditSubmission(submission, index)}>
+                        Edit
+                      </Button>
+                      <Button size="sm" colorScheme="red" variant="outline" onClick={() => handleDeleteSubmission(index)}>
+                        Delete
+                      </Button>
+                    </HStack>
+                  </Td>
+                </Tr>
+              ))}
+            </Tbody>
+          </Table>
+        </Box>
+      </Box>
+    );
+  };
+
   return (
     <Box>
       <Card bg={cardBg} border="1px solid" borderColor={borderColor} borderRadius="xl" boxShadow="sm">
@@ -207,7 +307,7 @@ const CSA: React.FC = () => {
           </Text>
         </CardHeader>
         <CardBody>
-          <Tabs variant="enclosed">
+          <Tabs variant="enclosed" index={activeTab} onChange={setActiveTab}>
             <TabList mb={4}>
               <Tab>CSA Form</Tab>
               <Tab>Analytics Report</Tab>
@@ -330,13 +430,25 @@ const CSA: React.FC = () => {
                     </Box>
 
                     <Stack direction={{ base: 'column', md: 'row' }} justify="flex-end" gap={3}>
+                      {editingIndex !== null && (
+                        <Button variant="outline" borderColor={borderColor} size="lg" onClick={handleCancelEdit}>
+                          Cancel Edit
+                        </Button>
+                      )}
                       <Button type="submit" colorScheme="brand" size="lg">
-                        Submit CSA
+                        {editingIndex === null ? 'Submit CSA' : 'Update CSA'}
                       </Button>
                       <Text fontSize="sm" color="gray.500" alignSelf="center">
                         {submissions.length} submissions received
                       </Text>
                     </Stack>
+
+                    {submissions.length > 0 && (
+                      <>
+                        <Divider />
+                        {renderReportsTable()}
+                      </>
+                    )}
                   </VStack>
                 </Box>
               </TabPanel>
@@ -350,7 +462,11 @@ const CSA: React.FC = () => {
                       <Text color={titleColor}>Submit CSA forms to view analytics reports.</Text>
                     </Box>
                   ) : (
-                    <>
+                    <VStack spacing={6} align="stretch">
+                      {renderReportsTable()}
+
+                      <Divider />
+
                       <Box>
                         <Heading size="md" color="brand.600" mb={5}>
                           📊 Average Ratings
@@ -434,7 +550,7 @@ const CSA: React.FC = () => {
                           </Stat>
                         </SimpleGrid>
                       </Box>
-                    </>
+                    </VStack>
                   )}
                 </VStack>
               </TabPanel>
