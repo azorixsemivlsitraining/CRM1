@@ -209,7 +209,7 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
       const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Supabase error:', (error as any)?.message || error, error);
+        console.error('Supabase error:', formatSupabaseError(error));
         toast({
           title: 'Error',
           description: `Failed to fetch projects. ${formatSupabaseError(error)}`,
@@ -279,7 +279,7 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
         cancelled: primaryTotals.cancelled + (canIncludeChitoor ? chitoorTotals.cancelled : 0),
       });
     } catch (error) {
-      console.error('Error fetching projects:', error);
+      console.error('Error fetching projects:', formatSupabaseError(error));
       toast({
         title: 'Error',
         description: `Failed to fetch projects. ${formatSupabaseError(error)}`,
@@ -568,7 +568,7 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
         .insert([projectData]);
 
       if (error) {
-        console.error('Supabase error:', (error as any)?.message || error, error);
+        console.error('Supabase error:', formatSupabaseError(error));
         toast({
           title: 'Error',
           description: `Failed to create project. ${formatSupabaseError(error)}`,

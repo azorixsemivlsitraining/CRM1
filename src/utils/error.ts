@@ -53,15 +53,20 @@ export function formatSupabaseError(error: any) {
     if (json && json !== '{}' && json !== 'null') return json;
   } catch {}
 
-  // Fallback: build a readable string from enumerable properties
+  // Fallback: build a readable string from all own properties, including non-enumerable ones
   try {
-    const parts = Object.entries(e).map(([k, v]) => {
+    const keys = Object.getOwnPropertyNames(e);
+    const parts = keys.map((k) => {
       try {
-        return `${k}: ${typeof v === 'string' ? v : safeStringify(v)}`;
+        const value = e[k];
+        if (value == null) {
+          return null;
+        }
+        return `${k}: ${typeof value === 'string' ? value : safeStringify(value)}`;
       } catch {
-        return `${k}: ${String(v)}`;
+        return `${k}: [unreadable]`;
       }
-    });
+    }).filter(Boolean);
     if (parts.length) return parts.join('; ');
   } catch {}
 
