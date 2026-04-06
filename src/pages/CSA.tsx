@@ -88,6 +88,8 @@ const CSA: React.FC = () => {
   });
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<'name' | 'location' | 'date'>('date');
   const toast = useToast();
   const location = useLocation();
   const { user } = useAuth();
@@ -121,6 +123,28 @@ const CSA: React.FC = () => {
     ],
     []
   );
+
+  const filteredAndSortedRecords = useMemo(() => {
+    let filtered = submissions.filter((submission) => {
+      const query = searchQuery.toLowerCase();
+      return (
+        submission.customerName.toLowerCase().includes(query) ||
+        submission.projectLocation.toLowerCase().includes(query) ||
+        submission.projectManager.toLowerCase().includes(query) ||
+        submission.contactNumber.toLowerCase().includes(query)
+      );
+    });
+
+    if (sortBy === 'name') {
+      filtered.sort((a, b) => a.customerName.localeCompare(b.customerName));
+    } else if (sortBy === 'location') {
+      filtered.sort((a, b) => a.projectLocation.localeCompare(b.projectLocation));
+    } else if (sortBy === 'date') {
+      filtered.reverse();
+    }
+
+    return filtered;
+  }, [submissions, searchQuery, sortBy]);
 
   const handleChange = (field: keyof CsaFormState, value: string) => {
     setForm((current) => ({ ...current, [field]: value }));
@@ -237,17 +261,56 @@ const CSA: React.FC = () => {
   const averageRatings = calculateAverageRatings();
   const wordFrequency = extractWordFrequency();
 
-  const renderReportsTable = () => {
-    if (submissions.length === 0) {
+  const renderReportsTable = (records: CsaFormState[], showControls = false) => {
+    if (records.length === 0) {
       return null;
     }
 
     return (
       <Box>
-        <Heading size="md" color="brand.600" mb={4}>
-          📋 CSA Reports
-        </Heading>
-        <Box overflowX="auto" border="1px solid" borderColor={borderColor} borderRadius="lg">
+        {showControls && (
+          <VStack spacing={4} mb={6} align="stretch">
+            <Box>
+              <Text fontWeight="semibold" mb={2} color={titleColor}>
+                Search Records
+              </Text>
+              <Input
+                placeholder="Search by customer name, location, manager, or contact..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                borderColor={borderColor}
+                focusBorderColor="brand.500"
+              />
+            </Box>
+            <Box>
+              <Text fontWeight="semibold" mb={2} color={titleColor}>
+                Sort By
+              </Text>
+              <HStack spacing={2}>
+                {(['name', 'location', 'date'] as const).map((option) => (
+                  <Button
+                    key={option}
+                    size="sm"
+                    variant={sortBy === option ? 'solid' : 'outline'}
+                    colorScheme={sortBy === option ? 'brand' : 'gray'}
+                    onClick={() => setSortBy(option)}
+                  >
+                    {option === 'name' && 'By Name'}
+                    {option === 'location' && 'By Location'}
+                    {option === 'date' && 'By Date'}
+                  </Button>
+                ))}
+              </HStack>
+            </Box>
+            {searchQuery && (
+              <Text fontSize="sm" color={titleColor}>
+                Found {records.length} of {submissions.length} records
+              </Text>
+            )}
+          </VStack>
+        )}
+
+        <Box overflowX="auto" border="1px solid" borderColor={borderColor} borderRadius="lg" boxShadow="sm">
           <Table variant="simple">
             <Thead bg={ratingBoxBg}>
               <Tr>
@@ -261,33 +324,40 @@ const CSA: React.FC = () => {
               </Tr>
             </Thead>
             <Tbody>
-              {submissions.map((submission, index) => (
-                <Tr key={`${submission.customerName}-${index}`}>
-                  <Td>
-                    <Text fontWeight="semibold">{submission.customerName || '-'}</Text>
-                    <Text fontSize="sm" color={titleColor}>{submission.contactNumber || '-'}</Text>
-                  </Td>
-                  <Td>{submission.projectLocation || '-'}</Td>
-                  <Td>{submission.projectManager || '-'}</Td>
-                  <Td>{submission.overallSatisfaction || '-'}</Td>
-                  <Td>
-                    <Badge colorScheme={submission.wouldRecommend === 'Yes' ? 'green' : 'red'}>{submission.wouldRecommend || '-'}</Badge>
-                  </Td>
-                  <Td>
-                    <Badge colorScheme={submission.permissionToUseTestimonial === 'Yes' ? 'blue' : 'gray'}>{submission.permissionToUseTestimonial || '-'}</Badge>
-                  </Td>
-                  <Td>
-                    <HStack spacing={2}>
-                      <Button size="sm" variant="outline" borderColor={borderColor} onClick={() => handleEditSubmission(submission, index)}>
-                        Edit
-                      </Button>
-                      <Button size="sm" colorScheme="red" variant="outline" onClick={() => handleDeleteSubmission(index)}>
-                        Delete
-                      </Button>
-                    </HStack>
-                  </Td>
-                </Tr>
-              ))}
+              {records.map((submission, index) => {
+                const actualIndex = submissions.indexOf(submission);
+                return (
+                  <Tr key={`${submission.customerName}-${actualIndex}`}>
+                    <Td>
+                      <Text fontWeight="semibold">{submission.customerName || '-'}</Text>
+                      <Text fontSize="sm" color={titleColor}>{submission.contactNumber || '-'}</Text>
+                    </Td>
+                    <Td>{submission.projectLocation || '-'}</Td>
+                    <Td>{submission.projectManager || '-'}</Td>
+                    <Td>
+                      <Badge colorScheme={parseInt(submission.overallSatisfaction || '0') >= 4 ? 'green' : parseInt(submission.overallSatisfaction || '0') >= 3 ? 'yellow' : 'red'}>
+                        {submission.overallSatisfaction || '-'}/5
+                      </Badge>
+                    </Td>
+                    <Td>
+                      <Badge colorScheme={submission.wouldRecommend === 'Yes' ? 'green' : 'red'}>{submission.wouldRecommend || '-'}</Badge>
+                    </Td>
+                    <Td>
+                      <Badge colorScheme={submission.permissionToUseTestimonial === 'Yes' ? 'blue' : 'gray'}>{submission.permissionToUseTestimonial || '-'}</Badge>
+                    </Td>
+                    <Td>
+                      <HStack spacing={2}>
+                        <Button size="sm" variant="outline" borderColor={borderColor} colorScheme="blue" onClick={() => handleEditSubmission(submission, actualIndex)}>
+                          Edit
+                        </Button>
+                        <Button size="sm" colorScheme="red" variant="outline" onClick={() => handleDeleteSubmission(actualIndex)}>
+                          Delete
+                        </Button>
+                      </HStack>
+                    </Td>
+                  </Tr>
+                );
+              })}
             </Tbody>
           </Table>
         </Box>
@@ -310,6 +380,7 @@ const CSA: React.FC = () => {
           <Tabs variant="enclosed" index={activeTab} onChange={setActiveTab}>
             <TabList mb={4}>
               <Tab>CSA Form</Tab>
+              <Tab>CSA Records</Tab>
               <Tab>Analytics Report</Tab>
             </TabList>
 
@@ -442,15 +513,30 @@ const CSA: React.FC = () => {
                         {submissions.length} submissions received
                       </Text>
                     </Stack>
-
-                    {submissions.length > 0 && (
-                      <>
-                        <Divider />
-                        {renderReportsTable()}
-                      </>
-                    )}
                   </VStack>
                 </Box>
+              </TabPanel>
+
+              {/* CSA Records Tab */}
+              <TabPanel>
+                {submissions.length === 0 ? (
+                  <Box textAlign="center" py={10}>
+                    <Heading size="md" color={titleColor} mb={2}>No Records Yet</Heading>
+                    <Text color={titleColor}>CSA records will appear here once you submit forms.</Text>
+                  </Box>
+                ) : (
+                  <VStack spacing={6} align="stretch">
+                    <Box>
+                      <Heading size="lg" color="brand.600" mb={2}>
+                        CSA Records
+                      </Heading>
+                      <Text color={titleColor} fontSize="sm">
+                        Manage and view all customer satisfaction assessments. Edit or delete records as needed.
+                      </Text>
+                    </Box>
+                    {renderReportsTable(filteredAndSortedRecords, true)}
+                  </VStack>
+                )}
               </TabPanel>
 
               {/* Analytics Tab */}
@@ -463,10 +549,6 @@ const CSA: React.FC = () => {
                     </Box>
                   ) : (
                     <VStack spacing={6} align="stretch">
-                      {renderReportsTable()}
-
-                      <Divider />
-
                       <Box>
                         <Heading size="md" color="brand.600" mb={5}>
                           📊 Average Ratings
