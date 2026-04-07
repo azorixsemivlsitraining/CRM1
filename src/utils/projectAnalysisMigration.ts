@@ -17,6 +17,11 @@ interface ProjectRow {
   updated_at: string;
 }
 
+const toNullableTimestamp = (value?: string | null) => {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : null;
+};
+
 /**
  * Migrate existing project data from the projects table to project_analysis table
  */
@@ -69,8 +74,8 @@ export const migrateProjectsToAnalysis = async (): Promise<MigrationResult> => {
       profit_right_now: 0,
       overall_profit: 0,
       project_id: project.id,
-      created_at: project.created_at,
-      updated_at: project.updated_at,
+      created_at: toNullableTimestamp(project.created_at),
+      updated_at: toNullableTimestamp(project.updated_at),
     }));
 
     // Step 3: Insert all records into project_analysis
