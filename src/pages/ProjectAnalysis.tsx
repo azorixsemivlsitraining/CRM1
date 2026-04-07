@@ -612,11 +612,22 @@ const ProjectAnalysis = () => {
   const checkAndInitializeData = async () => {
     try {
       const isEmpty = await checkProjectAnalysisEmpty();
+
+      // Always sync/migrate all projects to ensure project_analysis has complete data
+      // This will upsert all 220 projects and preserve already-updated analysis data
       if (isEmpty) {
+        console.log('Project analysis table is empty, running full migration...');
         setShowMigrationPrompt(true);
+        const result = await migrateProjectsToAnalysis();
+        if (result.success) {
+          console.log(`Migration completed: ${result.recordsMigrated} records`);
+        }
+      } else {
+        // Even if not empty, sync any new projects
+        console.log('Project analysis has data, syncing any new projects...');
+        await syncNewProjectsToAnalysis(toast);
       }
-      // Sync any new projects from source tables to analysis table
-      await syncNewProjectsToAnalysis(toast);
+
       await fetchProjectAnalysisData();
     } catch (error) {
       console.error('Error checking data:', error);
@@ -1034,13 +1045,37 @@ const ProjectAnalysis = () => {
                   <Button
                     leftIcon={<RepeatIcon />}
                     onClick={async () => {
-                      await syncNewProjectsToAnalysis(toast);
-                      await fetchProjectAnalysisData();
+                      setIsLoading(true);
+                      try {
+                        // Run full migration to ensure all 220 projects are in project_analysis
+                        const result = await migrateProjectsToAnalysis();
+                        if (result.success) {
+                          toast({
+                            title: 'Success',
+                            description: `Synced ${result.recordsMigrated} projects`,
+                            status: 'success',
+                            duration: 3,
+                            isClosable: true,
+                          });
+                        }
+                        await fetchProjectAnalysisData();
+                      } catch (error) {
+                        console.error('Error during fetch all:', error);
+                        toast({
+                          title: 'Error',
+                          description: 'Failed to sync projects',
+                          status: 'error',
+                          duration: 3,
+                          isClosable: true,
+                        });
+                      } finally {
+                        setIsLoading(false);
+                      }
                     }}
                     colorScheme="blue"
                     variant="outline"
                     isLoading={isLoading}
-                    title="Refresh and sync new projects"
+                    title="Fetch all 220 projects from database"
                   >
                     Fetch All
                   </Button>
