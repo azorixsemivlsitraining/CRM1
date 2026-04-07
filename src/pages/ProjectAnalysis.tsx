@@ -84,6 +84,12 @@ interface ProjectData {
    * Same structure as transport segments: [{ label, amount }]
    */
   dept_charges_segments?: Array<{ label?: string; amount?: number }>;
+  civil_work_cost?: number;
+  /**
+   * Breakdown of civil work items/heads stored in DB as JSONB.
+   * Same structure as transport segments: [{ label, amount }]
+   */
+  civil_work_segments?: Array<{ label?: string; amount?: number }>;
   total_exp?: number;
   payment_received?: number;
   pending_payment?: number;
@@ -132,7 +138,8 @@ const calculateTotalExpenses = (project: ProjectData): number => {
     (project.installation_cost || 0) +
     (project.subsidy_application || 0) +
     (project.misc_dept_charges || 0) +
-    (project.dept_charges || 0)
+    (project.dept_charges || 0) +
+    (project.civil_work_cost || 0)
   );
 };
 
@@ -533,10 +540,14 @@ const ProjectAnalysis = () => {
       const deptSegments = selectedProject.dept_charges_segments || [];
       const computedDeptCharges = sumTransportSegments(deptSegments);
       const deptChargesFinal = deptSegments.length > 0 ? computedDeptCharges : selectedProject.dept_charges || 0;
+      const civilWorkSegments = selectedProject.civil_work_segments || [];
+      const computedCivilWork = sumTransportSegments(civilWorkSegments);
+      const civilWorkFinal = civilWorkSegments.length > 0 ? computedCivilWork : selectedProject.civil_work_cost || 0;
       const projectForCalc: ProjectData = {
         ...selectedProject,
         transport_segment: computedTransportSegment,
         dept_charges: deptChargesFinal,
+        civil_work_cost: civilWorkFinal,
       };
 
       // Calculate totals automatically
@@ -566,6 +577,8 @@ const ProjectAnalysis = () => {
         misc_dept_charges: selectedProject.misc_dept_charges || 0,
         dept_charges: deptChargesFinal,
         dept_charges_segments: normalizeTransportSegments(deptSegments),
+        civil_work_cost: civilWorkFinal,
+        civil_work_segments: normalizeTransportSegments(civilWorkSegments),
         total_exp: totalExp,
         payment_received: selectedProject.payment_received || 0,
         pending_payment: selectedProject.pending_payment || 0,
@@ -1684,6 +1697,111 @@ const ProjectAnalysis = () => {
                             {normalizeTransportSegments(selectedProject.dept_charges_segments).length > 0
                               ? sumTransportSegments(selectedProject.dept_charges_segments).toLocaleString()
                               : (selectedProject.dept_charges || 0).toLocaleString()}
+                          </Text>
+                        </HStack>
+                      </VStack>
+                    </FormControl>
+
+                    <FormControl>
+                      <FormLabel fontSize="sm">Civil Work Able (₹)</FormLabel>
+                      <VStack align="stretch" spacing={3}>
+                        {normalizeTransportSegments(selectedProject.civil_work_segments).map((seg, idx) => (
+                          <HStack key={`${idx}-${seg.label}`} spacing={2} align="flex-start">
+                            <Input
+                              placeholder="Element text (e.g., Foundation / Roofing / Framing)"
+                              value={seg.label}
+                              onChange={(e) =>
+                                setSelectedProject((prev) => {
+                                  if (!prev) return prev;
+                                  const current = normalizeTransportSegments(prev.civil_work_segments);
+                                  const next = current.map((x, i) =>
+                                    i === idx ? { ...x, label: e.target.value } : x
+                                  );
+                                  const nextSum = sumTransportSegments(next);
+                                  return {
+                                    ...prev,
+                                    civil_work_segments: next,
+                                    civil_work_cost: nextSum,
+                                  };
+                                })
+                              }
+                            />
+                            <Input
+                              type="number"
+                              placeholder="Amount"
+                              value={seg.amount}
+                              w="160px"
+                              onChange={(e) =>
+                                setSelectedProject((prev) => {
+                                  if (!prev) return prev;
+                                  const current = normalizeTransportSegments(prev.civil_work_segments);
+                                  const amt = parseFloat(e.target.value) || 0;
+                                  const next = current.map((x, i) =>
+                                    i === idx ? { ...x, amount: amt } : x
+                                  );
+                                  const nextSum = sumTransportSegments(next);
+                                  return {
+                                    ...prev,
+                                    civil_work_segments: next,
+                                    civil_work_cost: nextSum,
+                                  };
+                                })
+                              }
+                            />
+                            <IconButton
+                              aria-label="Remove civil work element"
+                              icon={<DeleteIcon />}
+                              size="sm"
+                              variant="ghost"
+                              colorScheme="red"
+                              onClick={() =>
+                                setSelectedProject((prev) => {
+                                  if (!prev) return prev;
+                                  const current = normalizeTransportSegments(prev.civil_work_segments);
+                                  const next = current.filter((_, i) => i !== idx);
+                                  const nextSum = sumTransportSegments(next);
+                                  return {
+                                    ...prev,
+                                    civil_work_segments: next,
+                                    civil_work_cost: nextSum,
+                                  };
+                                })
+                              }
+                            />
+                          </HStack>
+                        ))}
+
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          colorScheme="green"
+                          onClick={() =>
+                            setSelectedProject((prev) => {
+                              if (!prev) return prev;
+                              const current = normalizeTransportSegments(prev.civil_work_segments);
+                              const next =
+                                current.length === 0
+                                  ? [{ label: '', amount: prev.civil_work_cost || 0 }]
+                                  : [...current, { label: '', amount: 0 }];
+                              const nextSum = sumTransportSegments(next);
+                              return {
+                                ...prev,
+                                civil_work_segments: next,
+                                civil_work_cost: nextSum,
+                              };
+                            })
+                          }
+                        >
+                          + Add element
+                        </Button>
+
+                        <HStack justify="space-between">
+                          <Text fontSize="sm" color="gray.600">Civil Work Total</Text>
+                          <Text fontSize="sm" fontWeight="bold" color="gray.800">
+                            ₹
+                            {normalizeTransportSegments(selectedProject.civil_work_segments).length > 0
+                              ? sumTransportSegments(selectedProject.civil_work_segments).toLocaleString()
+                              : (selectedProject.civil_work_cost || 0).toLocaleString()}
                           </Text>
                         </HStack>
                       </VStack>
