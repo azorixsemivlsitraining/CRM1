@@ -49,7 +49,7 @@ import { DeleteIcon, SearchIcon, DownloadIcon, RepeatIcon } from '@chakra-ui/ico
 import * as XLSX from 'xlsx';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
-import { migrateProjectsToAnalysis, checkProjectAnalysisEmpty } from '../utils/projectAnalysisMigration';
+import { migrateProjectsToAnalysis, freshMigrateProjectsToAnalysis, checkProjectAnalysisEmpty } from '../utils/projectAnalysisMigration';
 
 interface ProjectData {
   id: string;
@@ -1047,23 +1047,32 @@ const ProjectAnalysis = () => {
                     onClick={async () => {
                       setIsLoading(true);
                       try {
-                        // Run full migration to ensure all 220 projects are in project_analysis
-                        const result = await migrateProjectsToAnalysis();
+                        // Run fresh migration to clear and rebuild with all 220 projects
+                        const result = await freshMigrateProjectsToAnalysis();
                         if (result.success) {
                           toast({
                             title: 'Success',
-                            description: `Synced ${result.recordsMigrated} projects`,
+                            description: `Migrated ${result.recordsMigrated} projects to database`,
                             status: 'success',
                             duration: 3,
                             isClosable: true,
                           });
+                        } else {
+                          toast({
+                            title: 'Migration Error',
+                            description: result.error || result.message,
+                            status: 'error',
+                            duration: 3,
+                            isClosable: true,
+                          });
                         }
+                        // Reload data after migration
                         await fetchProjectAnalysisData();
                       } catch (error) {
                         console.error('Error during fetch all:', error);
                         toast({
                           title: 'Error',
-                          description: 'Failed to sync projects',
+                          description: 'Failed to migrate projects',
                           status: 'error',
                           duration: 3,
                           isClosable: true,
@@ -1075,7 +1084,7 @@ const ProjectAnalysis = () => {
                     colorScheme="blue"
                     variant="outline"
                     isLoading={isLoading}
-                    title="Fetch all 220 projects from database"
+                    title="Fetch all 220 projects from database and rebuild project_analysis table"
                   >
                     Fetch All
                   </Button>
