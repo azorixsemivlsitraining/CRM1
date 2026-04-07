@@ -100,6 +100,17 @@ interface ExpenseRec {
   tax_amount?: number;
 }
 
+interface DailyExpense {
+  id?: string;
+  date: string;
+  category: 'civil work' | 'electrical' | 'transportation';
+  project_name: string;
+  customer_name?: string;
+  element: string;
+  amount: number;
+  created_at?: string;
+}
+
 interface EstimationCost {
   id: string;
   customer_name: string;
@@ -353,6 +364,19 @@ const Finance: React.FC = () => {
   const [taxInvoiceLoading, setTaxInvoiceLoading] = useState(false);
   const [projectSearchTerm, setProjectSearchTerm] = useState('');
   const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
+
+  // Daily Expenses State
+  const [dailyExpenses, setDailyExpenses] = useState<DailyExpense[]>([]);
+  const [dailyExpenseForm, setDailyExpenseForm] = useState<DailyExpense>({
+    date: new Date().toISOString().split('T')[0],
+    category: 'civil work',
+    project_name: '',
+    customer_name: '',
+    element: '',
+    amount: 0,
+  });
+  const [dailyExpenseLoading, setDailyExpenseLoading] = useState(false);
+  const [dailyExpensesTabIndex, setDailyExpensesTabIndex] = useState(0);
 
   const { isFinance, isAuthenticated, isAdmin } = useAuth();
   const toast = useToast();
@@ -1381,6 +1405,7 @@ const Finance: React.FC = () => {
 
         await fetchEstimations();
         await fetchTaxInvoices();
+        await fetchDailyExpenses();
       } catch (error) {
         console.error('Error fetching finance data:', error);
         toast({ title: 'Error', description: 'Failed to fetch financial data', status: 'error', duration: 5000, isClosable: true });
@@ -1940,6 +1965,148 @@ const Finance: React.FC = () => {
     return words.trim();
   };
 
+  // Daily Expense Handlers
+  const handleAddDailyExpense = async () => {
+    if (!dailyExpenseForm.date || !dailyExpenseForm.project_name || !dailyExpenseForm.element || dailyExpenseForm.amount <= 0) {
+      toast({
+        title: 'Missing Fields',
+        description: 'Please fill all required fields correctly.',
+        status: 'warning',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    try {
+      setDailyExpenseLoading(true);
+      const { error } = await supabase
+        .from('daily_expenses')
+        .insert([{
+          date: dailyExpenseForm.date,
+          category: dailyExpenseForm.category,
+          project_name: dailyExpenseForm.project_name,
+          customer_name: dailyExpenseForm.customer_name || null,
+          element: dailyExpenseForm.element,
+          amount: dailyExpenseForm.amount,
+        }]);
+
+      if (error) {
+        console.error('Supabase error saving daily expense:', error);
+        throw new Error(error.message || 'Failed to save daily expense');
+      }
+
+      toast({
+        title: 'Success',
+        description: 'Daily expense added successfully.',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+
+      setDailyExpenseForm({
+        date: new Date().toISOString().split('T')[0],
+        category: 'civil work',
+        project_name: '',
+        customer_name: '',
+        element: '',
+        amount: 0,
+      });
+      await fetchDailyExpenses();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      console.error('Error saving daily expense:', errorMessage);
+      toast({
+        title: 'Error',
+        description: `Failed to save daily expense: ${errorMessage}`,
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setDailyExpenseLoading(false);
+    }
+  };
+
+  const fetchDailyExpenses = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('daily_expenses')
+        .select('*')
+        .order('date', { ascending: false });
+
+      if (error) {
+        console.error('Supabase error fetching daily expenses:', error);
+        throw new Error(error.message || 'Failed to fetch daily expenses');
+      }
+      setDailyExpenses((data || []) as DailyExpense[]);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      console.error('Error fetching daily expenses:', errorMessage);
+      toast({
+        title: 'Error',
+        description: `Failed to fetch daily expenses: ${errorMessage}`,
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const exportDailyExpensesCsv = () => {
+    const rows = dailyExpenses.map((e) => ({
+      date: e.date,
+      category: e.category,
+      project_name: e.project_name,
+      customer_name: e.customer_name || '',
+      element: e.element,
+      amount: e.amount,
+    }));
+    download(makeCsv(rows), 'daily_expenses.csv');
+  };
+
+  const exportDailyExpensesXls = () => {
+    const cols = ['Date', 'Category', 'Project Name', 'Customer Name', 'Element', 'Amount (₹)'];
+    const rows = dailyExpenses.map((e) => [e.date, e.category, e.project_name, e.customer_name || '', e.element, e.amount]);
+    downloadExcel(cols, rows, 'daily_expenses.xls');
+  };
+
+  const getWeeklyExpensesByCategory = () => {
+    const currentDate = new Date();
+    const sevenDaysAgo = new Date(currentDate.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const weeklyExpenses = dailyExpenses.filter(exp => new Date(exp.date) >= sevenDaysAgo);
+
+    const categoryTotals: { [key: string]: number } = {
+      'civil work': 0,
+      'electrical': 0,
+      'transportation': 0,
+    };
+
+    weeklyExpenses.forEach(exp => {
+      categoryTotals[exp.category] = (categoryTotals[exp.category] || 0) + exp.amount;
+    });
+
+    return categoryTotals;
+  };
+
+  const getMonthlyExpensesByCategory = () => {
+    const currentDate = new Date();
+    const monthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+    const monthlyExpenses = dailyExpenses.filter(exp => new Date(exp.date) >= monthStart);
+
+    const categoryTotals: { [key: string]: number } = {
+      'civil work': 0,
+      'electrical': 0,
+      'transportation': 0,
+    };
+
+    monthlyExpenses.forEach(exp => {
+      categoryTotals[exp.category] = (categoryTotals[exp.category] || 0) + exp.amount;
+    });
+
+    return categoryTotals;
+  };
+
   return (
     <Box p={6} maxW="1400px" mx="auto">
       <Heading as="h1" size="xl" mb={2}>Finance Dashboard</Heading>
@@ -1962,6 +2129,7 @@ const Finance: React.FC = () => {
           <Tab>Tax Invoice</Tab>
           <Tab>Expense Sheet</Tab>
           <Tab>Reports & Export</Tab>
+          <Tab>Daily Expenses</Tab>
         </TabList>
         <TabPanels>
           <TabPanel p={0} pt={4}>
@@ -3005,6 +3173,275 @@ const Finance: React.FC = () => {
                         <Button size="sm" onClick={exportReceivablesPdf}>Receivables PDF</Button>
                       </HStack>
                       <Text fontSize="sm" color="gray.600">Download CSV, Excel, or PDF versions of your finance data.</Text>
+                    </TabPanel>
+
+                    <TabPanel p={0} pt={4}>
+                      <Card>
+                        <CardHeader>
+                          <Flex align="center" justify="space-between" gap={4} flexWrap="wrap">
+                            <Heading size="md">Daily Expenses</Heading>
+                            <HStack spacing={2}>
+                              <Button size="sm" colorScheme="brand" onClick={() => setDailyExpensesTabIndex(0)}>
+                                + New Expense
+                              </Button>
+                              <Button size="sm" onClick={exportDailyExpensesCsv}>CSV</Button>
+                              <Button size="sm" onClick={exportDailyExpensesXls}>Excel</Button>
+                            </HStack>
+                          </Flex>
+                        </CardHeader>
+                        <CardBody>
+                          <Tabs colorScheme="brand" variant="enclosed" index={dailyExpensesTabIndex} onChange={setDailyExpensesTabIndex}>
+                            <TabList mb={4}>
+                              <Tab>Add Expense</Tab>
+                              <Tab>Reports</Tab>
+                            </TabList>
+                            <TabPanels>
+                              {/* Add Expense Form Tab */}
+                              <TabPanel>
+                                <Card bg="gray.50">
+                                  <CardHeader>
+                                    <Heading size="sm">Create New Expense</Heading>
+                                  </CardHeader>
+                                  <CardBody>
+                                    <VStack spacing={4}>
+                                      <FormControl isRequired>
+                                        <FormLabel>Date</FormLabel>
+                                        <Input
+                                          type="date"
+                                          value={dailyExpenseForm.date}
+                                          onChange={(e) => setDailyExpenseForm({ ...dailyExpenseForm, date: e.target.value })}
+                                        />
+                                      </FormControl>
+
+                                      <FormControl isRequired>
+                                        <FormLabel>Category</FormLabel>
+                                        <Select
+                                          value={dailyExpenseForm.category}
+                                          onChange={(e) => setDailyExpenseForm({ ...dailyExpenseForm, category: e.target.value as 'civil work' | 'electrical' | 'transportation' })}
+                                        >
+                                          <option value="civil work">Civil Work</option>
+                                          <option value="electrical">Electrical</option>
+                                          <option value="transportation">Transportation</option>
+                                        </Select>
+                                      </FormControl>
+
+                                      <FormControl isRequired>
+                                        <FormLabel>Project Name</FormLabel>
+                                        <Input
+                                          placeholder="Enter project name"
+                                          value={dailyExpenseForm.project_name}
+                                          onChange={(e) => setDailyExpenseForm({ ...dailyExpenseForm, project_name: e.target.value })}
+                                        />
+                                      </FormControl>
+
+                                      <FormControl>
+                                        <FormLabel>Customer Name (Optional)</FormLabel>
+                                        <Input
+                                          placeholder="Enter customer name"
+                                          value={dailyExpenseForm.customer_name || ''}
+                                          onChange={(e) => setDailyExpenseForm({ ...dailyExpenseForm, customer_name: e.target.value })}
+                                        />
+                                      </FormControl>
+
+                                      <FormControl isRequired>
+                                        <FormLabel>Element/Item Description</FormLabel>
+                                        <Input
+                                          placeholder="Enter element or item description"
+                                          value={dailyExpenseForm.element}
+                                          onChange={(e) => setDailyExpenseForm({ ...dailyExpenseForm, element: e.target.value })}
+                                        />
+                                      </FormControl>
+
+                                      <FormControl isRequired>
+                                        <FormLabel>Amount (₹)</FormLabel>
+                                        <Input
+                                          type="number"
+                                          placeholder="Enter amount"
+                                          value={dailyExpenseForm.amount}
+                                          onChange={(e) => setDailyExpenseForm({ ...dailyExpenseForm, amount: parseFloat(e.target.value) || 0 })}
+                                          min="0"
+                                          step="0.01"
+                                        />
+                                      </FormControl>
+
+                                      <Button
+                                        colorScheme="brand"
+                                        width="full"
+                                        onClick={handleAddDailyExpense}
+                                        isLoading={dailyExpenseLoading}
+                                        loadingText="Saving"
+                                      >
+                                        Add Expense
+                                      </Button>
+                                    </VStack>
+                                  </CardBody>
+                                </Card>
+
+                                <Card mt={6}>
+                                  <CardHeader>
+                                    <Heading size="sm">Recent Expenses</Heading>
+                                  </CardHeader>
+                                  <CardBody>
+                                    {dailyExpenses.length > 0 ? (
+                                      <TableContainer>
+                                        <Table variant="simple" size="sm">
+                                          <Thead>
+                                            <Tr>
+                                              <Th>Date</Th>
+                                              <Th>Category</Th>
+                                              <Th>Project</Th>
+                                              <Th>Customer</Th>
+                                              <Th>Element</Th>
+                                              <Th isNumeric>Amount (₹)</Th>
+                                            </Tr>
+                                          </Thead>
+                                          <Tbody>
+                                            {dailyExpenses.slice(0, 20).map((exp) => (
+                                              <Tr key={exp.id}>
+                                                <Td>{exp.date}</Td>
+                                                <Td>
+                                                  <Badge colorScheme={
+                                                    exp.category === 'civil work' ? 'blue' :
+                                                    exp.category === 'electrical' ? 'yellow' :
+                                                    'orange'
+                                                  }>
+                                                    {exp.category}
+                                                  </Badge>
+                                                </Td>
+                                                <Td>{exp.project_name}</Td>
+                                                <Td>{exp.customer_name || '-'}</Td>
+                                                <Td>{exp.element}</Td>
+                                                <Td isNumeric>{inr(exp.amount)}</Td>
+                                              </Tr>
+                                            ))}
+                                          </Tbody>
+                                        </Table>
+                                      </TableContainer>
+                                    ) : (
+                                      <Text fontSize="sm" color="gray.500">No expenses recorded yet.</Text>
+                                    )}
+                                  </CardBody>
+                                </Card>
+                              </TabPanel>
+
+                              {/* Reports Tab */}
+                              <TabPanel>
+                                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6} mb={6}>
+                                  <Card>
+                                    <CardHeader>
+                                      <Heading size="sm">Weekly Expenses by Category</Heading>
+                                      <Text fontSize="xs" color="gray.500" mt={1}>Last 7 days</Text>
+                                    </CardHeader>
+                                    <CardBody>
+                                      {Object.keys(getWeeklyExpensesByCategory()).length > 0 ? (
+                                        <Box>
+                                          <VStack spacing={3} align="stretch">
+                                            {Object.entries(getWeeklyExpensesByCategory()).map(([category, amount]) => (
+                                              <Box key={category}>
+                                                <Flex justify="space-between" mb={1}>
+                                                  <Text fontWeight="medium" fontSize="sm" textTransform="capitalize">{category}</Text>
+                                                  <Text fontWeight="bold" color="brand.600">{inr(amount)}</Text>
+                                                </Flex>
+                                                <Box bg="gray.200" h="20px" borderRadius="md" overflow="hidden">
+                                                  <Box
+                                                    bg="brand.500"
+                                                    h="100%"
+                                                    width={`${Math.min(100, (amount / Math.max(...Object.values(getWeeklyExpensesByCategory()))) * 100)}%`}
+                                                    transition="all 0.3s ease"
+                                                  />
+                                                </Box>
+                                              </Box>
+                                            ))}
+                                          </VStack>
+                                          <Box mt={4} p={3} bg="gray.50" borderRadius="md">
+                                            <Text fontSize="sm" fontWeight="semibold">Total: {inr(Object.values(getWeeklyExpensesByCategory()).reduce((a, b) => a + b, 0))}</Text>
+                                          </Box>
+                                        </Box>
+                                      ) : (
+                                        <Text fontSize="sm" color="gray.500">No data available</Text>
+                                      )}
+                                    </CardBody>
+                                  </Card>
+
+                                  <Card>
+                                    <CardHeader>
+                                      <Heading size="sm">Monthly Expenses by Category</Heading>
+                                      <Text fontSize="xs" color="gray.500" mt={1}>Current month</Text>
+                                    </CardHeader>
+                                    <CardBody>
+                                      {Object.keys(getMonthlyExpensesByCategory()).length > 0 ? (
+                                        <Box>
+                                          <VStack spacing={3} align="stretch">
+                                            {Object.entries(getMonthlyExpensesByCategory()).map(([category, amount]) => (
+                                              <Box key={category}>
+                                                <Flex justify="space-between" mb={1}>
+                                                  <Text fontWeight="medium" fontSize="sm" textTransform="capitalize">{category}</Text>
+                                                  <Text fontWeight="bold" color="brand.600">{inr(amount)}</Text>
+                                                </Flex>
+                                                <Box bg="gray.200" h="20px" borderRadius="md" overflow="hidden">
+                                                  <Box
+                                                    bg="brand.500"
+                                                    h="100%"
+                                                    width={`${Math.min(100, (amount / Math.max(...Object.values(getMonthlyExpensesByCategory()))) * 100)}%`}
+                                                    transition="all 0.3s ease"
+                                                  />
+                                                </Box>
+                                              </Box>
+                                            ))}
+                                          </VStack>
+                                          <Box mt={4} p={3} bg="gray.50" borderRadius="md">
+                                            <Text fontSize="sm" fontWeight="semibold">Total: {inr(Object.values(getMonthlyExpensesByCategory()).reduce((a, b) => a + b, 0))}</Text>
+                                          </Box>
+                                        </Box>
+                                      ) : (
+                                        <Text fontSize="sm" color="gray.500">No data available</Text>
+                                      )}
+                                    </CardBody>
+                                  </Card>
+                                </SimpleGrid>
+
+                                <Card>
+                                  <CardHeader>
+                                    <Heading size="sm">Category-wise Summary</Heading>
+                                  </CardHeader>
+                                  <CardBody>
+                                    {dailyExpenses.length > 0 ? (
+                                      <Table variant="simple" size="sm">
+                                        <Thead>
+                                          <Tr>
+                                            <Th>Category</Th>
+                                            <Th isNumeric>Weekly Total (₹)</Th>
+                                            <Th isNumeric>Monthly Total (₹)</Th>
+                                          </Tr>
+                                        </Thead>
+                                        <Tbody>
+                                          {[
+                                            { cat: 'civil work', label: 'Civil Work' },
+                                            { cat: 'electrical', label: 'Electrical' },
+                                            { cat: 'transportation', label: 'Transportation' },
+                                          ].map(({ cat, label }) => {
+                                            const weekly = getWeeklyExpensesByCategory()[cat as 'civil work' | 'electrical' | 'transportation'] || 0;
+                                            const monthly = getMonthlyExpensesByCategory()[cat as 'civil work' | 'electrical' | 'transportation'] || 0;
+                                            return (
+                                              <Tr key={cat}>
+                                                <Td fontWeight="medium">{label}</Td>
+                                                <Td isNumeric>{inr(weekly)}</Td>
+                                                <Td isNumeric>{inr(monthly)}</Td>
+                                              </Tr>
+                                            );
+                                          })}
+                                        </Tbody>
+                                      </Table>
+                                    ) : (
+                                      <Text fontSize="sm" color="gray.500">No data available</Text>
+                                    )}
+                                  </CardBody>
+                                </Card>
+                              </TabPanel>
+                            </TabPanels>
+                          </Tabs>
+                        </CardBody>
+                      </Card>
                     </TabPanel>
                   </TabPanels>
                 </Tabs>
