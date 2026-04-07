@@ -325,6 +325,11 @@ const [paymentMode, setPaymentMode] = useState(() => {
     navigate(`/csa?${params.toString()}`);
   };
 
+  const handleOpenPA = () => {
+    if (!project) return;
+    navigate(`/project-analysis`);
+  };
+
   // Add useEffect for timestamp updates
   useEffect(() => {
     const interval = setInterval(() => {
@@ -674,6 +679,14 @@ return (
                 size="sm"
               >
                 CSA
+              </Button>
+              <Button
+                colorScheme="blue"
+                variant="outline"
+                onClick={handleOpenPA}
+                size="sm"
+              >
+                PA
               </Button>
               <Button
                 leftIcon={<EditIcon />}
