@@ -376,6 +376,7 @@ const Finance: React.FC = () => {
     amount: 0,
   });
   const [dailyExpenseLoading, setDailyExpenseLoading] = useState(false);
+  const [dailyExpensesTabIndex, setDailyExpensesTabIndex] = useState(0);
 
   const { isFinance, isAuthenticated, isAdmin } = useAuth();
   const toast = useToast();
@@ -2052,6 +2053,24 @@ const Finance: React.FC = () => {
     }
   };
 
+  const exportDailyExpensesCsv = () => {
+    const rows = dailyExpenses.map((e) => ({
+      date: e.date,
+      category: e.category,
+      project_name: e.project_name,
+      customer_name: e.customer_name || '',
+      element: e.element,
+      amount: e.amount,
+    }));
+    download(makeCsv(rows), 'daily_expenses.csv');
+  };
+
+  const exportDailyExpensesXls = () => {
+    const cols = ['Date', 'Category', 'Project Name', 'Customer Name', 'Element', 'Amount (₹)'];
+    const rows = dailyExpenses.map((e) => [e.date, e.category, e.project_name, e.customer_name || '', e.element, e.amount]);
+    downloadExcel(cols, rows, 'daily_expenses.xls');
+  };
+
   const getWeeklyExpensesByCategory = () => {
     const currentDate = new Date();
     const sevenDaysAgo = new Date(currentDate.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -3159,10 +3178,19 @@ const Finance: React.FC = () => {
                     <TabPanel p={0} pt={4}>
                       <Card>
                         <CardHeader>
-                          <Heading size="md">Daily Expenses</Heading>
+                          <Flex align="center" justify="space-between" gap={4} flexWrap="wrap">
+                            <Heading size="md">Daily Expenses</Heading>
+                            <HStack spacing={2}>
+                              <Button size="sm" colorScheme="brand" onClick={() => setDailyExpensesTabIndex(0)}>
+                                + New Expense
+                              </Button>
+                              <Button size="sm" onClick={exportDailyExpensesCsv}>CSV</Button>
+                              <Button size="sm" onClick={exportDailyExpensesXls}>Excel</Button>
+                            </HStack>
+                          </Flex>
                         </CardHeader>
                         <CardBody>
-                          <Tabs colorScheme="brand" variant="soft-rounded">
+                          <Tabs colorScheme="brand" variant="soft-rounded" index={dailyExpensesTabIndex} onChange={setDailyExpensesTabIndex}>
                             <TabList mb={4}>
                               <Tab>Add Expense</Tab>
                               <Tab>Reports</Tab>
