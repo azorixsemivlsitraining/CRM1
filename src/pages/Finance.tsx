@@ -2033,7 +2033,15 @@ const Finance: React.FC = () => {
       if (error) throw error;
       setDailyExpenses((data || []) as DailyExpense[]);
     } catch (error) {
-      console.error('Error fetching daily expenses:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('Error fetching daily expenses:', errorMessage);
+      toast({
+        title: 'Error',
+        description: `Failed to fetch daily expenses: ${errorMessage}`,
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
     }
   };
 
