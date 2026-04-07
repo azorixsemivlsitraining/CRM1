@@ -244,194 +244,64 @@ const ProjectAnalysis = () => {
     try {
       setIsLoading(true);
 
-      // Fetch from project_analysis table
-      const { data: analysisData, error: analysisError } = await supabase
-        .from('project_analysis')
-        .select('*')
+      // Always fetch fresh from projects table to ensure live updates
+      const { data: projects, error: projectError } = await supabase
+        .from('projects')
+        .select('id, customer_name, phone, proposal_amount, kwh, state, paid_amount, advance_payment, balance_amount')
+        .neq('status', 'deleted')
         .order('created_at', { ascending: false });
 
-      if (analysisError) {
-        const errorCode = (analysisError as any)?.code;
-        const errorMessage = (analysisError as any)?.message || String(analysisError);
+      if (projectError) {
+        const errorCode = (projectError as any)?.code;
+        const errorMessage = (projectError as any)?.message || String(projectError);
+        console.error('Project error:', errorCode, errorMessage);
 
-        // Only log if it's not a "table doesn't exist" error
-        if (errorCode !== 'PGRST116') {
-          console.error('Analysis data error:', errorCode, errorMessage);
-        }
-      }
-
-      // If table doesn't exist or is empty, fetch from projects
-      if (!analysisData || analysisData.length === 0) {
-        const { data: projects, error: projectError } = await supabase
-          .from('projects')
-          .select('id, customer_name, phone, proposal_amount, kwh, state, paid_amount, advance_payment, balance_amount')
-
-          .neq('status', 'deleted');
-
-        if (projectError) {
-          const errorCode = (projectError as any)?.code;
-          const errorMessage = (projectError as any)?.message || String(projectError);
-          console.error('Project error:', errorCode, errorMessage);
-
-          // If projects table is empty, just show empty state
-          if (errorCode === 'PGRST116') {
-            setProjectData([]);
-          } else {
-            throw projectError;
-          }
-        } else if (projects && projects.length > 0) {
-          const transformedProjects: ProjectData[] = projects.map((project: any) => ({
-            id: project.id,
-            sl_no: 0, // Will be set by database
-            customer_name: project.customer_name || '',
-            mobile_no: project.phone || '',
-            project_capacity: project.kwh || 0,
-            total_quoted_cost: project.proposal_amount || 0,
-            application_charges: 0,
-            modules_cost: 0,
-            inverter_cost: 0,
-            structure_cost: 0,
-            hardware_cost: 0,
-            electrical_equipment: 0,
-            transport_segment: 0,
-            transport_segments: [],
-            transport_total: 0,
-            installation_cost: 0,
-            subsidy_application: 0,
-            misc_dept_charges: 0,
-            dept_charges: 0,
-            dept_charges_segments: [],
-            total_exp: 0,
-            // Match Projects tile: total received includes advance + paid amounts
-            payment_received: (project.advance_payment || 0) + (project.paid_amount || 0),
-            pending_payment: project.balance_amount || 0,
-            profit_right_now: 0,
-            overall_profit: 0,
-            project_id: project.id,
-            state: project.state || '',
-            created_at: project.created_at || '',
-          }));
-
-          // Also fetch Chitoor projects for complete data
-          const { data: chitoorProjects, error: chitoorError } = await supabase
-            .from('chitoor_projects')
-            .select('*')
-            .order('created_at', { ascending: false });
-
-          let allProjects = transformedProjects;
-
-          if (!chitoorError && chitoorProjects && chitoorProjects.length > 0) {
-            const chitoorTransformed: ProjectData[] = chitoorProjects.map((project: any) => {
-              const paymentReceived = project.amount_received || 0;
-              const totalCost = project.project_cost || 0;
-              const pendingPayment = totalCost - paymentReceived;
-              return {
-                id: project.id,
-                sl_no: 0, // Will be set by database
-                customer_name: project.customer_name || '',
-                mobile_no: project.mobile_no || '',
-                project_capacity: project.capacity || 0,
-                total_quoted_cost: totalCost,
-                application_charges: 0,
-                modules_cost: 0,
-                inverter_cost: 0,
-                structure_cost: 0,
-                hardware_cost: 0,
-                electrical_equipment: 0,
-                transport_segment: 0,
-                transport_segments: [],
-                transport_total: 0,
-                installation_cost: 0,
-                subsidy_application: 0,
-                misc_dept_charges: 0,
-                dept_charges: 0,
-                dept_charges_segments: [],
-                total_exp: 0,
-                payment_received: paymentReceived,
-                pending_payment: pendingPayment,
-                profit_right_now: 0,
-                overall_profit: 0,
-                project_id: project.id,
-                state: 'Chitoor',
-                created_at: project.created_at || '',
-              };
-            });
-            allProjects = [...transformedProjects, ...chitoorTransformed];
-          }
-
-          setProjectData(allProjects);
-        } else {
+        // If projects table is empty, just show empty state
+        if (errorCode === 'PGRST116') {
           setProjectData([]);
+        } else {
+          throw projectError;
         }
-      } else {
-        // project_analysis historically may not have `state`. Enrich it from `projects.state` using project_id.
-        const analysisProjectIds = Array.from(
-          new Set(
-            (analysisData as any[])
-              .map((row) => row.project_id || row.id)
-              .filter(Boolean)
-          )
-        );
+      } else if (projects && projects.length > 0) {
+        const transformedProjects: ProjectData[] = projects.map((project: any) => ({
+          id: project.id,
+          sl_no: 0, // Will be set by database
+          customer_name: project.customer_name || '',
+          mobile_no: project.phone || '',
+          project_capacity: project.kwh || 0,
+          total_quoted_cost: project.proposal_amount || 0,
+          application_charges: 0,
+          modules_cost: 0,
+          inverter_cost: 0,
+          structure_cost: 0,
+          hardware_cost: 0,
+          electrical_equipment: 0,
+          transport_segment: 0,
+          transport_segments: [],
+          transport_total: 0,
+          installation_cost: 0,
+          subsidy_application: 0,
+          misc_dept_charges: 0,
+          dept_charges: 0,
+          dept_charges_segments: [],
+          total_exp: 0,
+          // Match Projects tile: total received includes advance + paid amounts
+          payment_received: (project.advance_payment || 0) + (project.paid_amount || 0),
+          pending_payment: project.balance_amount || 0,
+          profit_right_now: 0,
+          overall_profit: 0,
+          project_id: project.id,
+          state: project.state || '',
+          created_at: project.created_at || '',
+        }));
 
-        const stateByProjectId = new Map<string, string>();
-        const paymentByProjectId = new Map<string, { paid_amount: number; advance_payment: number; balance_amount: number }>();
-        if (analysisProjectIds.length > 0) {
-          const { data: projectDetails, error: stateError } = await supabase
-            .from('projects')
-            .select('id, state, paid_amount, advance_payment, balance_amount')
-            .in('id', analysisProjectIds)
-            .neq('status', 'deleted');
-
-          if (!stateError && projectDetails) {
-            for (const row of projectDetails as any[]) {
-              if (row?.id) {
-                stateByProjectId.set(row.id, row.state || '');
-                paymentByProjectId.set(row.id, {
-                  paid_amount: row.paid_amount || 0,
-                  advance_payment: row.advance_payment || 0,
-                  balance_amount: row.balance_amount || 0,
-                });
-              }
-            }
-          }
-        }
-
-        const enrichedAnalysisData: ProjectData[] = (analysisData as any[]).map((row) => {
-          const projectId = row.project_id || row.id;
-          const paymentData =
-            paymentByProjectId.get(projectId) || { paid_amount: 0, advance_payment: 0, balance_amount: 0 };
-          const transportSegments = row.transport_segments || [];
-          const transportSegmentFinal =
-            Array.isArray(transportSegments) && transportSegments.length > 0 ? sumTransportSegments(transportSegments) : row.transport_segment || 0;
-          const deptSegments = row.dept_charges_segments || [];
-          const deptChargesFinal =
-            Array.isArray(deptSegments) && deptSegments.length > 0 ? sumTransportSegments(deptSegments) : row.dept_charges || 0;
-          return {
-            ...row,
-            state: row.state || stateByProjectId.get(projectId) || '',
-            transport_segments: transportSegments,
-            transport_segment: transportSegmentFinal,
-            dept_charges_segments: deptSegments,
-            dept_charges: deptChargesFinal,
-            // Keep Project Analysis in sync with the Projects tile:
-            // always derive totals from `projects` to avoid stale/incorrect values stored in `project_analysis`.
-            // Projects tile uses: payment_received = advance_payment + paid_amount
-            payment_received:
-              paymentData.advance_payment != null || paymentData.paid_amount != null
-                ? Number(paymentData.advance_payment || 0) + Number(paymentData.paid_amount || 0)
-                : 0,
-            pending_payment:
-              paymentData.balance_amount != null ? Number(paymentData.balance_amount) : 0,
-          };
-        });
-
-        // If analysisData exists, check for Chitoor projects too
+        // Also fetch Chitoor projects for complete data
         const { data: chitoorProjects, error: chitoorError } = await supabase
           .from('chitoor_projects')
           .select('*')
           .order('created_at', { ascending: false });
 
-        let allData: ProjectData[] = enrichedAnalysisData;
+        let allProjects = transformedProjects;
 
         if (!chitoorError && chitoorProjects && chitoorProjects.length > 0) {
           const chitoorTransformed: ProjectData[] = chitoorProjects.map((project: any) => {
@@ -440,7 +310,7 @@ const ProjectAnalysis = () => {
             const pendingPayment = totalCost - paymentReceived;
             return {
               id: project.id,
-              sl_no: 0, // Will be set by database
+              sl_no: 0,
               customer_name: project.customer_name || '',
               mobile_no: project.mobile_no || '',
               project_capacity: project.capacity || 0,
@@ -469,10 +339,12 @@ const ProjectAnalysis = () => {
               created_at: project.created_at || '',
             };
           });
-          allData = [...enrichedAnalysisData, ...chitoorTransformed];
+          allProjects = [...transformedProjects, ...chitoorTransformed];
         }
 
-        setProjectData(allData);
+        setProjectData(allProjects);
+      } else {
+        setProjectData([]);
       }
     } catch (error: any) {
       console.error('Error fetching project analysis:', error?.message || String(error));
