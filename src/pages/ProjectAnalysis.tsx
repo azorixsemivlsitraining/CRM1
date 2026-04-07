@@ -45,7 +45,7 @@ import {
   TabPanel,
   Badge,
 } from '@chakra-ui/react';
-import { DeleteIcon, SearchIcon, DownloadIcon } from '@chakra-ui/icons';
+import { DeleteIcon, SearchIcon, DownloadIcon, RepeatIcon } from '@chakra-ui/icons';
 import * as XLSX from 'xlsx';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
@@ -515,19 +515,30 @@ const ProjectAnalysis = () => {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'projects' },
-        () => fetchProjectAnalysisData()
+        (payload: any) => {
+          console.log('Projects table changed:', payload);
+          fetchProjectAnalysisData();
+        }
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'project_analysis' },
-        () => fetchProjectAnalysisData()
+        (payload: any) => {
+          console.log('Project analysis table changed:', payload);
+          fetchProjectAnalysisData();
+        }
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'chitoor_projects' },
-        () => fetchProjectAnalysisData()
+        (payload: any) => {
+          console.log('Chitoor projects table changed:', payload);
+          fetchProjectAnalysisData();
+        }
       )
-      .subscribe();
+      .subscribe((status: any) => {
+        console.log('Realtime subscription status:', status);
+      });
 
     return () => {
       void supabase.removeChannel(channel);
@@ -970,6 +981,15 @@ const ProjectAnalysis = () => {
                       _focus={{ bg: 'white', borderColor: 'brand.400' }}
                     />
                   </InputGroup>
+                  <Button
+                    leftIcon={<RepeatIcon />}
+                    onClick={fetchProjectAnalysisData}
+                    colorScheme="blue"
+                    variant="outline"
+                    isLoading={isLoading}
+                  >
+                    Refresh
+                  </Button>
                   <Button
                     leftIcon={<DownloadIcon />}
                     onClick={exportToExcel}
