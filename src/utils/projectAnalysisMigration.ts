@@ -21,11 +21,14 @@ export const migrateProjectsToAnalysis = async (): Promise<MigrationResult> => {
   try {
     let totalMigrated = 0;
 
-    // Step 1: Fetch all projects that aren't deleted with all relevant fields
-    const { data: projects, error: projectsError } = await supabase
+    // Step 1: Fetch ALL projects (both active and inactive, to match Projects page count)
+    // Using order by created_at desc to get consistent ordering
+    const { data: projects, error: projectsError, count } = await supabase
       .from('projects')
-      .select('id, customer_name, phone, kwh, proposal_amount, state, paid_amount, advance_payment, balance_amount, created_at, updated_at')
-      .neq('status', 'deleted');
+      .select('id, customer_name, phone, kwh, proposal_amount, state, paid_amount, advance_payment, balance_amount, created_at, updated_at', { count: 'exact' })
+      .order('created_at', { ascending: false });
+
+    console.log(`Fetched ${projects?.length || 0} projects from database (total count: ${count})`);
 
     if (projectsError) {
       return {
@@ -72,12 +75,13 @@ export const migrateProjectsToAnalysis = async (): Promise<MigrationResult> => {
       }));
 
       // Step 3: Upsert all records into project_analysis (preserves updated analysis data)
-      const { error: upsertError } = await supabase
+      const { error: upsertError, data: upsertedData } = await supabase
         .from('project_analysis')
         .upsert(analysisData, { onConflict: 'id' })
         .select();
 
       if (upsertError) {
+        console.error('Upsert error:', upsertError);
         return {
           success: false,
           message: 'Failed to upsert data into project_analysis',
@@ -85,13 +89,17 @@ export const migrateProjectsToAnalysis = async (): Promise<MigrationResult> => {
         };
       }
 
-      totalMigrated += analysisData.length;
+      const projectsInserted = upsertedData?.length || analysisData.length;
+      console.log(`Upserted ${projectsInserted} projects to project_analysis table`);
+      totalMigrated += projectsInserted;
     }
 
     // Step 4: Also fetch and migrate Chitoor projects
-    const { data: chitoorProjects, error: chitoorError } = await supabase
+    const { data: chitoorProjects, error: chitoorError, count: chitoorCount } = await supabase
       .from('chitoor_projects')
-      .select('*');
+      .select('*', { count: 'exact' });
+
+    console.log(`Fetched ${chitoorProjects?.length || 0} Chitoor projects (total count: ${chitoorCount})`);
 
     if (!chitoorError && chitoorProjects && chitoorProjects.length > 0) {
       const chitoorAnalysisData = chitoorProjects.map((project: any) => {
@@ -132,12 +140,13 @@ export const migrateProjectsToAnalysis = async (): Promise<MigrationResult> => {
         };
       });
 
-      const { error: chitoorUpsertError } = await supabase
+      const { error: chitoorUpsertError, data: chitoorUpsertedData } = await supabase
         .from('project_analysis')
         .upsert(chitoorAnalysisData, { onConflict: 'id' })
         .select();
 
       if (chitoorUpsertError) {
+        console.error('Chitoor upsert error:', chitoorUpsertError);
         return {
           success: false,
           message: 'Failed to upsert Chitoor projects',
@@ -145,12 +154,15 @@ export const migrateProjectsToAnalysis = async (): Promise<MigrationResult> => {
         };
       }
 
-      totalMigrated += chitoorAnalysisData.length;
+      const chitoorInserted = chitoorUpsertedData?.length || chitoorAnalysisData.length;
+      console.log(`Upserted ${chitoorInserted} Chitoor projects to project_analysis table`);
+      totalMigrated += chitoorInserted;
     }
 
+    console.log(`Migration complete: Total ${totalMigrated} records migrated`);
     return {
       success: true,
-      message: `Successfully migrated ${totalMigrated} projects to project_analysis table`,
+      message: `Successfully migrated ${totalMigrated} projects to project_analysis table (${projects?.length || 0} projects + ${(chitoorProjects as any)?.length || 0} Chitoor)`,
       recordsMigrated: totalMigrated,
     };
   } catch (error: any) {
