@@ -707,6 +707,14 @@ const ChitoorProjectDetails = () => {
               >
                 CSA
               </Button>
+              <Button
+                colorScheme="blue"
+                variant="outline"
+                onClick={() => navigate(`/project-analysis`)}
+                size="sm"
+              >
+                PA
+              </Button>
               <Tooltip label="Edit customer" hasArrow>
                 <IconButton aria-label="Edit customer" icon={<EditIcon />} variant="ghost" onClick={onCustomerEditOpen} />
               </Tooltip>
