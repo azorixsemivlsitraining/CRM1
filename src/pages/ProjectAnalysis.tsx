@@ -173,6 +173,148 @@ const sumTransportSegments = (segments: unknown): number => {
   return normalizeTransportSegments(segments).reduce((acc, cur) => acc + (Number(cur.amount) || 0), 0);
 };
 
+/**
+ * Sync new projects from source tables to project_analysis table
+ * This ensures all projects have analysis records and new data is captured
+ */
+const syncNewProjectsToAnalysis = async (toast: any): Promise<void> => {
+  try {
+    // Fetch all non-deleted projects from projects table
+    const { data: projects, error: projectError } = await supabase
+      .from('projects')
+      .select('id, customer_name, phone, kwh, proposal_amount, state, paid_amount, advance_payment, balance_amount, created_at, updated_at')
+      .neq('status', 'deleted');
+
+    if (projectError) {
+      console.error('Error fetching projects for sync:', projectError);
+      return;
+    }
+
+    if (!projects || projects.length === 0) return;
+
+    // Fetch existing analysis records to find which projects already have analysis
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { data: existingAnalysis, error: analysisError } = await supabase
+      .from('project_analysis')
+      .select('project_id');
+
+    const existingProjectIds = new Set(
+      (existingAnalysis || [])
+        .map((a: any) => a.project_id)
+        .filter((id: any) => id)
+    );
+
+    // Find new projects that don't have analysis records yet
+    const newProjectsToAdd = projects.filter((p: any) => !existingProjectIds.has(p.id));
+
+    if (newProjectsToAdd.length === 0) return;
+
+    // Create analysis records for new projects
+    const newAnalysisRecords = newProjectsToAdd.map((project: any) => ({
+      id: `analysis_${project.id}`,
+      project_id: project.id,
+      sl_no: 0,
+      customer_name: project.customer_name || '',
+      mobile_no: project.phone || '',
+      project_capacity: project.kwh || 0,
+      total_quoted_cost: project.proposal_amount || 0,
+      application_charges: 0,
+      modules_cost: 0,
+      inverter_cost: 0,
+      structure_cost: 0,
+      hardware_cost: 0,
+      electrical_equipment: 0,
+      transport_segment: 0,
+      transport_segments: [],
+      transport_total: 0,
+      installation_cost: 0,
+      subsidy_application: 0,
+      misc_dept_charges: 0,
+      dept_charges: 0,
+      dept_charges_segments: [],
+      civil_work_cost: 0,
+      civil_work_segments: [],
+      total_exp: 0,
+      payment_received: (project.advance_payment || 0) + (project.paid_amount || 0),
+      pending_payment: project.balance_amount || 0,
+      profit_right_now: 0,
+      overall_profit: 0,
+      state: project.state || '',
+      created_at: project.created_at,
+      updated_at: project.updated_at,
+    }));
+
+    // Also sync Chitoor projects
+    const { data: chitoorProjects, error: chitoorError } = await supabase
+      .from('chitoor_projects')
+      .select('*');
+
+    if (!chitoorError && chitoorProjects && chitoorProjects.length > 0) {
+      const existingChitoorAnalysis = new Set(
+        (existingAnalysis || [])
+          .filter((a: any) => a.project_id && a.project_id.includes('chitoor'))
+          .map((a: any) => a.project_id)
+      );
+
+      const newChitoorProjects = chitoorProjects.filter((p: any) => !existingChitoorAnalysis.has(p.id));
+
+      const chitoorAnalysisRecords = newChitoorProjects.map((project: any) => {
+        const paymentReceived = project.amount_received || 0;
+        const totalCost = project.project_cost || 0;
+        return {
+          id: `analysis_${project.id}`,
+          project_id: project.id,
+          sl_no: 0,
+          customer_name: project.customer_name || '',
+          mobile_no: project.mobile_no || '',
+          project_capacity: project.capacity || 0,
+          total_quoted_cost: totalCost,
+          application_charges: 0,
+          modules_cost: 0,
+          inverter_cost: 0,
+          structure_cost: 0,
+          hardware_cost: 0,
+          electrical_equipment: 0,
+          transport_segment: 0,
+          transport_segments: [],
+          transport_total: 0,
+          installation_cost: 0,
+          subsidy_application: 0,
+          misc_dept_charges: 0,
+          dept_charges: 0,
+          dept_charges_segments: [],
+          civil_work_cost: 0,
+          civil_work_segments: [],
+          total_exp: 0,
+          payment_received: paymentReceived,
+          pending_payment: totalCost - paymentReceived,
+          profit_right_now: 0,
+          overall_profit: 0,
+          state: 'Chitoor',
+          created_at: project.created_at,
+          updated_at: project.updated_at,
+        };
+      });
+
+      newAnalysisRecords.push(...chitoorAnalysisRecords);
+    }
+
+    if (newAnalysisRecords.length > 0) {
+      const { error: insertError } = await supabase
+        .from('project_analysis')
+        .insert(newAnalysisRecords);
+
+      if (!insertError) {
+        console.log(`Synced ${newAnalysisRecords.length} new projects to analysis table`);
+      } else {
+        console.error('Error syncing new projects:', insertError);
+      }
+    }
+  } catch (error) {
+    console.error('Error in syncNewProjectsToAnalysis:', error);
+  }
+};
+
 const ProjectAnalysis = () => {
   const params = useParams();
   const { isAuthenticated } = useAuth();
@@ -256,77 +398,36 @@ const ProjectAnalysis = () => {
     try {
       setIsLoading(true);
 
-      // Always fetch fresh from projects table to ensure live updates
-      const { data: projects, error: projectError } = await supabase
-        .from('projects')
-        .select('id, customer_name, phone, proposal_amount, kwh, state, paid_amount, advance_payment, balance_amount')
-        .neq('status', 'deleted')
+      // Fetch all project analysis data directly from project_analysis table
+      // This includes all 220 records, updated records, and complete analysis details
+      const { data: analysisData, error: analysisError } = await supabase
+        .from('project_analysis')
+        .select('*')
         .order('created_at', { ascending: false });
 
-      if (projectError) {
-        const errorCode = (projectError as any)?.code;
-        const errorMessage = (projectError as any)?.message || String(projectError);
-        console.error('Project error:', errorCode, errorMessage);
+      if (analysisError) {
+        const errorCode = (analysisError as any)?.code;
+        const errorMessage = (analysisError as any)?.message || String(analysisError);
+        console.error('Project analysis error:', errorCode, errorMessage);
 
-        // If projects table is empty, just show empty state
-        if (errorCode === 'PGRST116') {
-          setProjectData([]);
-        } else {
-          throw projectError;
-        }
-      } else if (projects && projects.length > 0) {
-        const transformedProjects: ProjectData[] = projects.map((project: any) => ({
-          id: project.id,
-          sl_no: 0, // Will be set by database
-          customer_name: project.customer_name || '',
-          mobile_no: project.phone || '',
-          project_capacity: project.kwh || 0,
-          total_quoted_cost: project.proposal_amount || 0,
-          application_charges: 0,
-          modules_cost: 0,
-          inverter_cost: 0,
-          structure_cost: 0,
-          hardware_cost: 0,
-          electrical_equipment: 0,
-          transport_segment: 0,
-          transport_segments: [],
-          transport_total: 0,
-          installation_cost: 0,
-          subsidy_application: 0,
-          misc_dept_charges: 0,
-          dept_charges: 0,
-          dept_charges_segments: [],
-          total_exp: 0,
-          // Match Projects tile: total received includes advance + paid amounts
-          payment_received: (project.advance_payment || 0) + (project.paid_amount || 0),
-          pending_payment: project.balance_amount || 0,
-          profit_right_now: 0,
-          overall_profit: 0,
-          project_id: project.id,
-          state: project.state || '',
-          created_at: project.created_at || undefined,
-        }));
+        // If project_analysis table is empty, fetch from source tables and migrate
+        if (errorCode === 'PGRST116' || (analysisData && analysisData.length === 0)) {
+          console.log('Project analysis table is empty, fetching from source tables for fallback');
+          // Try to fetch from projects table as fallback
+          const { data: projects, error: projectError } = await supabase
+            .from('projects')
+            .select('id, customer_name, phone, proposal_amount, kwh, state, paid_amount, advance_payment, balance_amount')
+            .neq('status', 'deleted')
+            .order('created_at', { ascending: false });
 
-        // Also fetch Chitoor projects for complete data
-        const { data: chitoorProjects, error: chitoorError } = await supabase
-          .from('chitoor_projects')
-          .select('*')
-          .order('created_at', { ascending: false });
-
-        let allProjects = transformedProjects;
-
-        if (!chitoorError && chitoorProjects && chitoorProjects.length > 0) {
-          const chitoorTransformed: ProjectData[] = chitoorProjects.map((project: any) => {
-            const paymentReceived = project.amount_received || 0;
-            const totalCost = project.project_cost || 0;
-            const pendingPayment = totalCost - paymentReceived;
-            return {
+          if (!projectError && projects && projects.length > 0) {
+            const transformedProjects: ProjectData[] = projects.map((project: any) => ({
               id: project.id,
               sl_no: 0,
               customer_name: project.customer_name || '',
-              mobile_no: project.mobile_no || '',
-              project_capacity: project.capacity || 0,
-              total_quoted_cost: totalCost,
+              mobile_no: project.phone || '',
+              project_capacity: project.kwh || 0,
+              total_quoted_cost: project.proposal_amount || 0,
               application_charges: 0,
               modules_cost: 0,
               inverter_cost: 0,
@@ -341,20 +442,77 @@ const ProjectAnalysis = () => {
               misc_dept_charges: 0,
               dept_charges: 0,
               dept_charges_segments: [],
+              civil_work_cost: 0,
+              civil_work_segments: [],
               total_exp: 0,
-              payment_received: paymentReceived,
-              pending_payment: pendingPayment,
+              payment_received: (project.advance_payment || 0) + (project.paid_amount || 0),
+              pending_payment: project.balance_amount || 0,
               profit_right_now: 0,
               overall_profit: 0,
               project_id: project.id,
-              state: 'Chitoor',
+              state: project.state || '',
               created_at: project.created_at || undefined,
-            };
-          });
-          allProjects = [...transformedProjects, ...chitoorTransformed];
-        }
+            }));
 
-        setProjectData(allProjects);
+            // Also fetch Chitoor projects for complete data
+            const { data: chitoorProjects, error: chitoorError } = await supabase
+              .from('chitoor_projects')
+              .select('*')
+              .order('created_at', { ascending: false });
+
+            let allProjects = transformedProjects;
+
+            if (!chitoorError && chitoorProjects && chitoorProjects.length > 0) {
+              const chitoorTransformed: ProjectData[] = chitoorProjects.map((project: any) => {
+                const paymentReceived = project.amount_received || 0;
+                const totalCost = project.project_cost || 0;
+                const pendingPayment = totalCost - paymentReceived;
+                return {
+                  id: project.id,
+                  sl_no: 0,
+                  customer_name: project.customer_name || '',
+                  mobile_no: project.mobile_no || '',
+                  project_capacity: project.capacity || 0,
+                  total_quoted_cost: totalCost,
+                  application_charges: 0,
+                  modules_cost: 0,
+                  inverter_cost: 0,
+                  structure_cost: 0,
+                  hardware_cost: 0,
+                  electrical_equipment: 0,
+                  transport_segment: 0,
+                  transport_segments: [],
+                  transport_total: 0,
+                  installation_cost: 0,
+                  subsidy_application: 0,
+                  misc_dept_charges: 0,
+                  dept_charges: 0,
+                  dept_charges_segments: [],
+                  civil_work_cost: 0,
+                  civil_work_segments: [],
+                  total_exp: 0,
+                  payment_received: paymentReceived,
+                  pending_payment: pendingPayment,
+                  profit_right_now: 0,
+                  overall_profit: 0,
+                  project_id: project.id,
+                  state: 'Chitoor',
+                  created_at: project.created_at || undefined,
+                };
+              });
+              allProjects = [...transformedProjects, ...chitoorTransformed];
+            }
+
+            setProjectData(allProjects);
+          } else {
+            setProjectData([]);
+          }
+        } else {
+          throw analysisError;
+        }
+      } else if (analysisData && analysisData.length > 0) {
+        // Successfully fetched all records from project_analysis table
+        setProjectData(analysisData as ProjectData[]);
       } else {
         setProjectData([]);
       }
@@ -457,6 +615,8 @@ const ProjectAnalysis = () => {
       if (isEmpty) {
         setShowMigrationPrompt(true);
       }
+      // Sync any new projects from source tables to analysis table
+      await syncNewProjectsToAnalysis(toast);
       await fetchProjectAnalysisData();
     } catch (error) {
       console.error('Error checking data:', error);
@@ -873,12 +1033,16 @@ const ProjectAnalysis = () => {
                   </InputGroup>
                   <Button
                     leftIcon={<RepeatIcon />}
-                    onClick={fetchProjectAnalysisData}
+                    onClick={async () => {
+                      await syncNewProjectsToAnalysis(toast);
+                      await fetchProjectAnalysisData();
+                    }}
                     colorScheme="blue"
                     variant="outline"
                     isLoading={isLoading}
+                    title="Refresh and sync new projects"
                   >
-                    Refresh
+                    Fetch All
                   </Button>
                   <Button
                     leftIcon={<DownloadIcon />}
