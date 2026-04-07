@@ -43,7 +43,7 @@ import { supabase } from '../lib/supabase';
 
 import { PROJECT_STAGES } from '../lib/constants';
 import { useAuth } from '../context/AuthContext';
-import { EditIcon } from '@chakra-ui/icons';
+import { EditIcon, DeleteIcon } from '@chakra-ui/icons';
 
 // State mapping function to convert abbreviations to full names
 const mapStateToFullName = (state: string): string => {
@@ -163,6 +163,14 @@ const [paymentMode, setPaymentMode] = useState(() => {
   } = useDisclosure();
   const [receiptPreviewUrl, setReceiptPreviewUrl] = useState<string | null>(null);
   const [isGeneratingReceipt, setIsGeneratingReceipt] = useState(false);
+
+  // PA (Project Analysis) modal state
+  const {
+    isOpen: isPAOpen,
+    onOpen: onPAOpen,
+    onClose: onPAClose
+  } = useDisclosure();
+  const [selectedProjectAnalysis, setSelectedProjectAnalysis] = useState<any | null>(null);
 
   // Custom close handler that revokes blob URLs
   const onReceiptPreviewClose = () => {
@@ -325,9 +333,74 @@ const [paymentMode, setPaymentMode] = useState(() => {
     navigate(`/csa?${params.toString()}`);
   };
 
-  const handleOpenPA = () => {
+  const handleOpenPA = async () => {
     if (!project) return;
-    navigate(`/project-analysis`);
+    try {
+      // Fetch project analysis data for this project
+      const { data, error } = await supabase
+        .from('project_analysis')
+        .select('*')
+        .eq('project_id', project.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching project analysis:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to load project analysis data',
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+        });
+        return;
+      }
+
+      // If no analysis exists, create a new one with default values
+      if (!data) {
+        setSelectedProjectAnalysis({
+          id: crypto.randomUUID(),
+          project_id: project.id,
+          customer_name: project.customer_name,
+          mobile_no: project.phone,
+          project_capacity: project.kwh || 0,
+          total_quoted_cost: project.proposal_amount || 0,
+          application_charges: 0,
+          modules_cost: 0,
+          inverter_cost: 0,
+          structure_cost: 0,
+          hardware_cost: 0,
+          electrical_equipment: 0,
+          transport_segment: 0,
+          transport_segments: [],
+          transport_total: 0,
+          installation_cost: 0,
+          subsidy_application: 0,
+          misc_dept_charges: 0,
+          dept_charges: 0,
+          dept_charges_segments: [],
+          civil_work_cost: 0,
+          civil_work_segments: [],
+          total_exp: 0,
+          payment_received: 0,
+          pending_payment: 0,
+          profit_right_now: 0,
+          overall_profit: 0,
+        });
+      } else {
+        setSelectedProjectAnalysis(data);
+      }
+
+      onPAOpen();
+    } catch (err) {
+      console.error('Error in handleOpenPA:', err);
+      toast({
+        title: 'Error',
+        description: 'Failed to open project analysis',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
   };
 
   // Add useEffect for timestamp updates
@@ -1198,6 +1271,446 @@ return (
             </Box>
           )}
         </ModalBody>
+      </ModalContent>
+    </Modal>
+
+    {/* PA (Project Analysis) Modal */}
+    <Modal isOpen={isPAOpen} onClose={onPAClose} size="2xl">
+      <ModalOverlay />
+      <ModalContent>
+        <ModalHeader>Project Analysis - {selectedProjectAnalysis?.customer_name}</ModalHeader>
+        <ModalCloseButton />
+        <ModalBody>
+          {selectedProjectAnalysis && (
+            <VStack spacing={4} align="stretch" maxH="70vh" overflowY="auto">
+              {/* Read-only fields from projects table */}
+              <FormControl isDisabled>
+                <FormLabel>Customer Name</FormLabel>
+                <Input value={selectedProjectAnalysis.customer_name} />
+              </FormControl>
+
+              <FormControl isDisabled>
+                <FormLabel>Mobile No</FormLabel>
+                <Input value={selectedProjectAnalysis.mobile_no} />
+              </FormControl>
+
+              <FormControl isDisabled>
+                <FormLabel>Project Capacity (kW)</FormLabel>
+                <Input type="number" value={selectedProjectAnalysis.project_capacity} />
+              </FormControl>
+
+              <FormControl isDisabled>
+                <FormLabel>Total Quoted Cost (₹)</FormLabel>
+                <Input type="number" value={selectedProjectAnalysis.total_quoted_cost} />
+              </FormControl>
+
+              {/* Cost Details Section */}
+              <Box borderTop="2px solid" borderColor="gray.200" pt={4}>
+                <Text fontWeight="bold" mb={4} color="gray.700">
+                  Cost Details (Manual Entry)
+                </Text>
+
+                <VStack spacing={3}>
+                  <FormControl>
+                    <FormLabel fontSize="sm">Application Charges (₹)</FormLabel>
+                    <Input
+                      type="number"
+                      value={selectedProjectAnalysis.application_charges || 0}
+                      onChange={(e) =>
+                        setSelectedProjectAnalysis({
+                          ...selectedProjectAnalysis,
+                          application_charges: parseFloat(e.target.value) || 0,
+                        })
+                      }
+                    />
+                  </FormControl>
+
+                  <FormControl>
+                    <FormLabel fontSize="sm">Modules Cost (₹)</FormLabel>
+                    <Input
+                      type="number"
+                      value={selectedProjectAnalysis.modules_cost || 0}
+                      onChange={(e) =>
+                        setSelectedProjectAnalysis({
+                          ...selectedProjectAnalysis,
+                          modules_cost: parseFloat(e.target.value) || 0,
+                        })
+                      }
+                    />
+                  </FormControl>
+
+                  <FormControl>
+                    <FormLabel fontSize="sm">Inverter Cost (₹)</FormLabel>
+                    <Input
+                      type="number"
+                      value={selectedProjectAnalysis.inverter_cost || 0}
+                      onChange={(e) =>
+                        setSelectedProjectAnalysis({
+                          ...selectedProjectAnalysis,
+                          inverter_cost: parseFloat(e.target.value) || 0,
+                        })
+                      }
+                    />
+                  </FormControl>
+
+                  <FormControl>
+                    <FormLabel fontSize="sm">Structure Cost (₹)</FormLabel>
+                    <Input
+                      type="number"
+                      value={selectedProjectAnalysis.structure_cost || 0}
+                      onChange={(e) =>
+                        setSelectedProjectAnalysis({
+                          ...selectedProjectAnalysis,
+                          structure_cost: parseFloat(e.target.value) || 0,
+                        })
+                      }
+                    />
+                  </FormControl>
+
+                  <FormControl>
+                    <FormLabel fontSize="sm">Hardware Cost (₹)</FormLabel>
+                    <Input
+                      type="number"
+                      value={selectedProjectAnalysis.hardware_cost || 0}
+                      onChange={(e) =>
+                        setSelectedProjectAnalysis({
+                          ...selectedProjectAnalysis,
+                          hardware_cost: parseFloat(e.target.value) || 0,
+                        })
+                      }
+                    />
+                  </FormControl>
+
+                  <FormControl>
+                    <FormLabel fontSize="sm">Electrical Equipment (₹)</FormLabel>
+                    <Input
+                      type="number"
+                      value={selectedProjectAnalysis.electrical_equipment || 0}
+                      onChange={(e) =>
+                        setSelectedProjectAnalysis({
+                          ...selectedProjectAnalysis,
+                          electrical_equipment: parseFloat(e.target.value) || 0,
+                        })
+                      }
+                    />
+                  </FormControl>
+
+                  <FormControl>
+                    <FormLabel fontSize="sm">Transport Segments (₹)</FormLabel>
+                    <VStack align="stretch" spacing={3}>
+                      {(selectedProjectAnalysis.transport_segments || []).map((seg: any, idx: number) => (
+                        <HStack key={`transport-${idx}`} spacing={2} align="flex-start">
+                          <Input
+                            placeholder="Element text (e.g., ETTX / DD element)"
+                            value={seg.label || ''}
+                            onChange={(e) => {
+                              const updated = [...(selectedProjectAnalysis.transport_segments || [])];
+                              updated[idx] = { ...seg, label: e.target.value };
+                              setSelectedProjectAnalysis({
+                                ...selectedProjectAnalysis,
+                                transport_segments: updated,
+                              });
+                            }}
+                          />
+                          <Input
+                            type="number"
+                            placeholder="Amount"
+                            value={seg.amount || 0}
+                            w="160px"
+                            onChange={(e) => {
+                              const updated = [...(selectedProjectAnalysis.transport_segments || [])];
+                              updated[idx] = { ...seg, amount: parseFloat(e.target.value) || 0 };
+                              setSelectedProjectAnalysis({
+                                ...selectedProjectAnalysis,
+                                transport_segments: updated,
+                              });
+                            }}
+                          />
+                          <IconButton
+                            aria-label="Remove transport element"
+                            icon={<DeleteIcon />}
+                            size="sm"
+                            variant="ghost"
+                            colorScheme="red"
+                            onClick={() => {
+                              const updated = selectedProjectAnalysis.transport_segments.filter((_: any, i: number) => i !== idx);
+                              setSelectedProjectAnalysis({
+                                ...selectedProjectAnalysis,
+                                transport_segments: updated,
+                              });
+                            }}
+                          />
+                        </HStack>
+                      ))}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        colorScheme="green"
+                        onClick={() => {
+                          setSelectedProjectAnalysis({
+                            ...selectedProjectAnalysis,
+                            transport_segments: [...(selectedProjectAnalysis.transport_segments || []), { label: '', amount: 0 }],
+                          });
+                        }}
+                      >
+                        + Add element
+                      </Button>
+                    </VStack>
+                  </FormControl>
+
+                  <FormControl>
+                    <FormLabel fontSize="sm">Transport Total (₹)</FormLabel>
+                    <Input
+                      type="number"
+                      value={selectedProjectAnalysis.transport_total || 0}
+                      onChange={(e) =>
+                        setSelectedProjectAnalysis({
+                          ...selectedProjectAnalysis,
+                          transport_total: parseFloat(e.target.value) || 0,
+                        })
+                      }
+                    />
+                  </FormControl>
+
+                  <FormControl>
+                    <FormLabel fontSize="sm">Installation Cost (₹)</FormLabel>
+                    <Input
+                      type="number"
+                      value={selectedProjectAnalysis.installation_cost || 0}
+                      onChange={(e) =>
+                        setSelectedProjectAnalysis({
+                          ...selectedProjectAnalysis,
+                          installation_cost: parseFloat(e.target.value) || 0,
+                        })
+                      }
+                    />
+                  </FormControl>
+
+                  <FormControl>
+                    <FormLabel fontSize="sm">Subsidy Application (₹)</FormLabel>
+                    <Input
+                      type="number"
+                      value={selectedProjectAnalysis.subsidy_application || 0}
+                      onChange={(e) =>
+                        setSelectedProjectAnalysis({
+                          ...selectedProjectAnalysis,
+                          subsidy_application: parseFloat(e.target.value) || 0,
+                        })
+                      }
+                    />
+                  </FormControl>
+
+                  <FormControl>
+                    <FormLabel fontSize="sm">Misc Dept Charges (₹)</FormLabel>
+                    <Input
+                      type="number"
+                      value={selectedProjectAnalysis.misc_dept_charges || 0}
+                      onChange={(e) =>
+                        setSelectedProjectAnalysis({
+                          ...selectedProjectAnalysis,
+                          misc_dept_charges: parseFloat(e.target.value) || 0,
+                        })
+                      }
+                    />
+                  </FormControl>
+
+                  <FormControl>
+                    <FormLabel fontSize="sm">Dept Charges (₹)</FormLabel>
+                    <VStack align="stretch" spacing={3}>
+                      {(selectedProjectAnalysis.dept_charges_segments || []).map((seg: any, idx: number) => (
+                        <HStack key={`dept-${idx}`} spacing={2} align="flex-start">
+                          <Input
+                            placeholder="Element text (e.g., Dept head)"
+                            value={seg.label || ''}
+                            onChange={(e) => {
+                              const updated = [...(selectedProjectAnalysis.dept_charges_segments || [])];
+                              updated[idx] = { ...seg, label: e.target.value };
+                              setSelectedProjectAnalysis({
+                                ...selectedProjectAnalysis,
+                                dept_charges_segments: updated,
+                              });
+                            }}
+                          />
+                          <Input
+                            type="number"
+                            placeholder="Amount"
+                            value={seg.amount || 0}
+                            w="160px"
+                            onChange={(e) => {
+                              const updated = [...(selectedProjectAnalysis.dept_charges_segments || [])];
+                              updated[idx] = { ...seg, amount: parseFloat(e.target.value) || 0 };
+                              setSelectedProjectAnalysis({
+                                ...selectedProjectAnalysis,
+                                dept_charges_segments: updated,
+                              });
+                            }}
+                          />
+                          <IconButton
+                            aria-label="Remove dept charge element"
+                            icon={<DeleteIcon />}
+                            size="sm"
+                            variant="ghost"
+                            colorScheme="red"
+                            onClick={() => {
+                              const updated = selectedProjectAnalysis.dept_charges_segments.filter((_: any, i: number) => i !== idx);
+                              setSelectedProjectAnalysis({
+                                ...selectedProjectAnalysis,
+                                dept_charges_segments: updated,
+                              });
+                            }}
+                          />
+                        </HStack>
+                      ))}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        colorScheme="green"
+                        onClick={() => {
+                          setSelectedProjectAnalysis({
+                            ...selectedProjectAnalysis,
+                            dept_charges_segments: [...(selectedProjectAnalysis.dept_charges_segments || []), { label: '', amount: 0 }],
+                          });
+                        }}
+                      >
+                        + Add element
+                      </Button>
+                    </VStack>
+                  </FormControl>
+
+                  <FormControl>
+                    <FormLabel fontSize="sm">Civil Work Able (₹)</FormLabel>
+                    <VStack align="stretch" spacing={3}>
+                      {(selectedProjectAnalysis.civil_work_segments || []).map((seg: any, idx: number) => (
+                        <HStack key={`civil-${idx}`} spacing={2} align="flex-start">
+                          <Input
+                            placeholder="Element text (e.g., Foundation / Roofing / Framing)"
+                            value={seg.label || ''}
+                            onChange={(e) => {
+                              const updated = [...(selectedProjectAnalysis.civil_work_segments || [])];
+                              updated[idx] = { ...seg, label: e.target.value };
+                              setSelectedProjectAnalysis({
+                                ...selectedProjectAnalysis,
+                                civil_work_segments: updated,
+                              });
+                            }}
+                          />
+                          <Input
+                            type="number"
+                            placeholder="Amount"
+                            value={seg.amount || 0}
+                            w="160px"
+                            onChange={(e) => {
+                              const updated = [...(selectedProjectAnalysis.civil_work_segments || [])];
+                              updated[idx] = { ...seg, amount: parseFloat(e.target.value) || 0 };
+                              setSelectedProjectAnalysis({
+                                ...selectedProjectAnalysis,
+                                civil_work_segments: updated,
+                              });
+                            }}
+                          />
+                          <IconButton
+                            aria-label="Remove civil work element"
+                            icon={<DeleteIcon />}
+                            size="sm"
+                            variant="ghost"
+                            colorScheme="red"
+                            onClick={() => {
+                              const updated = selectedProjectAnalysis.civil_work_segments.filter((_: any, i: number) => i !== idx);
+                              setSelectedProjectAnalysis({
+                                ...selectedProjectAnalysis,
+                                civil_work_segments: updated,
+                              });
+                            }}
+                          />
+                        </HStack>
+                      ))}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        colorScheme="green"
+                        onClick={() => {
+                          setSelectedProjectAnalysis({
+                            ...selectedProjectAnalysis,
+                            civil_work_segments: [...(selectedProjectAnalysis.civil_work_segments || []), { label: '', amount: 0 }],
+                          });
+                        }}
+                      >
+                        + Add element
+                      </Button>
+                    </VStack>
+                  </FormControl>
+
+                  <FormControl>
+                    <FormLabel fontSize="sm">Payment Received (₹)</FormLabel>
+                    <Input
+                      type="number"
+                      value={selectedProjectAnalysis.payment_received || 0}
+                      onChange={(e) =>
+                        setSelectedProjectAnalysis({
+                          ...selectedProjectAnalysis,
+                          payment_received: parseFloat(e.target.value) || 0,
+                        })
+                      }
+                    />
+                  </FormControl>
+
+                  <FormControl>
+                    <FormLabel fontSize="sm">Pending Payment (₹)</FormLabel>
+                    <Input
+                      type="number"
+                      value={selectedProjectAnalysis.pending_payment || 0}
+                      onChange={(e) =>
+                        setSelectedProjectAnalysis({
+                          ...selectedProjectAnalysis,
+                          pending_payment: parseFloat(e.target.value) || 0,
+                        })
+                      }
+                    />
+                  </FormControl>
+                </VStack>
+              </Box>
+            </VStack>
+          )}
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="ghost" mr={3} onClick={onPAClose}>
+            Cancel
+          </Button>
+          <Button colorScheme="blue" onClick={async () => {
+            try {
+              const dataToSave = {
+                ...selectedProjectAnalysis,
+                updated_at: new Date().toISOString(),
+              };
+
+              const { error } = await supabase
+                .from('project_analysis')
+                .upsert(dataToSave, { onConflict: 'id' });
+
+              if (error) throw error;
+
+              toast({
+                title: 'Success',
+                description: 'Project analysis saved successfully',
+                status: 'success',
+                duration: 3,
+                isClosable: true,
+              });
+              onPAClose();
+            } catch (err: any) {
+              console.error('Error saving project analysis:', err);
+              toast({
+                title: 'Error',
+                description: err?.message || 'Failed to save project analysis',
+                status: 'error',
+                duration: 3,
+                isClosable: true,
+              });
+            }
+          }}>
+            Save Changes
+          </Button>
+        </ModalFooter>
       </ModalContent>
     </Modal>
 
