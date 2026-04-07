@@ -3190,7 +3190,7 @@ const Finance: React.FC = () => {
                           </Flex>
                         </CardHeader>
                         <CardBody>
-                          <Tabs colorScheme="brand" variant="soft-rounded" index={dailyExpensesTabIndex} onChange={setDailyExpensesTabIndex}>
+                          <Tabs colorScheme="brand" variant="enclosed" index={dailyExpensesTabIndex} onChange={setDailyExpensesTabIndex}>
                             <TabList mb={4}>
                               <Tab>Add Expense</Tab>
                               <Tab>Reports</Tab>
