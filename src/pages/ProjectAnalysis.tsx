@@ -110,6 +110,11 @@ const normalizeText = (value: unknown) =>
     .toLowerCase()
     .replace(/\s+/g, ' ');
 
+const toNullableTimestamp = (value?: string | null) => {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : null;
+};
+
 const getProjectBucket = (project: ProjectData): 'TG' | 'AP' | 'Chitoor' | 'Other' => {
   const s = normalizeText(project.state);
 
@@ -299,7 +304,7 @@ const ProjectAnalysis = () => {
           overall_profit: 0,
           project_id: project.id,
           state: project.state || '',
-          created_at: project.created_at || '',
+          created_at: project.created_at || undefined,
         }));
 
         // Also fetch Chitoor projects for complete data
@@ -343,7 +348,7 @@ const ProjectAnalysis = () => {
               overall_profit: 0,
               project_id: project.id,
               state: 'Chitoor',
-              created_at: project.created_at || '',
+              created_at: project.created_at || undefined,
             };
           });
           allProjects = [...transformedProjects, ...chitoorTransformed];
@@ -585,9 +590,9 @@ const ProjectAnalysis = () => {
         profit_right_now: profitRightNow,
         overall_profit: overallProfit,
         project_id: selectedProject.project_id,
-        project_start_date: selectedProject.project_start_date,
-        completion_date: selectedProject.completion_date,
-        created_at: selectedProject.created_at,
+        project_start_date: toNullableTimestamp(selectedProject.project_start_date),
+        completion_date: toNullableTimestamp(selectedProject.completion_date),
+        created_at: toNullableTimestamp(selectedProject.created_at),
         updated_at: new Date().toISOString(),
       };
 
