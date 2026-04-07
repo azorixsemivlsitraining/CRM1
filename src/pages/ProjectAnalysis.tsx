@@ -112,7 +112,7 @@ const normalizeText = (value: unknown) =>
 
 const toNullableTimestamp = (value?: string | null) => {
   const trimmed = value?.trim();
-  return trimmed ? trimmed : null;
+  return trimmed || undefined;
 };
 
 const getProjectBucket = (project: ProjectData): 'TG' | 'AP' | 'Chitoor' | 'Other' => {
