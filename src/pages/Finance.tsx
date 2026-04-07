@@ -1990,7 +1990,10 @@ const Finance: React.FC = () => {
           amount: dailyExpenseForm.amount,
         }]);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error saving daily expense:', error);
+        throw new Error(error.message || 'Failed to save daily expense');
+      }
 
       toast({
         title: 'Success',
@@ -2010,10 +2013,11 @@ const Finance: React.FC = () => {
       });
       await fetchDailyExpenses();
     } catch (error) {
-      console.error('Error saving daily expense:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      console.error('Error saving daily expense:', errorMessage);
       toast({
         title: 'Error',
-        description: 'Failed to save daily expense.',
+        description: `Failed to save daily expense: ${errorMessage}`,
         status: 'error',
         duration: 3000,
         isClosable: true,
@@ -2030,10 +2034,13 @@ const Finance: React.FC = () => {
         .select('*')
         .order('date', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error fetching daily expenses:', error);
+        throw new Error(error.message || 'Failed to fetch daily expenses');
+      }
       setDailyExpenses((data || []) as DailyExpense[]);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       console.error('Error fetching daily expenses:', errorMessage);
       toast({
         title: 'Error',
