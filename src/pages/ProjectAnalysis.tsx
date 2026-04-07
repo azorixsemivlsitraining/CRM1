@@ -240,88 +240,7 @@ const ProjectAnalysis = () => {
     };
   }, [visibleData]);
 
-  useEffect(() => {
-    if (isAuthenticated && isAnalysisUnlocked) {
-      checkAndInitializeData();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, isAnalysisUnlocked]);
-
-  useEffect(() => {
-    // Apply state filter to project data
-    if (selectedFilter !== 'All' && projectData.length > 0) {
-      const filtered = projectData.filter((project) => getProjectBucket(project) === selectedFilter);
-      setFilteredData(filtered);
-    } else {
-      setFilteredData(projectData);
-    }
-  }, [selectedFilter, projectData]);
-
-  useEffect(() => {
-    if (!isAuthenticated || !isAnalysisUnlocked) return;
-
-    // Keep the analysis view "live" as new rows are added/edited.
-    const channel = supabase
-      .channel('project-analysis-live')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'projects' },
-        () => fetchProjectAnalysisData()
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'project_analysis' },
-        () => fetchProjectAnalysisData()
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'chitoor_projects' },
-        () => fetchProjectAnalysisData()
-      )
-      .subscribe();
-
-    return () => {
-      void supabase.removeChannel(channel);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, isAnalysisUnlocked]);
-
-  const handleUnlockAnalysis = () => {
-    if (passwordInput === 'Axiso@2024') {
-      setIsAnalysisUnlocked(true);
-      setPasswordInput('');
-      toast({
-        title: 'Access granted',
-        description: 'Project Analysis unlocked',
-        status: 'success',
-        duration: 3,
-        isClosable: true,
-      });
-    } else {
-      toast({
-        title: 'Incorrect password',
-        description: 'Please enter the correct Project Analysis password',
-        status: 'error',
-        duration: 3,
-        isClosable: true,
-      });
-    }
-  };
-
-  const checkAndInitializeData = async () => {
-    try {
-      const isEmpty = await checkProjectAnalysisEmpty();
-      if (isEmpty) {
-        setShowMigrationPrompt(true);
-      }
-      await fetchProjectAnalysisData();
-    } catch (error) {
-      console.error('Error checking data:', error);
-      await fetchProjectAnalysisData();
-    }
-  };
-
-  const fetchProjectAnalysisData = async () => {
+  const fetchProjectAnalysisData = React.useCallback(async () => {
     try {
       setIsLoading(true);
 
@@ -346,7 +265,7 @@ const ProjectAnalysis = () => {
         const { data: projects, error: projectError } = await supabase
           .from('projects')
           .select('id, customer_name, phone, proposal_amount, kwh, state, paid_amount, advance_payment, balance_amount')
-          
+
           .neq('status', 'deleted');
 
         if (projectError) {
@@ -567,6 +486,86 @@ const ProjectAnalysis = () => {
       setProjectData([]);
     } finally {
       setIsLoading(false);
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    if (isAuthenticated && isAnalysisUnlocked) {
+      checkAndInitializeData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, isAnalysisUnlocked]);
+
+  useEffect(() => {
+    // Apply state filter to project data
+    if (selectedFilter !== 'All' && projectData.length > 0) {
+      const filtered = projectData.filter((project) => getProjectBucket(project) === selectedFilter);
+      setFilteredData(filtered);
+    } else {
+      setFilteredData(projectData);
+    }
+  }, [selectedFilter, projectData]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !isAnalysisUnlocked) return;
+
+    // Keep the analysis view "live" as new rows are added/edited.
+    const channel = supabase
+      .channel('project-analysis-live')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'projects' },
+        () => fetchProjectAnalysisData()
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'project_analysis' },
+        () => fetchProjectAnalysisData()
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'chitoor_projects' },
+        () => fetchProjectAnalysisData()
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [isAuthenticated, isAnalysisUnlocked, fetchProjectAnalysisData]);
+
+  const handleUnlockAnalysis = () => {
+    if (passwordInput === 'Axiso@2024') {
+      setIsAnalysisUnlocked(true);
+      setPasswordInput('');
+      toast({
+        title: 'Access granted',
+        description: 'Project Analysis unlocked',
+        status: 'success',
+        duration: 3,
+        isClosable: true,
+      });
+    } else {
+      toast({
+        title: 'Incorrect password',
+        description: 'Please enter the correct Project Analysis password',
+        status: 'error',
+        duration: 3,
+        isClosable: true,
+      });
+    }
+  };
+
+  const checkAndInitializeData = async () => {
+    try {
+      const isEmpty = await checkProjectAnalysisEmpty();
+      if (isEmpty) {
+        setShowMigrationPrompt(true);
+      }
+      await fetchProjectAnalysisData();
+    } catch (error) {
+      console.error('Error checking data:', error);
+      await fetchProjectAnalysisData();
     }
   };
 
