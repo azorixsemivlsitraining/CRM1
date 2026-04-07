@@ -376,6 +376,7 @@ const Finance: React.FC = () => {
     amount: 0,
   });
   const [dailyExpenseLoading, setDailyExpenseLoading] = useState(false);
+  const [dailyExpensesTabIndex, setDailyExpensesTabIndex] = useState(0);
 
   const { isFinance, isAuthenticated, isAdmin } = useAuth();
   const toast = useToast();
@@ -1990,7 +1991,10 @@ const Finance: React.FC = () => {
           amount: dailyExpenseForm.amount,
         }]);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error saving daily expense:', error);
+        throw new Error(error.message || 'Failed to save daily expense');
+      }
 
       toast({
         title: 'Success',
@@ -2010,10 +2014,11 @@ const Finance: React.FC = () => {
       });
       await fetchDailyExpenses();
     } catch (error) {
-      console.error('Error saving daily expense:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      console.error('Error saving daily expense:', errorMessage);
       toast({
         title: 'Error',
-        description: 'Failed to save daily expense.',
+        description: `Failed to save daily expense: ${errorMessage}`,
         status: 'error',
         duration: 3000,
         isClosable: true,
@@ -2030,11 +2035,40 @@ const Finance: React.FC = () => {
         .select('*')
         .order('date', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error fetching daily expenses:', error);
+        throw new Error(error.message || 'Failed to fetch daily expenses');
+      }
       setDailyExpenses((data || []) as DailyExpense[]);
     } catch (error) {
-      console.error('Error fetching daily expenses:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      console.error('Error fetching daily expenses:', errorMessage);
+      toast({
+        title: 'Error',
+        description: `Failed to fetch daily expenses: ${errorMessage}`,
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
     }
+  };
+
+  const exportDailyExpensesCsv = () => {
+    const rows = dailyExpenses.map((e) => ({
+      date: e.date,
+      category: e.category,
+      project_name: e.project_name,
+      customer_name: e.customer_name || '',
+      element: e.element,
+      amount: e.amount,
+    }));
+    download(makeCsv(rows), 'daily_expenses.csv');
+  };
+
+  const exportDailyExpensesXls = () => {
+    const cols = ['Date', 'Category', 'Project Name', 'Customer Name', 'Element', 'Amount (₹)'];
+    const rows = dailyExpenses.map((e) => [e.date, e.category, e.project_name, e.customer_name || '', e.element, e.amount]);
+    downloadExcel(cols, rows, 'daily_expenses.xls');
   };
 
   const getWeeklyExpensesByCategory = () => {
@@ -3144,10 +3178,19 @@ const Finance: React.FC = () => {
                     <TabPanel p={0} pt={4}>
                       <Card>
                         <CardHeader>
-                          <Heading size="md">Daily Expenses</Heading>
+                          <Flex align="center" justify="space-between" gap={4} flexWrap="wrap">
+                            <Heading size="md">Daily Expenses</Heading>
+                            <HStack spacing={2}>
+                              <Button size="sm" colorScheme="brand" onClick={() => setDailyExpensesTabIndex(0)}>
+                                + New Expense
+                              </Button>
+                              <Button size="sm" onClick={exportDailyExpensesCsv}>CSV</Button>
+                              <Button size="sm" onClick={exportDailyExpensesXls}>Excel</Button>
+                            </HStack>
+                          </Flex>
                         </CardHeader>
                         <CardBody>
-                          <Tabs colorScheme="brand" variant="soft-rounded">
+                          <Tabs colorScheme="brand" variant="enclosed" index={dailyExpensesTabIndex} onChange={setDailyExpensesTabIndex}>
                             <TabList mb={4}>
                               <Tab>Add Expense</Tab>
                               <Tab>Reports</Tab>
