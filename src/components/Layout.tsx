@@ -165,7 +165,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             ? 'projectAnalysis'
           : path.startsWith('/service-tickets')
             ? 'serviceTickets'
-            : path.startsWith('/finance') || path.startsWith('/payments')
+            : path.startsWith('/finance') || path.startsWith('/payments') || path.startsWith('/daily-expenses')
               ? 'finance'
               : path.startsWith('/admin')
                 ? 'admin'
@@ -175,6 +175,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const financeItems = [
     { icon: '💰', label: 'Finance', to: '/finance' },
+    { icon: '🧾', label: 'Daily Expenses', to: '/daily-expenses' },
   ];
 
   const SidebarContent = ({ onClose }: { onClose?: () => void }) => (
@@ -358,7 +359,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   icon={item.icon}
                   label={item.label}
                   to={item.to}
-                  isActive={location.pathname === item.to}
+                  isActive={location.pathname === item.to || location.pathname.startsWith(`${item.to}/`)}
                   onClick={onClose}
                   collapsed={isCollapsed}
                 />

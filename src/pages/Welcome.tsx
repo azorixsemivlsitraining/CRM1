@@ -154,7 +154,7 @@ const Welcome: React.FC = () => {
     if (path.startsWith('/reports')) return 'reports';
     if (path.startsWith('/sales')) return 'sales';
     if (path.startsWith('/service-tickets')) return 'serviceTickets';
-    if (path.startsWith('/finance') || path.startsWith('/payments')) return 'finance';
+    if (path.startsWith('/finance') || path.startsWith('/payments') || path.startsWith('/daily-expenses')) return 'finance';
     if (path.startsWith('/hr')) return 'hr';
     if (path.startsWith('/stock') || path.startsWith('/procurement') || path.startsWith('/logistics')) return 'operations';
     return 'other';

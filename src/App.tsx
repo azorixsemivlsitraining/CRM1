@@ -11,6 +11,7 @@ import Projects from './components/Projects';
 import ProjectDetails from './components/ProjectDetails';
 import Reports from './components/Reports';
 import Finance from './pages/Finance';
+import DailyExpenses from './pages/DailyExpenses';
 import Payments from './pages/Payments';
 import TaxInvoice from './pages/TaxInvoice';
 import ServiceTickets from './pages/ServiceTickets';
@@ -80,7 +81,12 @@ const App: React.FC = () => {
   return (
     <ErrorBoundary>
       <ChakraProvider theme={theme}>
-        <Router>
+      <Router
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true,
+        }}
+      >
           <AuthProvider>
             <Routes>
               <Route path="/error-test" element={<ErrorTest />} />
@@ -157,6 +163,18 @@ const App: React.FC = () => {
                     <ModuleGuard moduleKey="finance">
                       <Layout>
                         <Finance />
+                      </Layout>
+                    </ModuleGuard>
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/daily-expenses"
+                element={
+                  <PrivateRoute>
+                    <ModuleGuard moduleKey="finance">
+                      <Layout>
+                        <DailyExpenses />
                       </Layout>
                     </ModuleGuard>
                   </PrivateRoute>
