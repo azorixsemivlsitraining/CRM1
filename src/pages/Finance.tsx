@@ -103,12 +103,17 @@ interface ExpenseRec {
 interface DailyExpense {
   id?: string;
   date: string;
-  category: 'civil work' | 'electrical' | 'transportation';
+  category: string;
   project_name: string;
   customer_name?: string;
   element: string;
   amount: number;
   created_at?: string;
+}
+
+interface DailyExpenseElementRow {
+  name: string;
+  amount: number;
 }
 
 interface EstimationCost {
@@ -171,6 +176,7 @@ const PREDEFINED_INVOICE_ITEMS = [
 ];
 
 const inr = (v: number) => `₹${(v || 0).toLocaleString('en-IN')}`;
+const DAILY_EXPENSE_DEFAULT_CATEGORIES = ['transportation', 'electrical', 'civil work'];
 
 const makeCsv = (rows: any[]) => {
   if (!rows || rows.length === 0) return '';
@@ -375,8 +381,12 @@ const Finance: React.FC = () => {
     element: '',
     amount: 0,
   });
+  const [dailyExpenseElements, setDailyExpenseElements] = useState<DailyExpenseElementRow[]>([{ name: '', amount: 0 }]);
+  const [dailyExpenseCategoryMode, setDailyExpenseCategoryMode] = useState<'preset' | 'other'>('preset');
+  const [dailyExpenseOtherCategory, setDailyExpenseOtherCategory] = useState('');
   const [dailyExpenseLoading, setDailyExpenseLoading] = useState(false);
   const [dailyExpensesTabIndex, setDailyExpensesTabIndex] = useState(0);
+  const [dailyExpenseReportTabIndex, setDailyExpenseReportTabIndex] = useState(0);
 
   const { isFinance, isAuthenticated, isAdmin } = useAuth();
   const toast = useToast();
@@ -1967,10 +1977,20 @@ const Finance: React.FC = () => {
 
   // Daily Expense Handlers
   const handleAddDailyExpense = async () => {
-    if (!dailyExpenseForm.date || !dailyExpenseForm.project_name || !dailyExpenseForm.element || dailyExpenseForm.amount <= 0) {
+    const cleanedElements = dailyExpenseElements
+      .map((item) => ({ name: String(item.name || '').trim(), amount: Number(item.amount || 0) }))
+      .filter((item) => item.name && item.amount > 0);
+    const totalAmount = cleanedElements.reduce((sum, item) => sum + item.amount, 0);
+    const resolvedCategory =
+      dailyExpenseCategoryMode === 'other'
+        ? String(dailyExpenseOtherCategory || '').trim().toLowerCase()
+        : String(dailyExpenseForm.category || '').trim().toLowerCase();
+    const elementSummary = cleanedElements.map((item) => `${item.name} (₹${item.amount})`).join(', ');
+
+    if (!dailyExpenseForm.date || !resolvedCategory || !dailyExpenseForm.project_name || cleanedElements.length === 0 || totalAmount <= 0) {
       toast({
         title: 'Missing Fields',
-        description: 'Please fill all required fields correctly.',
+        description: 'Please fill date, category, project/customer details, and at least one element with amount.',
         status: 'warning',
         duration: 3000,
         isClosable: true,
@@ -1984,11 +2004,11 @@ const Finance: React.FC = () => {
         .from('daily_expenses')
         .insert([{
           date: dailyExpenseForm.date,
-          category: dailyExpenseForm.category,
+          category: resolvedCategory,
           project_name: dailyExpenseForm.project_name,
           customer_name: dailyExpenseForm.customer_name || null,
-          element: dailyExpenseForm.element,
-          amount: dailyExpenseForm.amount,
+          element: elementSummary,
+          amount: totalAmount,
         }]);
 
       if (error) {
@@ -2012,7 +2032,11 @@ const Finance: React.FC = () => {
         element: '',
         amount: 0,
       });
+      setDailyExpenseElements([{ name: '', amount: 0 }]);
+      setDailyExpenseCategoryMode('preset');
+      setDailyExpenseOtherCategory('');
       await fetchDailyExpenses();
+      setDailyExpensesTabIndex(1);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       console.error('Error saving daily expense:', errorMessage);
@@ -2076,14 +2100,11 @@ const Finance: React.FC = () => {
     const sevenDaysAgo = new Date(currentDate.getTime() - 7 * 24 * 60 * 60 * 1000);
     const weeklyExpenses = dailyExpenses.filter(exp => new Date(exp.date) >= sevenDaysAgo);
 
-    const categoryTotals: { [key: string]: number } = {
-      'civil work': 0,
-      'electrical': 0,
-      'transportation': 0,
-    };
+    const categoryTotals: { [key: string]: number } = {};
 
     weeklyExpenses.forEach(exp => {
-      categoryTotals[exp.category] = (categoryTotals[exp.category] || 0) + exp.amount;
+      const key = String(exp.category || 'other').trim().toLowerCase() || 'other';
+      categoryTotals[key] = (categoryTotals[key] || 0) + (Number(exp.amount) || 0);
     });
 
     return categoryTotals;
@@ -2094,14 +2115,11 @@ const Finance: React.FC = () => {
     const monthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
     const monthlyExpenses = dailyExpenses.filter(exp => new Date(exp.date) >= monthStart);
 
-    const categoryTotals: { [key: string]: number } = {
-      'civil work': 0,
-      'electrical': 0,
-      'transportation': 0,
-    };
+    const categoryTotals: { [key: string]: number } = {};
 
     monthlyExpenses.forEach(exp => {
-      categoryTotals[exp.category] = (categoryTotals[exp.category] || 0) + exp.amount;
+      const key = String(exp.category || 'other').trim().toLowerCase() || 'other';
+      categoryTotals[key] = (categoryTotals[key] || 0) + (Number(exp.amount) || 0);
     });
 
     return categoryTotals;
@@ -3192,15 +3210,16 @@ const Finance: React.FC = () => {
                         <CardBody>
                           <Tabs colorScheme="brand" variant="enclosed" index={dailyExpensesTabIndex} onChange={setDailyExpensesTabIndex}>
                             <TabList mb={4}>
-                              <Tab>Add Expense</Tab>
-                              <Tab>Reports</Tab>
+                              <Tab>Expense Sheet Form</Tab>
+                              <Tab>Daily Expenses Records</Tab>
+                              <Tab>Expense Reports</Tab>
                             </TabList>
                             <TabPanels>
-                              {/* Add Expense Form Tab */}
+                              {/* Expense Sheet Form Tab */}
                               <TabPanel>
                                 <Card bg="gray.50">
                                   <CardHeader>
-                                    <Heading size="sm">Create New Expense</Heading>
+                                    <Heading size="sm">Daily Expense Sheet Form</Heading>
                                   </CardHeader>
                                   <CardBody>
                                     <VStack spacing={4}>
@@ -3215,20 +3234,39 @@ const Finance: React.FC = () => {
 
                                       <FormControl isRequired>
                                         <FormLabel>Category</FormLabel>
-                                        <Select
-                                          value={dailyExpenseForm.category}
-                                          onChange={(e) => setDailyExpenseForm({ ...dailyExpenseForm, category: e.target.value as 'civil work' | 'electrical' | 'transportation' })}
-                                        >
-                                          <option value="civil work">Civil Work</option>
-                                          <option value="electrical">Electrical</option>
-                                          <option value="transportation">Transportation</option>
-                                        </Select>
+                                        <VStack spacing={2} align="stretch">
+                                          <Select
+                                            value={dailyExpenseCategoryMode === 'other' ? '__other__' : dailyExpenseForm.category}
+                                            onChange={(e) => {
+                                              if (e.target.value === '__other__') {
+                                                setDailyExpenseCategoryMode('other');
+                                              } else {
+                                                setDailyExpenseCategoryMode('preset');
+                                                setDailyExpenseForm({ ...dailyExpenseForm, category: e.target.value });
+                                              }
+                                            }}
+                                          >
+                                            {DAILY_EXPENSE_DEFAULT_CATEGORIES.map((cat) => (
+                                              <option key={cat} value={cat}>
+                                                {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                                              </option>
+                                            ))}
+                                            <option value="__other__">Other Category</option>
+                                          </Select>
+                                          {dailyExpenseCategoryMode === 'other' && (
+                                            <Input
+                                              placeholder="Enter custom category"
+                                              value={dailyExpenseOtherCategory}
+                                              onChange={(e) => setDailyExpenseOtherCategory(e.target.value)}
+                                            />
+                                          )}
+                                        </VStack>
                                       </FormControl>
 
                                       <FormControl isRequired>
-                                        <FormLabel>Project Name</FormLabel>
+                                        <FormLabel>Project / Customer Name</FormLabel>
                                         <Input
-                                          placeholder="Enter project name"
+                                          placeholder="Enter project or customer name"
                                           value={dailyExpenseForm.project_name}
                                           onChange={(e) => setDailyExpenseForm({ ...dailyExpenseForm, project_name: e.target.value })}
                                         />
@@ -3243,26 +3281,66 @@ const Finance: React.FC = () => {
                                         />
                                       </FormControl>
 
-                                      <FormControl isRequired>
-                                        <FormLabel>Element/Item Description</FormLabel>
-                                        <Input
-                                          placeholder="Enter element or item description"
-                                          value={dailyExpenseForm.element}
-                                          onChange={(e) => setDailyExpenseForm({ ...dailyExpenseForm, element: e.target.value })}
-                                        />
-                                      </FormControl>
-
-                                      <FormControl isRequired>
-                                        <FormLabel>Amount (₹)</FormLabel>
-                                        <Input
-                                          type="number"
-                                          placeholder="Enter amount"
-                                          value={dailyExpenseForm.amount}
-                                          onChange={(e) => setDailyExpenseForm({ ...dailyExpenseForm, amount: parseFloat(e.target.value) || 0 })}
-                                          min="0"
-                                          step="0.01"
-                                        />
-                                      </FormControl>
+                                      <Box w="100%">
+                                        <FormLabel>Elements and Amounts</FormLabel>
+                                        <VStack spacing={3} align="stretch">
+                                          {dailyExpenseElements.map((item, index) => (
+                                            <HStack key={`element-row-${index}`} align="flex-end">
+                                              <FormControl isRequired>
+                                                <FormLabel fontSize="xs" color="gray.600">Element</FormLabel>
+                                                <Input
+                                                  placeholder="Element name"
+                                                  value={item.name}
+                                                  onChange={(e) => {
+                                                    const next = [...dailyExpenseElements];
+                                                    next[index] = { ...next[index], name: e.target.value };
+                                                    setDailyExpenseElements(next);
+                                                  }}
+                                                />
+                                              </FormControl>
+                                              <FormControl isRequired>
+                                                <FormLabel fontSize="xs" color="gray.600">Amount (₹)</FormLabel>
+                                                <Input
+                                                  type="number"
+                                                  min="0"
+                                                  step="0.01"
+                                                  placeholder="0"
+                                                  value={item.amount}
+                                                  onChange={(e) => {
+                                                    const next = [...dailyExpenseElements];
+                                                    next[index] = { ...next[index], amount: parseFloat(e.target.value) || 0 };
+                                                    setDailyExpenseElements(next);
+                                                  }}
+                                                />
+                                              </FormControl>
+                                              <Button
+                                                size="sm"
+                                                variant="outline"
+                                                colorScheme="red"
+                                                isDisabled={dailyExpenseElements.length === 1}
+                                                onClick={() => {
+                                                  if (dailyExpenseElements.length === 1) return;
+                                                  setDailyExpenseElements(dailyExpenseElements.filter((_, i) => i !== index));
+                                                }}
+                                              >
+                                                Remove
+                                              </Button>
+                                            </HStack>
+                                          ))}
+                                          <HStack justify="space-between">
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              onClick={() => setDailyExpenseElements([...dailyExpenseElements, { name: '', amount: 0 }])}
+                                            >
+                                              + Add Element
+                                            </Button>
+                                            <Text fontWeight="bold">
+                                              Total: {inr(dailyExpenseElements.reduce((sum, item) => sum + (Number(item.amount) || 0), 0))}
+                                            </Text>
+                                          </HStack>
+                                        </VStack>
+                                      </Box>
 
                                       <Button
                                         colorScheme="brand"
@@ -3276,10 +3354,19 @@ const Finance: React.FC = () => {
                                     </VStack>
                                   </CardBody>
                                 </Card>
+                              </TabPanel>
 
-                                <Card mt={6}>
+                              {/* Daily Expenses Records Tab */}
+                              <TabPanel>
+                                <Card>
                                   <CardHeader>
-                                    <Heading size="sm">Recent Expenses</Heading>
+                                    <Flex align="center" justify="space-between" gap={3} flexWrap="wrap">
+                                      <Heading size="sm">Saved Daily Expenses</Heading>
+                                      <HStack spacing={2}>
+                                        <Button size="sm" onClick={exportDailyExpensesCsv}>CSV</Button>
+                                        <Button size="sm" onClick={exportDailyExpensesXls}>Excel</Button>
+                                      </HStack>
+                                    </Flex>
                                   </CardHeader>
                                   <CardBody>
                                     {dailyExpenses.length > 0 ? (
@@ -3289,28 +3376,20 @@ const Finance: React.FC = () => {
                                             <Tr>
                                               <Th>Date</Th>
                                               <Th>Category</Th>
-                                              <Th>Project</Th>
+                                              <Th>Project / Customer</Th>
                                               <Th>Customer</Th>
-                                              <Th>Element</Th>
+                                              <Th>Elements</Th>
                                               <Th isNumeric>Amount (₹)</Th>
                                             </Tr>
                                           </Thead>
                                           <Tbody>
-                                            {dailyExpenses.slice(0, 20).map((exp) => (
+                                            {dailyExpenses.map((exp) => (
                                               <Tr key={exp.id}>
                                                 <Td>{exp.date}</Td>
-                                                <Td>
-                                                  <Badge colorScheme={
-                                                    exp.category === 'civil work' ? 'blue' :
-                                                    exp.category === 'electrical' ? 'yellow' :
-                                                    'orange'
-                                                  }>
-                                                    {exp.category}
-                                                  </Badge>
-                                                </Td>
+                                                <Td><Badge colorScheme="purple">{exp.category}</Badge></Td>
                                                 <Td>{exp.project_name}</Td>
                                                 <Td>{exp.customer_name || '-'}</Td>
-                                                <Td>{exp.element}</Td>
+                                                <Td maxW="360px" whiteSpace="normal">{exp.element}</Td>
                                                 <Td isNumeric>{inr(exp.amount)}</Td>
                                               </Tr>
                                             ))}
@@ -3324,119 +3403,80 @@ const Finance: React.FC = () => {
                                 </Card>
                               </TabPanel>
 
-                              {/* Reports Tab */}
+                              {/* Expense Reports Tab */}
                               <TabPanel>
-                                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6} mb={6}>
-                                  <Card>
-                                    <CardHeader>
-                                      <Heading size="sm">Weekly Expenses by Category</Heading>
-                                      <Text fontSize="xs" color="gray.500" mt={1}>Last 7 days</Text>
-                                    </CardHeader>
-                                    <CardBody>
-                                      {Object.keys(getWeeklyExpensesByCategory()).length > 0 ? (
-                                        <Box>
-                                          <VStack spacing={3} align="stretch">
-                                            {Object.entries(getWeeklyExpensesByCategory()).map(([category, amount]) => (
-                                              <Box key={category}>
-                                                <Flex justify="space-between" mb={1}>
-                                                  <Text fontWeight="medium" fontSize="sm" textTransform="capitalize">{category}</Text>
-                                                  <Text fontWeight="bold" color="brand.600">{inr(amount)}</Text>
-                                                </Flex>
-                                                <Box bg="gray.200" h="20px" borderRadius="md" overflow="hidden">
-                                                  <Box
-                                                    bg="brand.500"
-                                                    h="100%"
-                                                    width={`${Math.min(100, (amount / Math.max(...Object.values(getWeeklyExpensesByCategory()))) * 100)}%`}
-                                                    transition="all 0.3s ease"
-                                                  />
-                                                </Box>
-                                              </Box>
-                                            ))}
-                                          </VStack>
-                                          <Box mt={4} p={3} bg="gray.50" borderRadius="md">
-                                            <Text fontSize="sm" fontWeight="semibold">Total: {inr(Object.values(getWeeklyExpensesByCategory()).reduce((a, b) => a + b, 0))}</Text>
-                                          </Box>
-                                        </Box>
-                                      ) : (
-                                        <Text fontSize="sm" color="gray.500">No data available</Text>
-                                      )}
-                                    </CardBody>
-                                  </Card>
-
-                                  <Card>
-                                    <CardHeader>
-                                      <Heading size="sm">Monthly Expenses by Category</Heading>
-                                      <Text fontSize="xs" color="gray.500" mt={1}>Current month</Text>
-                                    </CardHeader>
-                                    <CardBody>
-                                      {Object.keys(getMonthlyExpensesByCategory()).length > 0 ? (
-                                        <Box>
-                                          <VStack spacing={3} align="stretch">
-                                            {Object.entries(getMonthlyExpensesByCategory()).map(([category, amount]) => (
-                                              <Box key={category}>
-                                                <Flex justify="space-between" mb={1}>
-                                                  <Text fontWeight="medium" fontSize="sm" textTransform="capitalize">{category}</Text>
-                                                  <Text fontWeight="bold" color="brand.600">{inr(amount)}</Text>
-                                                </Flex>
-                                                <Box bg="gray.200" h="20px" borderRadius="md" overflow="hidden">
-                                                  <Box
-                                                    bg="brand.500"
-                                                    h="100%"
-                                                    width={`${Math.min(100, (amount / Math.max(...Object.values(getMonthlyExpensesByCategory()))) * 100)}%`}
-                                                    transition="all 0.3s ease"
-                                                  />
-                                                </Box>
-                                              </Box>
-                                            ))}
-                                          </VStack>
-                                          <Box mt={4} p={3} bg="gray.50" borderRadius="md">
-                                            <Text fontSize="sm" fontWeight="semibold">Total: {inr(Object.values(getMonthlyExpensesByCategory()).reduce((a, b) => a + b, 0))}</Text>
-                                          </Box>
-                                        </Box>
-                                      ) : (
-                                        <Text fontSize="sm" color="gray.500">No data available</Text>
-                                      )}
-                                    </CardBody>
-                                  </Card>
-                                </SimpleGrid>
-
-                                <Card>
-                                  <CardHeader>
-                                    <Heading size="sm">Category-wise Summary</Heading>
-                                  </CardHeader>
-                                  <CardBody>
-                                    {dailyExpenses.length > 0 ? (
-                                      <Table variant="simple" size="sm">
-                                        <Thead>
-                                          <Tr>
-                                            <Th>Category</Th>
-                                            <Th isNumeric>Weekly Total (₹)</Th>
-                                            <Th isNumeric>Monthly Total (₹)</Th>
-                                          </Tr>
-                                        </Thead>
-                                        <Tbody>
-                                          {[
-                                            { cat: 'civil work', label: 'Civil Work' },
-                                            { cat: 'electrical', label: 'Electrical' },
-                                            { cat: 'transportation', label: 'Transportation' },
-                                          ].map(({ cat, label }) => {
-                                            const weekly = getWeeklyExpensesByCategory()[cat as 'civil work' | 'electrical' | 'transportation'] || 0;
-                                            const monthly = getMonthlyExpensesByCategory()[cat as 'civil work' | 'electrical' | 'transportation'] || 0;
-                                            return (
-                                              <Tr key={cat}>
-                                                <Td fontWeight="medium">{label}</Td>
-                                                <Td isNumeric>{inr(weekly)}</Td>
-                                                <Td isNumeric>{inr(monthly)}</Td>
-                                              </Tr>
-                                            );
-                                          })}
-                                        </Tbody>
-                                      </Table>
-                                    ) : (
-                                      <Text fontSize="sm" color="gray.500">No data available</Text>
-                                    )}
-                                  </CardBody>
-                                </Card>
+                                <Tabs colorScheme="brand" variant="soft-rounded" index={dailyExpenseReportTabIndex} onChange={setDailyExpenseReportTabIndex}>
+                                  <TabList mb={4}>
+                                    <Tab>Weekly Report</Tab>
+                                    <Tab>Monthly Report</Tab>
+                                  </TabList>
+                                  <TabPanels>
+                                    <TabPanel px={0}>
+                                      <Card>
+                                        <CardHeader>
+                                          <Heading size="sm">Weekly Category Expense Graph</Heading>
+                                          <Text fontSize="xs" color="gray.500" mt={1}>Last 7 days</Text>
+                                        </CardHeader>
+                                        <CardBody>
+                                          {Object.keys(getWeeklyExpensesByCategory()).length > 0 ? (
+                                            <VStack align="stretch" spacing={4}>
+                                              <BarChart
+                                                labels={Object.keys(getWeeklyExpensesByCategory())}
+                                                values={Object.values(getWeeklyExpensesByCategory())}
+                                                color="brand.400"
+                                              />
+                                              <Table variant="simple" size="sm">
+                                                <Thead><Tr><Th>Category</Th><Th isNumeric>Total (₹)</Th></Tr></Thead>
+                                                <Tbody>
+                                                  {Object.entries(getWeeklyExpensesByCategory()).map(([category, amount]) => (
+                                                    <Tr key={`wk-${category}`}>
+                                                      <Td textTransform="capitalize">{category}</Td>
+                                                      <Td isNumeric>{inr(amount)}</Td>
+                                                    </Tr>
+                                                  ))}
+                                                </Tbody>
+                                              </Table>
+                                            </VStack>
+                                          ) : (
+                                            <Text fontSize="sm" color="gray.500">No weekly data available</Text>
+                                          )}
+                                        </CardBody>
+                                      </Card>
+                                    </TabPanel>
+                                    <TabPanel px={0}>
+                                      <Card>
+                                        <CardHeader>
+                                          <Heading size="sm">Monthly Category Expense Graph</Heading>
+                                          <Text fontSize="xs" color="gray.500" mt={1}>Current month</Text>
+                                        </CardHeader>
+                                        <CardBody>
+                                          {Object.keys(getMonthlyExpensesByCategory()).length > 0 ? (
+                                            <VStack align="stretch" spacing={4}>
+                                              <BarChart
+                                                labels={Object.keys(getMonthlyExpensesByCategory())}
+                                                values={Object.values(getMonthlyExpensesByCategory())}
+                                                color="green.400"
+                                              />
+                                              <Table variant="simple" size="sm">
+                                                <Thead><Tr><Th>Category</Th><Th isNumeric>Total (₹)</Th></Tr></Thead>
+                                                <Tbody>
+                                                  {Object.entries(getMonthlyExpensesByCategory()).map(([category, amount]) => (
+                                                    <Tr key={`mn-${category}`}>
+                                                      <Td textTransform="capitalize">{category}</Td>
+                                                      <Td isNumeric>{inr(amount)}</Td>
+                                                    </Tr>
+                                                  ))}
+                                                </Tbody>
+                                              </Table>
+                                            </VStack>
+                                          ) : (
+                                            <Text fontSize="sm" color="gray.500">No monthly data available</Text>
+                                          )}
+                                        </CardBody>
+                                      </Card>
+                                    </TabPanel>
+                                  </TabPanels>
+                                </Tabs>
                               </TabPanel>
                             </TabPanels>
                           </Tabs>
