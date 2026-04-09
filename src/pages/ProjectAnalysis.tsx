@@ -115,6 +115,38 @@ const toNullableTimestamp = (value?: string | null) => {
   return trimmed || undefined;
 };
 
+/** JSONB segment columns sometimes arrive as stringified JSON from PostgREST — normalize for merge + forms. */
+const coerceSegmentArray = (value: unknown): Array<{ label?: string; amount?: number }> => {
+  if (value == null || value === '') return [];
+  if (Array.isArray(value)) return value as Array<{ label?: string; amount?: number }>;
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+};
+
+const normalizeDbProjectAnalysisRow = (r: Record<string, unknown>): ProjectData => {
+  const row = { ...r } as Record<string, unknown>;
+  row.transport_segments = coerceSegmentArray(row.transport_segments);
+  row.dept_charges_segments = coerceSegmentArray(row.dept_charges_segments);
+  row.civil_work_segments = coerceSegmentArray(row.civil_work_segments);
+  return row as unknown as ProjectData;
+};
+
+const extractMissingColumnName = (err: unknown): string | null => {
+  const msg = String((err as any)?.message || (err as any)?.details || err || '');
+  const m1 = msg.match(/'([a-zA-Z0-9_]+)'\s+column/i);
+  if (m1?.[1]) return m1[1];
+  const m2 = msg.match(/column\s+"([a-zA-Z0-9_]+)"\s+does not exist/i);
+  if (m2?.[1]) return m2[1];
+  return null;
+};
+
 const getProjectBucket = (project: ProjectData): 'TG' | 'AP' | 'Chitoor' | 'Other' => {
   const s = normalizeText(project.state);
 
@@ -425,9 +457,9 @@ const ProjectAnalysis = () => {
     };
   }, [visibleData]);
 
-  const fetchProjectAnalysisData = React.useCallback(async () => {
+  const fetchProjectAnalysisData = React.useCallback(async (opts?: { skipLoading?: boolean }) => {
     try {
-      setIsLoading(true);
+      if (!opts?.skipLoading) setIsLoading(true);
 
       // Strategy:
       // - Always fetch *all projects* from source tables (projects + chitoor_projects),
@@ -451,8 +483,9 @@ const ProjectAnalysis = () => {
 
       const analysisByProjectId = new Map<string, ProjectData>();
       (analysisRows || []).forEach((r) => {
-        const key = String((r as any).project_id || (r as any).id || '');
-        if (key) analysisByProjectId.set(key, r);
+        const normalized = normalizeDbProjectAnalysisRow(r as unknown as Record<string, unknown>);
+        const key = String(normalized.project_id || normalized.id || '');
+        if (key) analysisByProjectId.set(key, normalized);
       });
 
       const transformedProjects: ProjectData[] = (projects || []).map((project: any) => {
@@ -557,12 +590,12 @@ const ProjectAnalysis = () => {
         title: 'Error',
         description: error?.message || 'Failed to fetch project analysis data',
         status: 'error',
-        duration: 3,
+        duration: 5000,
         isClosable: true,
       });
       setProjectData([]);
     } finally {
-      setIsLoading(false);
+      if (!opts?.skipLoading) setIsLoading(false);
     }
   }, [toast]);
 
@@ -746,6 +779,20 @@ const ProjectAnalysis = () => {
   const handleSaveProject = async () => {
     if (!selectedProject) return;
 
+    const canonicalId = String(
+      selectedProject.project_id || selectedProject.id || ''
+    ).trim();
+    if (!canonicalId) {
+      toast({
+        title: 'Error',
+        description: 'This row has no project id — cannot save to project_analysis.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+      return;
+    }
+
     try {
       const computedTransportSegment = sumTransportSegments(selectedProject.transport_segments);
       const deptSegments = selectedProject.dept_charges_segments || [];
@@ -766,9 +813,9 @@ const ProjectAnalysis = () => {
       const profitRightNow = calculateProfitRightNow(projectForCalc);
       const overallProfit = calculateOverallProfit(projectForCalc);
 
-      // Only include columns that exist in the database schema
-      const projectDataToSave = {
-        id: selectedProject.id,
+      const projectDataToSave: Record<string, unknown> = {
+        id: canonicalId,
+        project_id: canonicalId,
         sl_no: selectedProject.sl_no,
         customer_name: selectedProject.customer_name,
         mobile_no: selectedProject.mobile_no,
@@ -795,53 +842,62 @@ const ProjectAnalysis = () => {
         pending_payment: selectedProject.pending_payment || 0,
         profit_right_now: profitRightNow,
         overall_profit: overallProfit,
-        project_id: selectedProject.project_id,
         project_start_date: toNullableTimestamp(selectedProject.project_start_date),
         completion_date: toNullableTimestamp(selectedProject.completion_date),
         created_at: toNullableTimestamp(selectedProject.created_at),
         updated_at: new Date().toISOString(),
       };
 
-      let { error } = await supabase
-        .from('project_analysis')
-        .upsert(projectDataToSave, { onConflict: 'id' });
+      let payload: Record<string, unknown> = { ...projectDataToSave };
+      let saveError: unknown = null;
 
-      // Backward compatibility: some DBs do not yet have `dept_charges_segments`.
-      if (error && String((error as any)?.message || '').includes("dept_charges_segments")) {
-        const { dept_charges_segments, ...legacyPayload } = projectDataToSave;
-        const retry = await supabase
+      for (let attempt = 0; attempt < 20; attempt += 1) {
+        const { error } = await supabase
           .from('project_analysis')
-          .upsert(legacyPayload, { onConflict: 'id' });
-        error = retry.error;
+          .upsert(payload as any, { onConflict: 'id' });
+
+        if (!error) {
+          saveError = null;
+          break;
+        }
+        saveError = error;
+        const col = extractMissingColumnName(error);
+        if (!col || !(col in payload)) break;
+        const next = { ...payload };
+        delete (next as any)[col];
+        payload = next;
       }
 
-      if (error) {
-        const errorCode = (error as any)?.code;
-        const errorMessage = (error as any)?.message || String(error);
+      if (saveError) {
+        const errorCode = (saveError as any)?.code;
+        const errorMessage = (saveError as any)?.message || String(saveError);
         console.error('Error saving project:', errorCode, errorMessage);
-        throw error;
+        throw saveError;
       }
 
-      // Update local state with the saved project
-      const updatedProject = { ...selectedProject, ...projectDataToSave };
-      setProjectData(projectData.map(p => p.id === selectedProject.id ? updatedProject : p));
+      await fetchProjectAnalysisData({ skipLoading: true });
 
       toast({
         title: 'Success',
         description: 'Project analysis updated successfully',
         status: 'success',
-        duration: 3,
+        duration: 3000,
         isClosable: true,
       });
 
       onClose();
     } catch (error: any) {
       console.error('Error saving project:', error?.message || String(error));
+      const msg =
+        typeof error?.message === 'string' &&
+        /row-level security|RLS|42501/i.test(error.message)
+          ? `${error.message} — add/update Supabase policies for project_analysis (INSERT/UPDATE).`
+          : error?.message || 'Failed to save project analysis';
       toast({
         title: 'Error',
-        description: error?.message || 'Failed to save project analysis',
+        description: msg,
         status: 'error',
-        duration: 3,
+        duration: 8000,
         isClosable: true,
       });
     }
