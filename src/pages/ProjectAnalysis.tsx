@@ -482,10 +482,12 @@ const ProjectAnalysis = () => {
       if (projectError) throw projectError;
 
       const analysisByProjectId = new Map<string, ProjectData>();
+      // `analysisRows` is ordered newest-first by `created_at`.
+      // Keep only the first row per project_id so stale duplicates do not override fresh edits.
       (analysisRows || []).forEach((r) => {
         const normalized = normalizeDbProjectAnalysisRow(r as unknown as Record<string, unknown>);
         const key = String(normalized.project_id || normalized.id || '');
-        if (key) analysisByProjectId.set(key, normalized);
+        if (key && !analysisByProjectId.has(key)) analysisByProjectId.set(key, normalized);
       });
 
       const transformedProjects: ProjectData[] = (projects || []).map((project: any) => {
@@ -852,16 +854,30 @@ const ProjectAnalysis = () => {
       let saveError: unknown = null;
 
       for (let attempt = 0; attempt < 20; attempt += 1) {
-        const { error } = await supabase
+        // Prefer UPDATE by project_id first, so we don't create duplicate rows
+        // when an older row exists with a different id.
+        const { data: updatedRows, error: updateError } = await supabase
           .from('project_analysis')
-          .upsert(payload as any, { onConflict: 'id' });
+          .update(payload as any)
+          .eq('project_id', canonicalId)
+          .select('id');
 
-        if (!error) {
+        if (!updateError && Array.isArray(updatedRows) && updatedRows.length > 0) {
           saveError = null;
           break;
         }
-        saveError = error;
-        const col = extractMissingColumnName(error);
+
+        const { error: upsertError } = await supabase
+          .from('project_analysis')
+          .upsert(payload as any, { onConflict: 'id' });
+
+        if (!upsertError) {
+          saveError = null;
+          break;
+        }
+
+        saveError = upsertError;
+        const col = extractMissingColumnName(upsertError);
         if (!col || !(col in payload)) break;
         const next = { ...payload };
         delete (next as any)[col];

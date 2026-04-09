@@ -337,11 +337,12 @@ const [paymentMode, setPaymentMode] = useState(() => {
     if (!project) return;
     try {
       // Fetch project analysis data for this project
-      const { data, error } = await supabase
+      const { data: analysisRows, error } = await supabase
         .from('project_analysis')
         .select('*')
         .eq('project_id', project.id)
-        .maybeSingle();
+        .order('updated_at', { ascending: false })
+        .limit(1);
 
       if (error) {
         console.error('Error fetching project analysis:', error);
@@ -356,9 +357,12 @@ const [paymentMode, setPaymentMode] = useState(() => {
       }
 
       // If no analysis exists, create a new one with default values
-      if (!data) {
+      const existingAnalysis = Array.isArray(analysisRows) && analysisRows.length > 0 ? analysisRows[0] : null;
+
+      if (!existingAnalysis) {
         setSelectedProjectAnalysis({
-          id: crypto.randomUUID(),
+          // Keep id aligned with project_id to avoid duplicate rows for same project.
+          id: project.id,
           project_id: project.id,
           customer_name: project.customer_name,
           mobile_no: project.phone,
@@ -387,7 +391,7 @@ const [paymentMode, setPaymentMode] = useState(() => {
           overall_profit: 0,
         });
       } else {
-        setSelectedProjectAnalysis(data);
+        setSelectedProjectAnalysis(existingAnalysis);
       }
 
       onPAOpen();
@@ -1678,16 +1682,30 @@ return (
           </Button>
           <Button colorScheme="blue" onClick={async () => {
             try {
+              const canonicalId =
+                selectedProjectAnalysis?.project_id || selectedProjectAnalysis?.id || project?.id;
               const dataToSave = {
                 ...selectedProjectAnalysis,
+                id: canonicalId,
+                project_id: canonicalId,
                 updated_at: new Date().toISOString(),
               };
 
-              const { error } = await supabase
+              const { data: updatedRows, error: updateError } = await supabase
+                .from('project_analysis')
+                .update(dataToSave)
+                .eq('project_id', canonicalId)
+                .select('id');
+
+              if (updateError) throw updateError;
+
+              if (!updatedRows || updatedRows.length === 0) {
+                const { error } = await supabase
                 .from('project_analysis')
                 .upsert(dataToSave, { onConflict: 'id' });
 
-              if (error) throw error;
+                if (error) throw error;
+              }
 
               toast({
                 title: 'Success',
