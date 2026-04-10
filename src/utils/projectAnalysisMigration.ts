@@ -96,6 +96,22 @@ export const freshMigrateProjectsToAnalysis = async (): Promise<MigrationResult>
   try {
     console.log('Starting fresh migration - clearing and rebuilding project_analysis...');
 
+    // Step 0: Fetch existing project_analysis records to preserve manually-entered cost data
+    const { data: existingAnalysis, error: existingError } = await fetchAllRows<any>(
+      supabase
+        .from('project_analysis')
+        .select('id, project_id, application_charges, modules_cost, inverter_cost, structure_cost, hardware_cost, electrical_equipment, transport_segment, transport_segments, transport_total, installation_cost, subsidy_application, misc_dept_charges, dept_charges, dept_charges_segments, civil_work_cost, civil_work_segments, total_exp, profit_right_now, overall_profit')
+    );
+
+    const existingByProjectId = new Map<string, any>();
+    if (!existingError && Array.isArray(existingAnalysis)) {
+      existingAnalysis.forEach((rec: any) => {
+        const key = String(rec.project_id || rec.id || '');
+        if (key) existingByProjectId.set(key, rec);
+      });
+    }
+    console.log(`Fetched ${existingByProjectId.size} existing project_analysis records to preserve cost data`);
+
     // Step 1: Fetch ALL projects from projects table (no filters)
     const { data: projects, error: projectsError, count: projectsCount } = await fetchAllRows<any>(
       supabase
@@ -123,41 +139,47 @@ export const freshMigrateProjectsToAnalysis = async (): Promise<MigrationResult>
     // even when delete policies are restricted.
     console.log('Upserting into project_analysis without hard delete...');
 
-    // Step 3: Transform and insert projects
+    // Step 3: Transform and insert projects, preserving manually-entered cost data
     if (projects && projects.length > 0) {
-      const analysisData = projects.map((project: any, index: number) => ({
-        id: project.id, // Use project_id as the analysis record id
-        project_id: project.id,
-        sl_no: index + 1,
-        customer_name: project.customer_name || '',
-        mobile_no: project.phone || '',
-        project_capacity: project.kwh || 0,
-        total_quoted_cost: project.proposal_amount || 0,
-        application_charges: 0,
-        modules_cost: 0,
-        inverter_cost: 0,
-        structure_cost: 0,
-        hardware_cost: 0,
-        electrical_equipment: 0,
-        transport_segment: 0,
-        transport_segments: [],
-        transport_total: 0,
-        installation_cost: 0,
-        subsidy_application: 0,
-        misc_dept_charges: 0,
-        dept_charges: 0,
-        dept_charges_segments: [],
-        civil_work_cost: 0,
-        civil_work_segments: [],
-        total_exp: 0,
-        payment_received: (project.advance_payment || 0) + (project.paid_amount || 0),
-        pending_payment: project.balance_amount || 0,
-        profit_right_now: 0,
-        overall_profit: 0,
-        state: project.state || '',
-        created_at: toNullableTimestamp(project.created_at),
-        updated_at: toNullableTimestamp(project.updated_at),
-      }));
+      const analysisData = projects.map((project: any, index: number) => {
+        const projectId = String(project.id);
+        const existing = existingByProjectId.get(projectId);
+
+        // Preserve cost fields from existing record if they were manually entered (non-zero)
+        return {
+          id: project.id,
+          project_id: project.id,
+          sl_no: index + 1,
+          customer_name: project.customer_name || '',
+          mobile_no: project.phone || '',
+          project_capacity: project.kwh || 0,
+          total_quoted_cost: project.proposal_amount || 0,
+          application_charges: existing?.application_charges ?? 0,
+          modules_cost: existing?.modules_cost ?? 0,
+          inverter_cost: existing?.inverter_cost ?? 0,
+          structure_cost: existing?.structure_cost ?? 0,
+          hardware_cost: existing?.hardware_cost ?? 0,
+          electrical_equipment: existing?.electrical_equipment ?? 0,
+          transport_segment: existing?.transport_segment ?? 0,
+          transport_segments: existing?.transport_segments ?? [],
+          transport_total: existing?.transport_total ?? 0,
+          installation_cost: existing?.installation_cost ?? 0,
+          subsidy_application: existing?.subsidy_application ?? 0,
+          misc_dept_charges: existing?.misc_dept_charges ?? 0,
+          dept_charges: existing?.dept_charges ?? 0,
+          dept_charges_segments: existing?.dept_charges_segments ?? [],
+          civil_work_cost: existing?.civil_work_cost ?? 0,
+          civil_work_segments: existing?.civil_work_segments ?? [],
+          total_exp: existing?.total_exp ?? 0,
+          payment_received: (project.advance_payment || 0) + (project.paid_amount || 0),
+          pending_payment: project.balance_amount || 0,
+          profit_right_now: existing?.profit_right_now ?? 0,
+          overall_profit: existing?.overall_profit ?? 0,
+          state: project.state || '',
+          created_at: toNullableTimestamp(project.created_at),
+          updated_at: toNullableTimestamp(project.updated_at),
+        };
+      });
 
       console.log(`Upserting ${analysisData.length} projects into project_analysis...`);
 
@@ -190,6 +212,8 @@ export const freshMigrateProjectsToAnalysis = async (): Promise<MigrationResult>
 
     if (!chitoorError && chitoorProjects && chitoorProjects.length > 0) {
       const chitoorAnalysisData = chitoorProjects.map((project: any, index: number) => {
+        const projectId = String(project.id);
+        const existing = existingByProjectId.get(projectId);
         const paymentReceived = project.amount_received || 0;
         const totalCost = project.project_cost || 0;
         return {
@@ -200,27 +224,27 @@ export const freshMigrateProjectsToAnalysis = async (): Promise<MigrationResult>
           mobile_no: project.mobile_no || '',
           project_capacity: project.capacity || 0,
           total_quoted_cost: totalCost,
-          application_charges: 0,
-          modules_cost: 0,
-          inverter_cost: 0,
-          structure_cost: 0,
-          hardware_cost: 0,
-          electrical_equipment: 0,
-          transport_segment: 0,
-          transport_segments: [],
-          transport_total: 0,
-          installation_cost: 0,
-          subsidy_application: 0,
-          misc_dept_charges: 0,
-          dept_charges: 0,
-          dept_charges_segments: [],
-          civil_work_cost: 0,
-          civil_work_segments: [],
-          total_exp: 0,
+          application_charges: existing?.application_charges ?? 0,
+          modules_cost: existing?.modules_cost ?? 0,
+          inverter_cost: existing?.inverter_cost ?? 0,
+          structure_cost: existing?.structure_cost ?? 0,
+          hardware_cost: existing?.hardware_cost ?? 0,
+          electrical_equipment: existing?.electrical_equipment ?? 0,
+          transport_segment: existing?.transport_segment ?? 0,
+          transport_segments: existing?.transport_segments ?? [],
+          transport_total: existing?.transport_total ?? 0,
+          installation_cost: existing?.installation_cost ?? 0,
+          subsidy_application: existing?.subsidy_application ?? 0,
+          misc_dept_charges: existing?.misc_dept_charges ?? 0,
+          dept_charges: existing?.dept_charges ?? 0,
+          dept_charges_segments: existing?.dept_charges_segments ?? [],
+          civil_work_cost: existing?.civil_work_cost ?? 0,
+          civil_work_segments: existing?.civil_work_segments ?? [],
+          total_exp: existing?.total_exp ?? 0,
           payment_received: paymentReceived,
           pending_payment: totalCost - paymentReceived,
-          profit_right_now: 0,
-          overall_profit: 0,
+          profit_right_now: existing?.profit_right_now ?? 0,
+          overall_profit: existing?.overall_profit ?? 0,
           state: 'Chitoor',
           created_at: toNullableTimestamp(project.created_at),
           updated_at: toNullableTimestamp(project.updated_at),
@@ -267,6 +291,22 @@ export const migrateProjectsToAnalysis = async (): Promise<MigrationResult> => {
   try {
     let totalMigrated = 0;
 
+    // Step 0: Fetch existing project_analysis records to preserve manually-entered cost data
+    const { data: existingAnalysis, error: existingError } = await fetchAllRows<any>(
+      supabase
+        .from('project_analysis')
+        .select('id, project_id, application_charges, modules_cost, inverter_cost, structure_cost, hardware_cost, electrical_equipment, transport_segment, transport_segments, transport_total, installation_cost, subsidy_application, misc_dept_charges, dept_charges, dept_charges_segments, civil_work_cost, civil_work_segments, total_exp, profit_right_now, overall_profit')
+    );
+
+    const existingByProjectId = new Map<string, any>();
+    if (!existingError && Array.isArray(existingAnalysis)) {
+      existingAnalysis.forEach((rec: any) => {
+        const key = String(rec.project_id || rec.id || '');
+        if (key) existingByProjectId.set(key, rec);
+      });
+    }
+    console.log(`Fetched ${existingByProjectId.size} existing project_analysis records to preserve cost data`);
+
     // Step 1: Fetch ALL projects (both active and inactive, to match Projects page count)
     // Using order by created_at desc to get consistent ordering
     const { data: projects, error: projectsError, count } = await fetchAllRows<any>(
@@ -290,41 +330,44 @@ export const migrateProjectsToAnalysis = async (): Promise<MigrationResult> => {
     }
 
     if (projects && projects.length > 0) {
-      // Step 2: Transform projects data to project_analysis format
-      const analysisData = projects.map((project: any) => ({
-        // Use UUID project id as the analysis record id (table uses UUIDs in this project).
-        id: project.id,
-        project_id: project.id,
-        sl_no: 0,
-        customer_name: project.customer_name || '',
-        mobile_no: project.phone || '',
-        project_capacity: project.kwh || 0,
-        total_quoted_cost: project.proposal_amount || 0,
-        application_charges: 0,
-        modules_cost: 0,
-        inverter_cost: 0,
-        structure_cost: 0,
-        hardware_cost: 0,
-        electrical_equipment: 0,
-        transport_segment: 0,
-        transport_segments: [],
-        transport_total: 0,
-        installation_cost: 0,
-        subsidy_application: 0,
-        misc_dept_charges: 0,
-        dept_charges: 0,
-        dept_charges_segments: [],
-        civil_work_cost: 0,
-        civil_work_segments: [],
-        total_exp: 0,
-        payment_received: (project.advance_payment || 0) + (project.paid_amount || 0),
-        pending_payment: project.balance_amount || 0,
-        profit_right_now: 0,
-        overall_profit: 0,
-        state: project.state || '',
-        created_at: toNullableTimestamp(project.created_at),
-        updated_at: toNullableTimestamp(project.updated_at),
-      }));
+      // Step 2: Transform projects data to project_analysis format, preserving manually-entered cost data
+      const analysisData = projects.map((project: any) => {
+        const projectId = String(project.id);
+        const existing = existingByProjectId.get(projectId);
+        return {
+          id: project.id,
+          project_id: project.id,
+          sl_no: 0,
+          customer_name: project.customer_name || '',
+          mobile_no: project.phone || '',
+          project_capacity: project.kwh || 0,
+          total_quoted_cost: project.proposal_amount || 0,
+          application_charges: existing?.application_charges ?? 0,
+          modules_cost: existing?.modules_cost ?? 0,
+          inverter_cost: existing?.inverter_cost ?? 0,
+          structure_cost: existing?.structure_cost ?? 0,
+          hardware_cost: existing?.hardware_cost ?? 0,
+          electrical_equipment: existing?.electrical_equipment ?? 0,
+          transport_segment: existing?.transport_segment ?? 0,
+          transport_segments: existing?.transport_segments ?? [],
+          transport_total: existing?.transport_total ?? 0,
+          installation_cost: existing?.installation_cost ?? 0,
+          subsidy_application: existing?.subsidy_application ?? 0,
+          misc_dept_charges: existing?.misc_dept_charges ?? 0,
+          dept_charges: existing?.dept_charges ?? 0,
+          dept_charges_segments: existing?.dept_charges_segments ?? [],
+          civil_work_cost: existing?.civil_work_cost ?? 0,
+          civil_work_segments: existing?.civil_work_segments ?? [],
+          total_exp: existing?.total_exp ?? 0,
+          payment_received: (project.advance_payment || 0) + (project.paid_amount || 0),
+          pending_payment: project.balance_amount || 0,
+          profit_right_now: existing?.profit_right_now ?? 0,
+          overall_profit: existing?.overall_profit ?? 0,
+          state: project.state || '',
+          created_at: toNullableTimestamp(project.created_at),
+          updated_at: toNullableTimestamp(project.updated_at),
+        };
+      });
 
       // Step 3: Upsert all records into project_analysis (preserves updated analysis data)
       const { error: upsertError, rowsAffected } = await upsertInBatchesWithCompat(
@@ -357,6 +400,8 @@ export const migrateProjectsToAnalysis = async (): Promise<MigrationResult> => {
 
     if (!chitoorError && chitoorProjects && chitoorProjects.length > 0) {
       const chitoorAnalysisData = chitoorProjects.map((project: any) => {
+        const projectId = String(project.id);
+        const existing = existingByProjectId.get(projectId);
         const paymentReceived = project.amount_received || 0;
         const totalCost = project.project_cost || 0;
         return {
@@ -367,27 +412,27 @@ export const migrateProjectsToAnalysis = async (): Promise<MigrationResult> => {
           mobile_no: project.mobile_no || '',
           project_capacity: project.capacity || 0,
           total_quoted_cost: totalCost,
-          application_charges: 0,
-          modules_cost: 0,
-          inverter_cost: 0,
-          structure_cost: 0,
-          hardware_cost: 0,
-          electrical_equipment: 0,
-          transport_segment: 0,
-          transport_segments: [],
-          transport_total: 0,
-          installation_cost: 0,
-          subsidy_application: 0,
-          misc_dept_charges: 0,
-          dept_charges: 0,
-          dept_charges_segments: [],
-          civil_work_cost: 0,
-          civil_work_segments: [],
-          total_exp: 0,
+          application_charges: existing?.application_charges ?? 0,
+          modules_cost: existing?.modules_cost ?? 0,
+          inverter_cost: existing?.inverter_cost ?? 0,
+          structure_cost: existing?.structure_cost ?? 0,
+          hardware_cost: existing?.hardware_cost ?? 0,
+          electrical_equipment: existing?.electrical_equipment ?? 0,
+          transport_segment: existing?.transport_segment ?? 0,
+          transport_segments: existing?.transport_segments ?? [],
+          transport_total: existing?.transport_total ?? 0,
+          installation_cost: existing?.installation_cost ?? 0,
+          subsidy_application: existing?.subsidy_application ?? 0,
+          misc_dept_charges: existing?.misc_dept_charges ?? 0,
+          dept_charges: existing?.dept_charges ?? 0,
+          dept_charges_segments: existing?.dept_charges_segments ?? [],
+          civil_work_cost: existing?.civil_work_cost ?? 0,
+          civil_work_segments: existing?.civil_work_segments ?? [],
+          total_exp: existing?.total_exp ?? 0,
           payment_received: paymentReceived,
           pending_payment: totalCost - paymentReceived,
-          profit_right_now: 0,
-          overall_profit: 0,
+          profit_right_now: existing?.profit_right_now ?? 0,
+          overall_profit: existing?.overall_profit ?? 0,
           state: 'Chitoor',
           created_at: toNullableTimestamp(project.created_at),
           updated_at: toNullableTimestamp(project.updated_at),
