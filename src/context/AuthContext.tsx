@@ -182,7 +182,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     let mounted = true;
     let timeoutId: NodeJS.Timeout | null = null;
-    let refreshIntervalId: NodeJS.Timeout | null = null;
 
     const initializeAuth = async () => {
       try {
@@ -223,27 +222,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     });
 
-    // Setup periodic session refresh every 30 minutes to prevent expiration
-    if (mounted) {
-      refreshIntervalId = setInterval(async () => {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session && mounted) {
-          try {
-            await supabase.auth.refreshSession();
-          } catch (error) {
-            console.warn('Periodic session refresh failed:', error);
-          }
-        }
-      }, 30 * 60 * 1000); // 30 minutes
-    }
 
     return () => {
       mounted = false;
       if (timeoutId) {
         clearTimeout(timeoutId);
-      }
-      if (refreshIntervalId) {
-        clearInterval(refreshIntervalId);
       }
       subscription.unsubscribe();
     };
