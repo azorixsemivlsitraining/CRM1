@@ -129,6 +129,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { icon: '🏗️', label: 'CHITOOR', to: '/projects/chitoor', region: 'Chitoor' },
   ];
 
+  const paNavItems = [
+    { icon: '📝', label: 'PA Form', to: '/pa', region: 'all' },
+  ];
+
   const stateDashboards = [
     { icon: '📈', label: 'TG Dashboard', to: '/dashboard/tg', region: 'Telangana' },
     { icon: '📈', label: 'AP Dashboard', to: '/dashboard/ap', region: 'Andhra Pradesh' },
@@ -153,6 +157,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const isOps = path === '/stock' || path.startsWith('/procurement') || path === '/logistics' || path.startsWith('/logistics/');
   const isReports = path === '/reports' || path.startsWith('/reports/');
   const isProjectAnalysis = path === '/project-analysis' || path.startsWith('/project-analysis/');
+  const isPA = path === '/pa';
   const activeModule = isOps
     ? 'operations'
     : isReports
@@ -163,6 +168,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           ? 'projects'
           : isProjectAnalysis
             ? 'projectAnalysis'
+          : isPA
+            ? 'pa'
           : path.startsWith('/service-tickets')
             ? 'serviceTickets'
             : path.startsWith('/finance') || path.startsWith('/payments') || path.startsWith('/daily-expenses')
