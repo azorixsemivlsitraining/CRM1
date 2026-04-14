@@ -19,6 +19,7 @@ interface AuthContextType {
   regionAccess: RegionAccessMap;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
+  refreshSession: () => Promise<boolean>;
 }
 
 export const AuthContext = createContext<AuthContextType>({
@@ -33,6 +34,7 @@ export const AuthContext = createContext<AuthContextType>({
   regionAccess: {},
   login: async () => false,
   logout: async () => {},
+  refreshSession: async () => false,
 });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -179,26 +181,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     let mounted = true;
+    let timeoutId: NodeJS.Timeout | null = null;
 
     const initializeAuth = async () => {
       try {
-        // Set a maximum load time of 8 seconds to prevent permanent hang
-        const timeoutId = setTimeout(() => {
+        // Set a maximum load time of 5 seconds to prevent permanent hang
+        timeoutId = setTimeout(() => {
           if (mounted) {
-            console.warn('Auth initialization timed out, forcing loading state to false');
+            console.warn('Auth initialization timed out, continuing with unauthenticated state');
             setIsLoading(false);
           }
-        }, 8000);
+        }, 5000);
 
         const { data: { session } } = await supabase.auth.getSession();
-        if (mounted) {
-          await handleAuthChange(session);
+
+        if (timeoutId && mounted) {
+          clearTimeout(timeoutId);
+          timeoutId = null;
         }
 
-        clearTimeout(timeoutId);
+        if (mounted) {
+          await handleAuthChange(session);
+          setIsLoading(false);
+        }
       } catch (error) {
         console.error('Error initializing auth:', error);
-      } finally {
         if (mounted) {
           setIsLoading(false);
         }
@@ -215,8 +222,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     });
 
+
     return () => {
       mounted = false;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
       subscription.unsubscribe();
     };
   }, [handleAuthChange]);
@@ -309,6 +320,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const refreshSession = async (): Promise<boolean> => {
+    try {
+      const { data, error } = await supabase.auth.refreshSession();
+
+      if (error || !data.session) {
+        console.warn('Session refresh failed:', error?.message);
+        // Session expired, clear auth state
+        await logout();
+        return false;
+      }
+
+      // Session refreshed successfully, update auth state
+      await handleAuthChange(data.session);
+      return true;
+    } catch (error) {
+      console.error('Error refreshing session:', error);
+      return false;
+    }
+  };
+
   const logout = async () => {
     try {
       // Always clear local state first
@@ -362,7 +393,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, isAdmin, isFinance, isEditor, user, isLoading, assignedRegions, allowedModules, regionAccess, login, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, isAdmin, isFinance, isEditor, user, isLoading, assignedRegions, allowedModules, regionAccess, login, logout, refreshSession }}>
       {children}
     </AuthContext.Provider>
   );

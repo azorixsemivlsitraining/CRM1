@@ -462,13 +462,14 @@ const ProjectAnalysis = () => {
       if (!opts?.skipLoading) setIsLoading(true);
 
       // Strategy:
-      // - Always fetch *all projects* from source tables (projects + chitoor_projects),
-      //   so the table shows 220+ rows even if project_analysis is empty / partially migrated.
-      // - Then overlay any saved analysis fields from project_analysis by project_id.
+      // - Fetch project_analysis table as the PRIMARY SOURCE OF TRUTH (all saved/edited data)
+      // - Also fetch projects + chitoor_projects to show all projects (even if no analysis record yet)
+      // - ONLY use source tables as fallback for projects that have no analysis record
+      // - NEVER overwrite saved analysis data with baseline data
 
       const [{ data: analysisRows, error: analysisError }, { data: projects, error: projectError }, { data: chitoorProjects, error: chitoorError }] =
         await Promise.all([
-          fetchAllRows<ProjectData>(supabase.from('project_analysis').select('*').order('created_at', { ascending: false })),
+          fetchAllRows<ProjectData>(supabase.from('project_analysis').select('*').order('updated_at', { ascending: false })),
           fetchAllRows<any>(
             supabase
               .from('projects')
@@ -481,17 +482,28 @@ const ProjectAnalysis = () => {
 
       if (projectError) throw projectError;
 
+      // Build a map of saved analysis data (SOURCE OF TRUTH)
       const analysisByProjectId = new Map<string, ProjectData>();
-      // `analysisRows` is ordered newest-first by `created_at`.
-      // Keep only the first row per project_id so stale duplicates do not override fresh edits.
       (analysisRows || []).forEach((r) => {
         const normalized = normalizeDbProjectAnalysisRow(r as unknown as Record<string, unknown>);
         const key = String(normalized.project_id || normalized.id || '');
-        if (key && !analysisByProjectId.has(key)) analysisByProjectId.set(key, normalized);
+        // Keep the MOST RECENTLY UPDATED record for each project (updated_at is DESC)
+        if (key && !analysisByProjectId.has(key)) {
+          analysisByProjectId.set(key, normalized);
+        }
       });
 
+      // Build final data set: use saved analysis data when available, baseline only as fallback
       const transformedProjects: ProjectData[] = (projects || []).map((project: any) => {
         const projectId = String(project.id);
+        const saved = analysisByProjectId.get(projectId);
+
+        // If we have saved analysis data, return it as-is (it's the source of truth)
+        if (saved) {
+          return { ...saved, id: projectId, project_id: projectId };
+        }
+
+        // Otherwise, create baseline from source table (for projects with no analysis record yet)
         const baseline: ProjectData = {
           id: projectId,
           project_id: projectId,
@@ -526,14 +538,21 @@ const ProjectAnalysis = () => {
           updated_at: project.updated_at || undefined,
         };
 
-        const saved = analysisByProjectId.get(projectId);
-        return saved ? { ...baseline, ...saved, id: projectId, project_id: projectId } : baseline;
+        return baseline;
       });
 
       let chitoorTransformed: ProjectData[] = [];
       if (!chitoorError && Array.isArray(chitoorProjects) && chitoorProjects.length > 0) {
         chitoorTransformed = chitoorProjects.map((project: any) => {
           const projectId = String(project.id);
+          const saved = analysisByProjectId.get(projectId);
+
+          // If we have saved analysis data for this Chitoor project, return it as-is
+          if (saved) {
+            return { ...saved, id: projectId, project_id: projectId };
+          }
+
+          // Otherwise, create baseline from Chitoor source table
           const paymentReceived = project.amount_received || 0;
           const totalCost = project.project_cost || 0;
           const pendingPayment = totalCost - paymentReceived;
@@ -571,8 +590,7 @@ const ProjectAnalysis = () => {
             updated_at: project.updated_at || undefined,
           };
 
-          const saved = analysisByProjectId.get(projectId);
-          return saved ? { ...baseline, ...saved, id: projectId, project_id: projectId } : baseline;
+          return baseline;
         });
       }
 
@@ -621,6 +639,8 @@ const ProjectAnalysis = () => {
   useEffect(() => {
     if (!isAuthenticated || !isAnalysisUnlocked) return;
 
+    let resubscribeTimeout: NodeJS.Timeout;
+
     // Keep the analysis view "live" as new rows are added/edited.
     const channel = supabase
       .channel('project-analysis-live')
@@ -629,7 +649,7 @@ const ProjectAnalysis = () => {
         { event: '*', schema: 'public', table: 'projects' },
         (payload: any) => {
           console.log('Projects table changed:', payload);
-          fetchProjectAnalysisData();
+          fetchProjectAnalysisData({ skipLoading: true });
         }
       )
       .on(
@@ -637,7 +657,7 @@ const ProjectAnalysis = () => {
         { event: '*', schema: 'public', table: 'project_analysis' },
         (payload: any) => {
           console.log('Project analysis table changed:', payload);
-          fetchProjectAnalysisData();
+          fetchProjectAnalysisData({ skipLoading: true });
         }
       )
       .on(
@@ -645,14 +665,28 @@ const ProjectAnalysis = () => {
         { event: '*', schema: 'public', table: 'chitoor_projects' },
         (payload: any) => {
           console.log('Chitoor projects table changed:', payload);
-          fetchProjectAnalysisData();
+          fetchProjectAnalysisData({ skipLoading: true });
         }
       )
       .subscribe((status: any) => {
         console.log('Realtime subscription status:', status);
+
+        // If subscription fails, attempt to reconnect after 5 seconds
+        if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+          console.warn('Realtime subscription closed/error, will attempt reconnect in 5s');
+          resubscribeTimeout = setTimeout(() => {
+            if (isAuthenticated && isAnalysisUnlocked) {
+              console.log('Attempting to reconnect realtime subscription');
+              void supabase.removeChannel(channel);
+              // Trigger a manual data refresh
+              void fetchProjectAnalysisData({ skipLoading: true });
+            }
+          }, 5000);
+        }
       });
 
     return () => {
+      clearTimeout(resubscribeTimeout);
       void supabase.removeChannel(channel);
     };
   }, [isAuthenticated, isAnalysisUnlocked, fetchProjectAnalysisData]);
