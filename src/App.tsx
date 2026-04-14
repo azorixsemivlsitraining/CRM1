@@ -28,7 +28,6 @@ import UsersManagement from './pages/UsersManagement';
 import ResetPassword from './pages/ResetPassword';
 import Sales from './pages/Sales';
 import ProjectAnalysis from './pages/ProjectAnalysis';
-import ErrorTest from './pages/ErrorTest';
 import PrivateRoute from './components/PrivateRoute';
 import Layout from './components/Layout';
 import ModuleGuard from './components/ModuleGuard';
@@ -89,7 +88,6 @@ const App: React.FC = () => {
       >
           <AuthProvider>
             <Routes>
-              <Route path="/error-test" element={<ErrorTest />} />
               <Route path="/login" element={<Login />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route
