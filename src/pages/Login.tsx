@@ -58,7 +58,7 @@ const Login = () => {
     // Simple check to see if we can reach the Supabase backend
     const checkBackend = async () => {
       try {
-        const res = await fetch('https://oqqzrppoqgnrinavvolz.supabase.co/auth/v1/health', { method: 'HEAD', mode: 'no-cors' });
+        await fetch('https://oqqzrppoqgnrinavvolz.supabase.co/auth/v1/health', { method: 'HEAD', mode: 'no-cors' });
         setIsBackendReachable(true);
       } catch (e) {
         setIsBackendReachable(false);

@@ -179,26 +179,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     let mounted = true;
+    let timeoutId: NodeJS.Timeout | null = null;
 
     const initializeAuth = async () => {
       try {
-        // Set a maximum load time of 8 seconds to prevent permanent hang
-        const timeoutId = setTimeout(() => {
+        // Set a maximum load time of 5 seconds to prevent permanent hang
+        timeoutId = setTimeout(() => {
           if (mounted) {
-            console.warn('Auth initialization timed out, forcing loading state to false');
+            console.warn('Auth initialization timed out, continuing with unauthenticated state');
             setIsLoading(false);
           }
-        }, 8000);
+        }, 5000);
 
         const { data: { session } } = await supabase.auth.getSession();
-        if (mounted) {
-          await handleAuthChange(session);
+
+        if (timeoutId && mounted) {
+          clearTimeout(timeoutId);
+          timeoutId = null;
         }
 
-        clearTimeout(timeoutId);
+        if (mounted) {
+          await handleAuthChange(session);
+          setIsLoading(false);
+        }
       } catch (error) {
         console.error('Error initializing auth:', error);
-      } finally {
         if (mounted) {
           setIsLoading(false);
         }
@@ -217,6 +222,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return () => {
       mounted = false;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
       subscription.unsubscribe();
     };
   }, [handleAuthChange]);
