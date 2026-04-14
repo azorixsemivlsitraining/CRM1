@@ -608,6 +608,15 @@ const ProjectAnalysis = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, isAnalysisUnlocked]);
 
+  // Refetch data when authentication changes (e.g., after session refresh)
+  useEffect(() => {
+    if (isAuthenticated && isAnalysisUnlocked && projectData.length > 0) {
+      // Silently refetch data to catch any updates after session refresh
+      fetchProjectAnalysisData({ skipLoading: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated]);
+
   useEffect(() => {
     // Apply state filter to project data
     if (selectedFilter !== 'All' && projectData.length > 0) {
@@ -654,6 +663,20 @@ const ProjectAnalysis = () => {
 
     return () => {
       void supabase.removeChannel(channel);
+    };
+  }, [isAuthenticated, isAnalysisUnlocked, fetchProjectAnalysisData]);
+
+  // Periodic data refresh every 5 minutes to prevent stale data after session expiry
+  useEffect(() => {
+    if (!isAuthenticated || !isAnalysisUnlocked) return;
+
+    const refreshInterval = setInterval(() => {
+      console.log('Periodic data refresh triggered');
+      fetchProjectAnalysisData({ skipLoading: true });
+    }, 5 * 60 * 1000); // 5 minutes
+
+    return () => {
+      clearInterval(refreshInterval);
     };
   }, [isAuthenticated, isAnalysisUnlocked, fetchProjectAnalysisData]);
 
