@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS public.project_analysis (
   mobile_no TEXT,
   project_capacity DECIMAL(10,2) DEFAULT 0,
   total_quoted_cost DECIMAL(15,2) DEFAULT 0,
-  
+
   -- Cost Breakdown Fields
   application_charges DECIMAL(12,2) DEFAULT 0,
   modules_cost DECIMAL(12,2) DEFAULT 0,
@@ -33,47 +33,53 @@ CREATE TABLE IF NOT EXISTS public.project_analysis (
   structure_cost DECIMAL(12,2) DEFAULT 0,
   hardware_cost DECIMAL(12,2) DEFAULT 0,
   electrical_equipment DECIMAL(12,2) DEFAULT 0,
-  
+
   -- Transport Costs with Breakdown
   transport_segment DECIMAL(12,2) DEFAULT 0,
-  transport_segments JSONB DEFAULT '[]'::jsonb COMMENT 'Array: [{"label": "Delivery", "amount": 1000}, ...]',
+  transport_segments JSONB DEFAULT '[]'::jsonb,
   transport_total DECIMAL(12,2) DEFAULT 0,
-  
+
   -- Installation & Other Costs
   installation_cost DECIMAL(12,2) DEFAULT 0,
   subsidy_application DECIMAL(12,2) DEFAULT 0,
   misc_dept_charges DECIMAL(12,2) DEFAULT 0,
-  
+
   -- Dept Charges with Breakdown
   dept_charges DECIMAL(12,2) DEFAULT 0,
-  dept_charges_segments JSONB DEFAULT '[]'::jsonb COMMENT 'Array: [{"label": "Permit", "amount": 500}, ...]',
-  
+  dept_charges_segments JSONB DEFAULT '[]'::jsonb,
+
   -- Civil Work with Breakdown
   civil_work_cost DECIMAL(12,2) DEFAULT 0,
-  civil_work_segments JSONB DEFAULT '[]'::jsonb COMMENT 'Array: [{"label": "Foundation", "amount": 2000}, ...]',
-  
+  civil_work_segments JSONB DEFAULT '[]'::jsonb,
+
   -- Financial Summary Fields
   total_exp DECIMAL(15,2) DEFAULT 0,
   payment_received DECIMAL(15,2) DEFAULT 0,
   pending_payment DECIMAL(15,2) DEFAULT 0,
   profit_right_now DECIMAL(15,2) DEFAULT 0,
   overall_profit DECIMAL(15,2) DEFAULT 0,
-  
+
   -- Project Timeline
   project_start_date TEXT,
   completion_date TEXT,
   payment_dates TEXT[] DEFAULT '{}'::TEXT[],
-  
+
   -- Categorization
-  state TEXT COMMENT 'TG, AP, Chitoor, or Other',
-  
+  state TEXT,
+
   -- Audit Timestamps
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  
+
   -- Constraints
   CONSTRAINT fk_project_id FOREIGN KEY (project_id) REFERENCES public.projects(id) ON DELETE CASCADE
 );
+
+-- Add column comments after table creation
+COMMENT ON COLUMN public.project_analysis.transport_segments IS 'Array of transport items: [{"label": "Delivery", "amount": 1000}, ...]';
+COMMENT ON COLUMN public.project_analysis.dept_charges_segments IS 'Array of department charge items: [{"label": "Permit", "amount": 500}, ...]';
+COMMENT ON COLUMN public.project_analysis.civil_work_segments IS 'Array of civil work items: [{"label": "Foundation", "amount": 2000}, ...]';
+COMMENT ON COLUMN public.project_analysis.state IS 'State: TG (Telangana), AP (Andhra Pradesh), Chitoor, or Other';
 
 -- ============================================
 -- 2. CREATE INDEXES FOR PERFORMANCE
