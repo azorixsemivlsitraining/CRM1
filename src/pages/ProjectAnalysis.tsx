@@ -50,6 +50,16 @@ import * as XLSX from 'xlsx';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { migrateProjectsToAnalysis, freshMigrateProjectsToAnalysis, checkProjectAnalysisEmpty } from '../utils/projectAnalysisMigration';
+import {
+  fetchAllProjectAnalysis,
+  updateProjectAnalysis,
+  upsertProjectAnalysis,
+  deleteProjectAnalysis,
+  subscribeToProjectAnalysis,
+  prepareProjectAnalysisForSave,
+  ProjectAnalysisData,
+} from '../utils/projectAnalysisClient';
+import ProjectAnalysisModal from '../components/ProjectAnalysisModal';
 
 interface ProjectData {
   id: string;
@@ -640,23 +650,22 @@ const ProjectAnalysis = () => {
     if (!isAuthenticated || !isAnalysisUnlocked) return;
 
     let resubscribeTimeout: NodeJS.Timeout;
+    let unsubscribe: (() => void) | null = null;
 
-    // Keep the analysis view "live" as new rows are added/edited.
+    // Subscribe to project_analysis changes
+    unsubscribe = subscribeToProjectAnalysis((payload) => {
+      console.log('Project analysis realtime update:', payload);
+      fetchProjectAnalysisData({ skipLoading: true });
+    });
+
+    // Also keep the analysis view "live" as new rows are added/edited from projects table
     const channel = supabase
       .channel('project-analysis-live')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'projects' },
+        { event: 'INSERT', schema: 'public', table: 'projects' },
         (payload: any) => {
-          console.log('Projects table changed:', payload);
-          fetchProjectAnalysisData({ skipLoading: true });
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'project_analysis' },
-        (payload: any) => {
-          console.log('Project analysis table changed:', payload);
+          console.log('New project added:', payload);
           fetchProjectAnalysisData({ skipLoading: true });
         }
       )
@@ -671,14 +680,12 @@ const ProjectAnalysis = () => {
       .subscribe((status: any) => {
         console.log('Realtime subscription status:', status);
 
-        // If subscription fails, attempt to reconnect after 5 seconds
         if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
           console.warn('Realtime subscription closed/error, will attempt reconnect in 5s');
           resubscribeTimeout = setTimeout(() => {
             if (isAuthenticated && isAnalysisUnlocked) {
               console.log('Attempting to reconnect realtime subscription');
               void supabase.removeChannel(channel);
-              // Trigger a manual data refresh
               void fetchProjectAnalysisData({ skipLoading: true });
             }
           }, 5000);
@@ -688,6 +695,7 @@ const ProjectAnalysis = () => {
     return () => {
       clearTimeout(resubscribeTimeout);
       void supabase.removeChannel(channel);
+      if (unsubscribe) unsubscribe();
     };
   }, [isAuthenticated, isAnalysisUnlocked, fetchProjectAnalysisData]);
 
@@ -815,9 +823,7 @@ const ProjectAnalysis = () => {
   const handleSaveProject = async () => {
     if (!selectedProject) return;
 
-    const canonicalId = String(
-      selectedProject.project_id || selectedProject.id || ''
-    ).trim();
+    const canonicalId = String(selectedProject.project_id || selectedProject.id || '').trim();
     if (!canonicalId) {
       toast({
         title: 'Error',
@@ -830,101 +836,20 @@ const ProjectAnalysis = () => {
     }
 
     try {
-      const computedTransportSegment = sumTransportSegments(selectedProject.transport_segments);
-      const deptSegments = selectedProject.dept_charges_segments || [];
-      const computedDeptCharges = sumTransportSegments(deptSegments);
-      const deptChargesFinal = deptSegments.length > 0 ? computedDeptCharges : selectedProject.dept_charges || 0;
-      const civilWorkSegments = selectedProject.civil_work_segments || [];
-      const computedCivilWork = sumTransportSegments(civilWorkSegments);
-      const civilWorkFinal = civilWorkSegments.length > 0 ? computedCivilWork : selectedProject.civil_work_cost || 0;
-      const projectForCalc: ProjectData = {
+      // Prepare data with auto-calculations
+      const dataToSave = prepareProjectAnalysisForSave({
         ...selectedProject,
-        transport_segment: computedTransportSegment,
-        dept_charges: deptChargesFinal,
-        civil_work_cost: civilWorkFinal,
-      };
-
-      // Calculate totals automatically
-      const totalExp = calculateTotalExpenses(projectForCalc);
-      const profitRightNow = calculateProfitRightNow(projectForCalc);
-      const overallProfit = calculateOverallProfit(projectForCalc);
-
-      const projectDataToSave: Record<string, unknown> = {
-        id: canonicalId,
         project_id: canonicalId,
-        sl_no: selectedProject.sl_no,
-        customer_name: selectedProject.customer_name,
-        mobile_no: selectedProject.mobile_no,
-        project_capacity: selectedProject.project_capacity,
-        total_quoted_cost: selectedProject.total_quoted_cost,
-        application_charges: selectedProject.application_charges || 0,
-        modules_cost: selectedProject.modules_cost || 0,
-        inverter_cost: selectedProject.inverter_cost || 0,
-        structure_cost: selectedProject.structure_cost || 0,
-        hardware_cost: selectedProject.hardware_cost || 0,
-        electrical_equipment: selectedProject.electrical_equipment || 0,
-        transport_segment: computedTransportSegment,
-        transport_segments: normalizeTransportSegments(selectedProject.transport_segments),
-        transport_total: selectedProject.transport_total || 0,
-        installation_cost: selectedProject.installation_cost || 0,
-        subsidy_application: selectedProject.subsidy_application || 0,
-        misc_dept_charges: selectedProject.misc_dept_charges || 0,
-        dept_charges: deptChargesFinal,
-        dept_charges_segments: normalizeTransportSegments(deptSegments),
-        civil_work_cost: civilWorkFinal,
-        civil_work_segments: normalizeTransportSegments(civilWorkSegments),
-        total_exp: totalExp,
-        payment_received: selectedProject.payment_received || 0,
-        pending_payment: selectedProject.pending_payment || 0,
-        profit_right_now: profitRightNow,
-        overall_profit: overallProfit,
-        project_start_date: toNullableTimestamp(selectedProject.project_start_date),
-        completion_date: toNullableTimestamp(selectedProject.completion_date),
-        created_at: toNullableTimestamp(selectedProject.created_at),
-        updated_at: new Date().toISOString(),
-      };
+      });
 
-      let payload: Record<string, unknown> = { ...projectDataToSave };
-      let saveError: unknown = null;
+      // Use upsert to handle both insert and update cases
+      const { data, error } = await upsertProjectAnalysis(dataToSave as Partial<ProjectAnalysisData>);
 
-      for (let attempt = 0; attempt < 20; attempt += 1) {
-        // Prefer UPDATE by project_id first, so we don't create duplicate rows
-        // when an older row exists with a different id.
-        const { data: updatedRows, error: updateError } = await supabase
-          .from('project_analysis')
-          .update(payload as any)
-          .eq('project_id', canonicalId)
-          .select('id');
-
-        if (!updateError && Array.isArray(updatedRows) && updatedRows.length > 0) {
-          saveError = null;
-          break;
-        }
-
-        const { error: upsertError } = await supabase
-          .from('project_analysis')
-          .upsert(payload as any, { onConflict: 'id' });
-
-        if (!upsertError) {
-          saveError = null;
-          break;
-        }
-
-        saveError = upsertError;
-        const col = extractMissingColumnName(upsertError);
-        if (!col || !(col in payload)) break;
-        const next = { ...payload };
-        delete (next as any)[col];
-        payload = next;
+      if (error) {
+        throw error;
       }
 
-      if (saveError) {
-        const errorCode = (saveError as any)?.code;
-        const errorMessage = (saveError as any)?.message || String(saveError);
-        console.error('Error saving project:', errorCode, errorMessage);
-        throw saveError;
-      }
-
+      // Refresh data
       await fetchProjectAnalysisData({ skipLoading: true });
 
       toast({
@@ -939,8 +864,7 @@ const ProjectAnalysis = () => {
     } catch (error: any) {
       console.error('Error saving project:', error?.message || String(error));
       const msg =
-        typeof error?.message === 'string' &&
-        /row-level security|RLS|42501/i.test(error.message)
+        typeof error?.message === 'string' && /row-level security|RLS|42501/i.test(error.message)
           ? `${error.message} — add/update Supabase policies for project_analysis (INSERT/UPDATE).`
           : error?.message || 'Failed to save project analysis';
       toast({
@@ -953,23 +877,17 @@ const ProjectAnalysis = () => {
     }
   };
 
-  const handleDeleteProject = async (id: string) => {
+  const handleDeleteProject = async (projectId: string) => {
     if (!window.confirm('Are you sure you want to delete this project analysis?')) return;
 
     try {
-      const { error } = await supabase
-        .from('project_analysis')
-        .delete()
-        .eq('id', id);
+      const { success, error } = await deleteProjectAnalysis(projectId);
 
       if (error) {
-        const errorCode = (error as any)?.code;
-        const errorMessage = (error as any)?.message || String(error);
-        console.error('Error deleting project:', errorCode, errorMessage);
         throw error;
       }
 
-      setProjectData(projectData.filter((p) => p.id !== id));
+      setProjectData(projectData.filter((p) => p.project_id !== projectId));
       toast({
         title: 'Success',
         description: 'Project analysis deleted successfully',
