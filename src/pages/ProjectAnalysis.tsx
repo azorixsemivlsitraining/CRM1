@@ -838,11 +838,13 @@ const ProjectAnalysis = () => {
 
     try {
       // Check if project exists before saving
-      const projectExists = await checkProjectExists(canonicalId);
+      const { exists: projectExists, error: projectCheckError } = await checkProjectExists(canonicalId);
       if (!projectExists) {
+        const errorDetail = projectCheckError || `No project found with ID: ${canonicalId}`;
+        console.error('Project validation failed:', errorDetail);
         toast({
           title: 'Project Not Found',
-          description: `No project found with ID: ${canonicalId}. Make sure the project exists in the projects table before saving project analysis.`,
+          description: `Cannot save: ${errorDetail}. Make sure the project exists in the projects table before saving project analysis.`,
           status: 'error',
           duration: 8000,
           isClosable: true,
