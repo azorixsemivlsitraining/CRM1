@@ -38,6 +38,34 @@ export interface ProjectAnalysisData {
 }
 
 /**
+ * Check if a project exists in the projects table
+ */
+export const checkProjectExists = async (projectId: string): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase
+      .from('projects')
+      .select('id')
+      .eq('id', projectId)
+      .single();
+
+    if (error && error.code === 'PGRST116') {
+      // Record not found
+      return false;
+    }
+
+    if (error) {
+      console.warn('Error checking project existence:', error);
+      return false;
+    }
+
+    return Boolean(data);
+  } catch (err) {
+    console.error('Error in checkProjectExists:', err);
+    return false;
+  }
+};
+
+/**
  * Fetch all project analysis records from Supabase
  */
 export const fetchAllProjectAnalysis = async (
@@ -160,13 +188,15 @@ export const upsertProjectAnalysis = async (
       .single();
 
     if (error) {
-      console.error('Error upserting project analysis:', error);
+      const errorMsg = error?.message || JSON.stringify(error);
+      console.error('Error upserting project analysis:', errorMsg);
       return { data: null, error };
     }
 
     return { data: result as ProjectAnalysisData, error: null };
-  } catch (err) {
-    console.error('Error in upsertProjectAnalysis:', err);
+  } catch (err: any) {
+    const errorMsg = err?.message || JSON.stringify(err);
+    console.error('Error in upsertProjectAnalysis:', errorMsg);
     return { data: null, error: err };
   }
 };

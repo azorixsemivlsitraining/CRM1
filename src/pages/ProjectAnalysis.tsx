@@ -57,6 +57,7 @@ import {
   deleteProjectAnalysis,
   subscribeToProjectAnalysis,
   prepareProjectAnalysisForSave,
+  checkProjectExists,
   ProjectAnalysisData,
 } from '../utils/projectAnalysisClient';
 import ProjectAnalysisModal from '../components/ProjectAnalysisModal';
@@ -836,6 +837,19 @@ const ProjectAnalysis = () => {
     }
 
     try {
+      // Check if project exists before saving
+      const projectExists = await checkProjectExists(canonicalId);
+      if (!projectExists) {
+        toast({
+          title: 'Project Not Found',
+          description: `No project found with ID: ${canonicalId}. Make sure the project exists in the projects table before saving project analysis.`,
+          status: 'error',
+          duration: 8000,
+          isClosable: true,
+        });
+        return;
+      }
+
       // Prepare data with auto-calculations
       const dataToSave = prepareProjectAnalysisForSave({
         ...selectedProject,
@@ -863,10 +877,7 @@ const ProjectAnalysis = () => {
       onClose();
     } catch (error: any) {
       console.error('Error saving project:', error?.message || String(error));
-      const msg =
-        typeof error?.message === 'string' && /row-level security|RLS|42501/i.test(error.message)
-          ? `${error.message} — add/update Supabase policies for project_analysis (INSERT/UPDATE).`
-          : error?.message || 'Failed to save project analysis';
+      const msg = getErrorMessage(error);
       toast({
         title: 'Error',
         description: msg,
@@ -875,6 +886,25 @@ const ProjectAnalysis = () => {
         isClosable: true,
       });
     }
+  };
+
+  // Helper function to parse and format error messages
+  const getErrorMessage = (error: any): string => {
+    if (!error) return 'Failed to save project analysis';
+
+    const errorMsg = error?.message || String(error);
+
+    // Check for RLS policy errors
+    if (/row-level security|RLS|42501/i.test(errorMsg)) {
+      return `${errorMsg} — add/update Supabase policies for project_analysis (INSERT/UPDATE).`;
+    }
+
+    // Check for foreign key constraint errors
+    if (/foreign key|fk_project_id|violates.*constraint/i.test(errorMsg)) {
+      return `The project associated with this analysis does not exist. Please ensure the project exists in the system before saving.`;
+    }
+
+    return errorMsg || 'Failed to save project analysis';
   };
 
   const handleDeleteProject = async (projectId: string) => {
