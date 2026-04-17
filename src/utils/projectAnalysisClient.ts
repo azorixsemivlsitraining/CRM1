@@ -46,7 +46,7 @@ export const isValidUUID = (uuid: string): boolean => {
 };
 
 /**
- * Check if a project exists in the projects table
+ * Check if a project exists in either projects or chitoor_projects table
  */
 export const checkProjectExists = async (projectId: string): Promise<{ exists: boolean; error?: string }> => {
   try {
@@ -60,20 +60,36 @@ export const checkProjectExists = async (projectId: string): Promise<{ exists: b
       return { exists: false, error: `Invalid UUID format: ${trimmedId}` };
     }
 
-    const { data, error } = await supabase
+    // Check in projects table
+    const { data: projectData, error: projectError } = await supabase
       .from('projects')
       .select('id')
       .eq('id', trimmedId)
       .maybeSingle();
 
-    if (error) {
-      console.warn('Error checking project existence:', error);
-      return { exists: false, error: error.message };
+    if (projectError) {
+      console.warn('Error checking projects table:', projectError);
     }
 
-    const projectExists = Boolean(data);
+    // If found in projects table, return success
+    if (projectData) {
+      return { exists: true };
+    }
+
+    // Check in chitoor_projects table as fallback
+    const { data: chitoorData, error: chitoorError } = await supabase
+      .from('chitoor_projects')
+      .select('id')
+      .eq('id', trimmedId)
+      .maybeSingle();
+
+    if (chitoorError) {
+      console.warn('Error checking chitoor_projects table:', chitoorError);
+    }
+
+    const projectExists = Boolean(projectData || chitoorData);
     if (!projectExists) {
-      console.warn(`Project not found in database with ID: ${trimmedId}`);
+      console.warn(`Project not found in projects or chitoor_projects with ID: ${trimmedId}`);
     }
     return { exists: projectExists };
   } catch (err: any) {
