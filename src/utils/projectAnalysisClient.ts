@@ -46,7 +46,7 @@ export const isValidUUID = (uuid: string): boolean => {
 };
 
 /**
- * Check if a project exists in the projects table
+ * Check if a project exists in either projects or chitoor_projects table
  */
 export const checkProjectExists = async (projectId: string): Promise<{ exists: boolean; error?: string }> => {
   try {
@@ -60,20 +60,36 @@ export const checkProjectExists = async (projectId: string): Promise<{ exists: b
       return { exists: false, error: `Invalid UUID format: ${trimmedId}` };
     }
 
-    const { data, error } = await supabase
+    // Check in projects table
+    const { data: projectData, error: projectError } = await supabase
       .from('projects')
       .select('id')
       .eq('id', trimmedId)
       .maybeSingle();
 
-    if (error) {
-      console.warn('Error checking project existence:', error);
-      return { exists: false, error: error.message };
+    if (projectError) {
+      console.warn('Error checking projects table:', projectError);
     }
 
-    const projectExists = Boolean(data);
+    // If found in projects table, return success
+    if (projectData) {
+      return { exists: true };
+    }
+
+    // Check in chitoor_projects table as fallback
+    const { data: chitoorData, error: chitoorError } = await supabase
+      .from('chitoor_projects')
+      .select('id')
+      .eq('id', trimmedId)
+      .maybeSingle();
+
+    if (chitoorError) {
+      console.warn('Error checking chitoor_projects table:', chitoorError);
+    }
+
+    const projectExists = Boolean(projectData || chitoorData);
     if (!projectExists) {
-      console.warn(`Project not found in database with ID: ${trimmedId}`);
+      console.warn(`Project not found in projects or chitoor_projects with ID: ${trimmedId}`);
     }
     return { exists: projectExists };
   } catch (err: any) {
@@ -343,4 +359,84 @@ export const prepareProjectAnalysisForSave = (
     overall_profit: overallProfit,
     updated_at: new Date().toISOString(),
   };
+};
+
+/**
+ * Find and remove orphaned project analysis records
+ * (records with project_ids that no longer exist in projects or chitoor_projects tables)
+ */
+export const cleanupOrphanedProjectAnalysis = async (): Promise<{
+  deleted: number;
+  error?: string;
+}> => {
+  try {
+    // Fetch all project_analysis records
+    const { data: analysisRecords, error: analysisError } = await supabase
+      .from('project_analysis')
+      .select('project_id');
+
+    if (analysisError) {
+      return { deleted: 0, error: analysisError.message };
+    }
+
+    // Fetch all valid project IDs from both tables
+    const { data: projects, error: projectError } = await supabase
+      .from('projects')
+      .select('id');
+
+    const { data: chitoorProjects, error: chitoorError } = await supabase
+      .from('chitoor_projects')
+      .select('id');
+
+    if (projectError) {
+      return { deleted: 0, error: projectError.message };
+    }
+
+    if (chitoorError) {
+      console.warn('Warning: Could not fetch Chitoor projects:', chitoorError);
+    }
+
+    // Build set of valid project IDs
+    const validProjectIds = new Set<string>();
+    (projects || []).forEach((p: any) => validProjectIds.add(String(p.id)));
+    (chitoorProjects || []).forEach((p: any) => validProjectIds.add(String(p.id)));
+
+    // Find orphaned records
+    const orphanedIds = (analysisRecords || [])
+      .map((r: any) => String(r.project_id || '').trim())
+      .filter((id: string) => id && !validProjectIds.has(id));
+
+    // Remove duplicates
+    const uniqueOrphanedIds = Array.from(new Set(orphanedIds));
+
+    if (uniqueOrphanedIds.length === 0) {
+      return { deleted: 0 };
+    }
+
+    // Delete orphaned records in batches
+    let deletedCount = 0;
+    const batchSize = 100;
+
+    for (let i = 0; i < uniqueOrphanedIds.length; i += batchSize) {
+      const batch = uniqueOrphanedIds.slice(i, i + batchSize);
+      const { error: deleteError, count } = await supabase
+        .from('project_analysis')
+        .delete()
+        .in('project_id', batch);
+
+      if (deleteError) {
+        console.error('Error deleting orphaned records:', deleteError);
+        return { deleted: deletedCount, error: deleteError.message };
+      }
+
+      deletedCount += count || 0;
+    }
+
+    console.log(`Successfully deleted ${deletedCount} orphaned project analysis records`);
+    return { deleted: deletedCount };
+  } catch (error: any) {
+    const errorMsg = error?.message || JSON.stringify(error);
+    console.error('Error in cleanupOrphanedProjectAnalysis:', errorMsg);
+    return { deleted: 0, error: errorMsg };
+  }
 };

@@ -59,6 +59,7 @@ import {
   prepareProjectAnalysisForSave,
   checkProjectExists,
   isValidUUID,
+  cleanupOrphanedProjectAnalysis,
   ProjectAnalysisData,
 } from '../utils/projectAnalysisClient';
 import ProjectAnalysisModal from '../components/ProjectAnalysisModal';
@@ -494,11 +495,25 @@ const ProjectAnalysis = () => {
 
       if (projectError) throw projectError;
 
+      // Build a map of valid projects (for filtering out orphaned records)
+      const validProjectIds = new Set<string>();
+      (projects || []).forEach((p: any) => validProjectIds.add(String(p.id)));
+      (chitoorProjects || []).forEach((p: any) => validProjectIds.add(String(p.id)));
+
       // Build a map of saved analysis data (SOURCE OF TRUTH)
       const analysisByProjectId = new Map<string, ProjectData>();
+      const orphanedRecords: ProjectData[] = [];
       (analysisRows || []).forEach((r) => {
         const normalized = normalizeDbProjectAnalysisRow(r as unknown as Record<string, unknown>);
         const key = String(normalized.project_id || normalized.id || '');
+
+        // Check if this is an orphaned record (project_id doesn't match any actual project)
+        if (key && !validProjectIds.has(key)) {
+          orphanedRecords.push(normalized);
+          console.warn('Orphaned project analysis record found (project no longer exists):', key, normalized);
+          return; // Skip adding to analysisByProjectId
+        }
+
         // Keep the MOST RECENTLY UPDATED record for each project (updated_at is DESC)
         if (key && !analysisByProjectId.has(key)) {
           // Validate and log any invalid UUIDs
@@ -508,6 +523,11 @@ const ProjectAnalysis = () => {
           analysisByProjectId.set(key, normalized);
         }
       });
+
+      // Log summary of orphaned records
+      if (orphanedRecords.length > 0) {
+        console.warn(`Found ${orphanedRecords.length} orphaned project analysis records. These will be excluded from the display.`);
+      }
 
       // Build final data set: use saved analysis data when available, baseline only as fallback
       const transformedProjects: ProjectData[] = (projects || []).map((project: any) => {
