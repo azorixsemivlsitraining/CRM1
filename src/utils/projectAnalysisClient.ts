@@ -38,6 +38,52 @@ export interface ProjectAnalysisData {
 }
 
 /**
+ * Validate if a string is a valid UUID format
+ */
+export const isValidUUID = (uuid: string): boolean => {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(uuid);
+};
+
+/**
+ * Check if a project exists in the projects table
+ */
+export const checkProjectExists = async (projectId: string): Promise<{ exists: boolean; error?: string }> => {
+  try {
+    // Validate UUID format first
+    const trimmedId = String(projectId || '').trim();
+    if (!trimmedId) {
+      return { exists: false, error: 'Project ID is empty' };
+    }
+
+    if (!isValidUUID(trimmedId)) {
+      return { exists: false, error: `Invalid UUID format: ${trimmedId}` };
+    }
+
+    const { data, error } = await supabase
+      .from('projects')
+      .select('id')
+      .eq('id', trimmedId)
+      .maybeSingle();
+
+    if (error) {
+      console.warn('Error checking project existence:', error);
+      return { exists: false, error: error.message };
+    }
+
+    const projectExists = Boolean(data);
+    if (!projectExists) {
+      console.warn(`Project not found in database with ID: ${trimmedId}`);
+    }
+    return { exists: projectExists };
+  } catch (err: any) {
+    const errorMsg = err?.message || JSON.stringify(err);
+    console.error('Error in checkProjectExists:', errorMsg);
+    return { exists: false, error: errorMsg };
+  }
+};
+
+/**
  * Fetch all project analysis records from Supabase
  */
 export const fetchAllProjectAnalysis = async (
@@ -140,10 +186,20 @@ export const upsertProjectAnalysis = async (
   data: Partial<ProjectAnalysisData>
 ): Promise<{ data: ProjectAnalysisData | null; error: any }> => {
   try {
-    if (!data.project_id) {
+    const projectId = String(data.project_id || '').trim();
+
+    if (!projectId) {
       return {
         data: null,
         error: { message: 'project_id is required' },
+      };
+    }
+
+    // Validate UUID format
+    if (!isValidUUID(projectId)) {
+      return {
+        data: null,
+        error: { message: `Invalid project_id format: ${projectId}. Must be a valid UUID.` },
       };
     }
 
@@ -152,6 +208,7 @@ export const upsertProjectAnalysis = async (
       .upsert(
         {
           ...data,
+          project_id: projectId,
           updated_at: new Date().toISOString(),
         },
         { onConflict: 'project_id' }
@@ -160,13 +217,15 @@ export const upsertProjectAnalysis = async (
       .single();
 
     if (error) {
-      console.error('Error upserting project analysis:', error);
+      const errorMsg = error?.message || JSON.stringify(error);
+      console.error('Error upserting project analysis:', errorMsg);
       return { data: null, error };
     }
 
     return { data: result as ProjectAnalysisData, error: null };
-  } catch (err) {
-    console.error('Error in upsertProjectAnalysis:', err);
+  } catch (err: any) {
+    const errorMsg = err?.message || JSON.stringify(err);
+    console.error('Error in upsertProjectAnalysis:', errorMsg);
     return { data: null, error: err };
   }
 };
