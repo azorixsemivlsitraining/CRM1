@@ -58,6 +58,7 @@ import {
   subscribeToProjectAnalysis,
   prepareProjectAnalysisForSave,
   checkProjectExists,
+  isValidUUID,
   ProjectAnalysisData,
 } from '../utils/projectAnalysisClient';
 import ProjectAnalysisModal from '../components/ProjectAnalysisModal';
@@ -500,6 +501,10 @@ const ProjectAnalysis = () => {
         const key = String(normalized.project_id || normalized.id || '');
         // Keep the MOST RECENTLY UPDATED record for each project (updated_at is DESC)
         if (key && !analysisByProjectId.has(key)) {
+          // Validate and log any invalid UUIDs
+          if (key && !isValidUUID(key)) {
+            console.warn('Invalid project_id found in analysis data:', key, normalized);
+          }
           analysisByProjectId.set(key, normalized);
         }
       });
@@ -607,6 +612,19 @@ const ProjectAnalysis = () => {
 
       const allProjects = [...transformedProjects, ...chitoorTransformed];
 
+      // Validate and sanitize all project_id values
+      const validatedProjects = allProjects.map((p) => {
+        const projectId = String(p.project_id || p.id || '').trim();
+        if (projectId && !isValidUUID(projectId)) {
+          console.error('Invalid project_id detected - sanitizing:', projectId, p);
+        }
+        return {
+          ...p,
+          id: String(p.id || '').trim(),
+          project_id: projectId,
+        };
+      });
+
       if (analysisError) {
         const errorCode = (analysisError as any)?.code;
         const errorMessage = (analysisError as any)?.message || String(analysisError);
@@ -614,7 +632,7 @@ const ProjectAnalysis = () => {
       }
 
       // Always show all projects (baseline + saved overlay)
-      setProjectData(allProjects);
+      setProjectData(validatedProjects);
     } catch (error: any) {
       console.error('Error fetching project analysis:', error?.message || String(error));
       toast({
@@ -749,11 +767,31 @@ const ProjectAnalysis = () => {
   };
 
   const handleEditProject = async (project: ProjectData) => {
-    setSelectedProject(project);
+    // Ensure project_id is properly set and not corrupted
+    const sanitizedProject = {
+      ...project,
+      id: String(project.id || '').trim(),
+      project_id: String(project.project_id || project.id || '').trim(),
+    };
+
+    // Validate that project_id is a proper UUID
+    if (sanitizedProject.project_id && !isValidUUID(sanitizedProject.project_id)) {
+      console.error('Invalid project_id format detected:', sanitizedProject.project_id);
+      toast({
+        title: 'Error',
+        description: 'Project data is corrupted or invalid. Please refresh and try again.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    setSelectedProject(sanitizedProject);
 
     // Fetch ALL payment receipts including advance payments
     try {
-      const projectId = project.project_id || project.id;
+      const projectId = sanitizedProject.project_id || sanitizedProject.id;
 
       // Fetch from payment_history table for regular projects
       const { data: paymentHistory, error } = await supabase
