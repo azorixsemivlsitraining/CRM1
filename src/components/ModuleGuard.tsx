@@ -29,7 +29,7 @@ const ModuleGuard: React.FC<{ moduleKey: string; children: React.ReactNode }> = 
         <Box textAlign="center">
           <Text fontSize="xl" color="red.500" mb={2}>No access</Text>
           <Text color="gray.600" mb={4}>You don't have permission to view this module.</Text>
-          <Button as={RouterLink} to="/welcome" colorScheme="brand">Back</Button>
+          <Button as={RouterLink} to="/home" colorScheme="brand">Back</Button>
         </Box>
       </Center>
     );

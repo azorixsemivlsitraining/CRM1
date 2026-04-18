@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Box,
   Button,
@@ -55,6 +55,7 @@ import * as XLSX from 'xlsx';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { formatSupabaseError } from '../utils/error';
+import { syncProjectsSnapshotToAnalysis } from '../utils/projectAnalysisMigration';
 import {
   AddIcon,
   SearchIcon,
@@ -174,6 +175,7 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
   const [combinedTotals, setCombinedTotals] = useState({ totalProjects: 0, totalRevenue: 0, totalKWH: 0, active: 0, completed: 0, cancelled: 0 });
   const [activeFilters, setActiveFilters] = useState<FilterOptions[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const hasBackfilledAnalysisRef = useRef(false);
   const toast = useToast();
 
   // Filter modal state
@@ -209,7 +211,7 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
       const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Supabase error:', (error as any)?.message || error, error);
+        console.error('Supabase error:', formatSupabaseError(error));
         toast({
           title: 'Error',
           description: `Failed to fetch projects. ${formatSupabaseError(error)}`,
@@ -223,6 +225,17 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
 
       const primaryProjects = Array.isArray(data) ? (data as Project[]) : [];
       setAllProjects(primaryProjects);
+
+      // One-time backfill: ensure existing projects are also present in project_analysis.
+      // This keeps Project Analysis table in sync with Projects tile data.
+      if (!hasBackfilledAnalysisRef.current && primaryProjects.length > 0) {
+        hasBackfilledAnalysisRef.current = true;
+        const syncResult = await syncProjectsSnapshotToAnalysis(primaryProjects);
+        if (!syncResult.success) {
+          console.warn('Project analysis backfill failed:', syncResult.error || syncResult.message);
+          hasBackfilledAnalysisRef.current = false;
+        }
+      }
 
       const primaryTotals = {
         count: primaryProjects.length,
@@ -279,7 +292,7 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
         cancelled: primaryTotals.cancelled + (canIncludeChitoor ? chitoorTotals.cancelled : 0),
       });
     } catch (error) {
-      console.error('Error fetching projects:', error);
+      console.error('Error fetching projects:', formatSupabaseError(error));
       toast({
         title: 'Error',
         description: `Failed to fetch projects. ${formatSupabaseError(error)}`,
@@ -563,12 +576,13 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
         lead_finished_by_name: newProject.lead_finished_by_name || null,
       };
 
-      const { error } = await supabase
+      const { data: insertedProjects, error } = await supabase
         .from('projects')
-        .insert([projectData]);
+        .insert([projectData])
+        .select('*');
 
       if (error) {
-        console.error('Supabase error:', (error as any)?.message || error, error);
+        console.error('Supabase error:', formatSupabaseError(error));
         toast({
           title: 'Error',
           description: `Failed to create project. ${formatSupabaseError(error)}`,
@@ -606,6 +620,14 @@ const Projects: React.FC<ProjectsProps> = ({ stateFilter }) => {
         lead_finished_by: '',
         lead_finished_by_name: '',
       });
+      // Immediately sync newly created project into project_analysis.
+      if (Array.isArray(insertedProjects) && insertedProjects.length > 0) {
+        const syncResult = await syncProjectsSnapshotToAnalysis(insertedProjects);
+        if (!syncResult.success) {
+          console.warn('New project analysis sync failed:', syncResult.error || syncResult.message);
+        }
+      }
+
       fetchProjects();
     } catch (error) {
       console.error('Error creating project:', error);

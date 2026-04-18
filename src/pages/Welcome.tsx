@@ -64,6 +64,9 @@ const Welcome: React.FC = () => {
     { label: 'Logistics', description: 'Dispatches and deliveries', icon: '🚚', to: '/logistics' },
     { label: 'Modules & Inventory', description: 'Module listings and intake', icon: '📦', to: '/logistics/modules' },
   ];
+  const csaTile: Tile[] = ['gopi@axisogreen.in', 'admin@axisogreen.in'].includes(user?.email?.toLowerCase() || '')
+    ? [{ label: 'CSA', description: 'Capture customer satisfaction feedback', icon: '📝', to: '/csa' }]
+    : [];
 
   const renderTile = (tile: Tile, isMobileVariant: boolean) => {
     if (tile.label === 'Chitoor Projects') {
@@ -151,7 +154,7 @@ const Welcome: React.FC = () => {
     if (path.startsWith('/reports')) return 'reports';
     if (path.startsWith('/sales')) return 'sales';
     if (path.startsWith('/service-tickets')) return 'serviceTickets';
-    if (path.startsWith('/finance') || path.startsWith('/payments')) return 'finance';
+    if (path.startsWith('/finance') || path.startsWith('/payments') || path.startsWith('/daily-expenses')) return 'finance';
     if (path.startsWith('/hr')) return 'hr';
     if (path.startsWith('/stock') || path.startsWith('/procurement') || path.startsWith('/logistics')) return 'operations';
     return 'other';
@@ -197,13 +200,13 @@ const Welcome: React.FC = () => {
       <Text fontSize="xs" color={titleColor} mb={2} display={{ base: 'block', lg: 'none' }}>Swipe to explore modules →</Text>
       <Box display={{ base: 'block', lg: 'none' }} overflowX="auto" pb={2} className="mobile-tiles-scroll" sx={{ scrollbarWidth: 'thin', WebkitOverflowScrolling: 'touch' }}>
         <Flex gap={4} minW="max-content" pr={2}>
-          {tiles.map((tile) => renderTile(tile, true))}
+          {[...tiles, ...csaTile].map((tile) => renderTile(tile, true))}
         </Flex>
       </Box>
 
       {/* Desktop/Tablet: grid tiles */}
       <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={5} display={{ base: 'none', lg: 'grid' }}>
-        {tiles.map((tile) => renderTile(tile, false))}
+        {[...tiles, ...csaTile].map((tile) => renderTile(tile, false))}
       </SimpleGrid>
 
       <Divider my={8} />

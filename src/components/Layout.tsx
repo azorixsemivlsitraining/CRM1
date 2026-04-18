@@ -129,6 +129,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { icon: '🏗️', label: 'CHITOOR', to: '/projects/chitoor', region: 'Chitoor' },
   ];
 
+  const paNavItems = [
+    { icon: '📝', label: 'PA Form', to: '/pa', region: 'all' },
+  ];
+
   const stateDashboards = [
     { icon: '📈', label: 'TG Dashboard', to: '/dashboard/tg', region: 'Telangana' },
     { icon: '📈', label: 'AP Dashboard', to: '/dashboard/ap', region: 'Andhra Pradesh' },
@@ -153,6 +157,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const isOps = path === '/stock' || path.startsWith('/procurement') || path === '/logistics' || path.startsWith('/logistics/');
   const isReports = path === '/reports' || path.startsWith('/reports/');
   const isProjectAnalysis = path === '/project-analysis' || path.startsWith('/project-analysis/');
+  const isPA = path === '/pa';
   const activeModule = isOps
     ? 'operations'
     : isReports
@@ -163,9 +168,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           ? 'projects'
           : isProjectAnalysis
             ? 'projectAnalysis'
+          : isPA
+            ? 'pa'
           : path.startsWith('/service-tickets')
             ? 'serviceTickets'
-            : path.startsWith('/finance') || path.startsWith('/payments')
+            : path.startsWith('/finance') || path.startsWith('/payments') || path.startsWith('/daily-expenses')
               ? 'finance'
               : path.startsWith('/admin')
                 ? 'admin'
@@ -175,6 +182,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const financeItems = [
     { icon: '💰', label: 'Finance', to: '/finance' },
+    { icon: '🧾', label: 'Daily Expenses', to: '/daily-expenses' },
   ];
 
   const SidebarContent = ({ onClose }: { onClose?: () => void }) => (
@@ -358,7 +366,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   icon={item.icon}
                   label={item.label}
                   to={item.to}
-                  isActive={location.pathname === item.to}
+                  isActive={location.pathname === item.to || location.pathname.startsWith(`${item.to}/`)}
                   onClick={onClose}
                   collapsed={isCollapsed}
                 />

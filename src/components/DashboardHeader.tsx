@@ -12,6 +12,7 @@ import {
   Circle,
 } from '@chakra-ui/react';
 import { supabase } from '../lib/supabase';
+import { formatSupabaseError } from '../utils/error';
 
 interface HeaderStatsCardProps {
   title: string;
@@ -79,11 +80,11 @@ const DashboardHeader = () => {
           .select('*');
 
         if (projectsError && projectsError.code !== 'PGRST116') {
-          console.error('Error fetching projects:', projectsError);
+          console.error('Error fetching projects:', formatSupabaseError(projectsError));
         }
 
         if (chitoorError && chitoorError.code !== 'PGRST116') {
-          console.error('Error fetching Chitoor projects:', chitoorError);
+          console.error('Error fetching Chitoor projects:', formatSupabaseError(chitoorError));
         }
 
         if (projects || chitoorProjects) {
@@ -108,7 +109,7 @@ const DashboardHeader = () => {
           });
         }
       } catch (error) {
-        console.error('Error fetching global stats:', error);
+        console.error('Error fetching global stats:', formatSupabaseError(error));
       }
     };
 
