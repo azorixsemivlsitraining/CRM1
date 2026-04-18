@@ -100,6 +100,22 @@ interface ExpenseRec {
   tax_amount?: number;
 }
 
+interface DailyExpense {
+  id?: string;
+  date: string;
+  category: string;
+  project_name: string;
+  customer_name?: string;
+  element: string;
+  amount: number;
+  created_at?: string;
+}
+
+interface DailyExpenseElementRow {
+  name: string;
+  amount: number;
+}
+
 interface EstimationCost {
   id: string;
   customer_name: string;
@@ -160,6 +176,7 @@ const PREDEFINED_INVOICE_ITEMS = [
 ];
 
 const inr = (v: number) => `₹${(v || 0).toLocaleString('en-IN')}`;
+const DAILY_EXPENSE_DEFAULT_CATEGORIES = ['transportation', 'electrical', 'civil work'];
 
 const makeCsv = (rows: any[]) => {
   if (!rows || rows.length === 0) return '';
@@ -353,6 +370,23 @@ const Finance: React.FC = () => {
   const [taxInvoiceLoading, setTaxInvoiceLoading] = useState(false);
   const [projectSearchTerm, setProjectSearchTerm] = useState('');
   const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
+
+  // Daily Expenses State
+  const [dailyExpenses, setDailyExpenses] = useState<DailyExpense[]>([]);
+  const [dailyExpenseForm, setDailyExpenseForm] = useState<DailyExpense>({
+    date: new Date().toISOString().split('T')[0],
+    category: 'civil work',
+    project_name: '',
+    customer_name: '',
+    element: '',
+    amount: 0,
+  });
+  const [dailyExpenseElements, setDailyExpenseElements] = useState<DailyExpenseElementRow[]>([{ name: '', amount: 0 }]);
+  const [dailyExpenseCategoryMode, setDailyExpenseCategoryMode] = useState<'preset' | 'other'>('preset');
+  const [dailyExpenseOtherCategory, setDailyExpenseOtherCategory] = useState('');
+  const [dailyExpenseLoading, setDailyExpenseLoading] = useState(false);
+  const [dailyExpensesTabIndex, setDailyExpensesTabIndex] = useState(0);
+  const [dailyExpenseReportTabIndex, setDailyExpenseReportTabIndex] = useState(0);
 
   const { isFinance, isAuthenticated, isAdmin } = useAuth();
   const toast = useToast();
@@ -1381,6 +1415,7 @@ const Finance: React.FC = () => {
 
         await fetchEstimations();
         await fetchTaxInvoices();
+        await fetchDailyExpenses();
       } catch (error) {
         console.error('Error fetching finance data:', error);
         toast({ title: 'Error', description: 'Failed to fetch financial data', status: 'error', duration: 5000, isClosable: true });
@@ -1938,6 +1973,156 @@ const Finance: React.FC = () => {
     }
 
     return words.trim();
+  };
+
+  // Daily Expense Handlers
+  const handleAddDailyExpense = async () => {
+    const cleanedElements = dailyExpenseElements
+      .map((item) => ({ name: String(item.name || '').trim(), amount: Number(item.amount || 0) }))
+      .filter((item) => item.name && item.amount > 0);
+    const totalAmount = cleanedElements.reduce((sum, item) => sum + item.amount, 0);
+    const resolvedCategory =
+      dailyExpenseCategoryMode === 'other'
+        ? String(dailyExpenseOtherCategory || '').trim().toLowerCase()
+        : String(dailyExpenseForm.category || '').trim().toLowerCase();
+    const elementSummary = cleanedElements.map((item) => `${item.name} (₹${item.amount})`).join(', ');
+
+    if (!dailyExpenseForm.date || !resolvedCategory || !dailyExpenseForm.project_name || cleanedElements.length === 0 || totalAmount <= 0) {
+      toast({
+        title: 'Missing Fields',
+        description: 'Please fill date, category, project/customer details, and at least one element with amount.',
+        status: 'warning',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    try {
+      setDailyExpenseLoading(true);
+      const { error } = await supabase
+        .from('daily_expenses')
+        .insert([{
+          date: dailyExpenseForm.date,
+          category: resolvedCategory,
+          project_name: dailyExpenseForm.project_name,
+          customer_name: dailyExpenseForm.customer_name || null,
+          element: elementSummary,
+          amount: totalAmount,
+        }]);
+
+      if (error) {
+        console.error('Supabase error saving daily expense:', error);
+        throw new Error(error.message || 'Failed to save daily expense');
+      }
+
+      toast({
+        title: 'Success',
+        description: 'Daily expense added successfully.',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+
+      setDailyExpenseForm({
+        date: new Date().toISOString().split('T')[0],
+        category: 'civil work',
+        project_name: '',
+        customer_name: '',
+        element: '',
+        amount: 0,
+      });
+      setDailyExpenseElements([{ name: '', amount: 0 }]);
+      setDailyExpenseCategoryMode('preset');
+      setDailyExpenseOtherCategory('');
+      await fetchDailyExpenses();
+      setDailyExpensesTabIndex(1);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      console.error('Error saving daily expense:', errorMessage);
+      toast({
+        title: 'Error',
+        description: `Failed to save daily expense: ${errorMessage}`,
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setDailyExpenseLoading(false);
+    }
+  };
+
+  const fetchDailyExpenses = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('daily_expenses')
+        .select('*')
+        .order('date', { ascending: false });
+
+      if (error) {
+        console.error('Supabase error fetching daily expenses:', error);
+        throw new Error(error.message || 'Failed to fetch daily expenses');
+      }
+      setDailyExpenses((data || []) as DailyExpense[]);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      console.error('Error fetching daily expenses:', errorMessage);
+      toast({
+        title: 'Error',
+        description: `Failed to fetch daily expenses: ${errorMessage}`,
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const exportDailyExpensesCsv = () => {
+    const rows = dailyExpenses.map((e) => ({
+      date: e.date,
+      category: e.category,
+      project_name: e.project_name,
+      customer_name: e.customer_name || '',
+      element: e.element,
+      amount: e.amount,
+    }));
+    download(makeCsv(rows), 'daily_expenses.csv');
+  };
+
+  const exportDailyExpensesXls = () => {
+    const cols = ['Date', 'Category', 'Project Name', 'Customer Name', 'Element', 'Amount (₹)'];
+    const rows = dailyExpenses.map((e) => [e.date, e.category, e.project_name, e.customer_name || '', e.element, e.amount]);
+    downloadExcel(cols, rows, 'daily_expenses.xls');
+  };
+
+  const getWeeklyExpensesByCategory = () => {
+    const currentDate = new Date();
+    const sevenDaysAgo = new Date(currentDate.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const weeklyExpenses = dailyExpenses.filter(exp => new Date(exp.date) >= sevenDaysAgo);
+
+    const categoryTotals: { [key: string]: number } = {};
+
+    weeklyExpenses.forEach(exp => {
+      const key = String(exp.category || 'other').trim().toLowerCase() || 'other';
+      categoryTotals[key] = (categoryTotals[key] || 0) + (Number(exp.amount) || 0);
+    });
+
+    return categoryTotals;
+  };
+
+  const getMonthlyExpensesByCategory = () => {
+    const currentDate = new Date();
+    const monthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+    const monthlyExpenses = dailyExpenses.filter(exp => new Date(exp.date) >= monthStart);
+
+    const categoryTotals: { [key: string]: number } = {};
+
+    monthlyExpenses.forEach(exp => {
+      const key = String(exp.category || 'other').trim().toLowerCase() || 'other';
+      categoryTotals[key] = (categoryTotals[key] || 0) + (Number(exp.amount) || 0);
+    });
+
+    return categoryTotals;
   };
 
   return (
@@ -3006,6 +3191,7 @@ const Finance: React.FC = () => {
                       </HStack>
                       <Text fontSize="sm" color="gray.600">Download CSV, Excel, or PDF versions of your finance data.</Text>
                     </TabPanel>
+
                   </TabPanels>
                 </Tabs>
               </CardBody>

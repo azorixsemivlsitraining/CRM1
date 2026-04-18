@@ -427,7 +427,7 @@ const ChitoorProjectsTile = ({
       try {
         // Keep logs concise to avoid noisy FullStory stack traces
         console.warn('Failed to load Chitoor approvals:', message);
-        console.error('Full error object for Chitoor approvals fetch:', error);
+        console.error('Full error object for Chitoor approvals fetch:', formatSupabaseError(error));
       } catch {}
 
       setApprovals([]);
@@ -460,14 +460,14 @@ const ChitoorProjectsTile = ({
           .order('created_at', { ascending: false })
           .range(0, end);
         if (error) {
-          console.error('Error fetching projects', error);
+          console.error('Error fetching projects:', formatSupabaseError(error));
           return;
         }
         setProjects(data ?? []);
         try {
           const ids = (data ?? []).map((p: any) => p.id).filter(Boolean);
           if (ids.length > 0) {
-            const { data: imgs } = await supabase
+            await supabase
               .from('project_images')
               .select('*')
               .in('project_id', ids)
@@ -478,7 +478,7 @@ const ChitoorProjectsTile = ({
           console.warn('Failed to fetch thumbnails', thumbErr);
         }
       } catch (err) {
-        console.error('Fetch projects error', err);
+        console.error('Fetch projects error:', formatSupabaseError(err));
       } finally {
         setProjectsLoading(false);
       }

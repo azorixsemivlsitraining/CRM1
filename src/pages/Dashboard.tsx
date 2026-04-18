@@ -296,7 +296,7 @@ const Dashboard = () => {
           p.state && p.state.toLowerCase().includes('telangana')
         ).length;
         const apProjects = uniqueProjects.filter((p: any) =>
-          p.state && p.state.toLowerCase().includes('andhra') || p.state && p.state.toLowerCase().includes('pradesh')
+          p.state && (p.state.toLowerCase().includes('andhra') || p.state.toLowerCase().includes('pradesh'))
         ).length;
         const chitoorCount = (chitoorProjects as any)?.length || 0;
 

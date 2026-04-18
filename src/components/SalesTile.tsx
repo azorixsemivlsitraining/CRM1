@@ -25,7 +25,6 @@ import {
   Thead,
   Tr,
   useDisclosure,
-  useToast,
   VStack,
   Card,
   CardBody,
@@ -220,7 +219,7 @@ const SalesTile: React.FC<SalesTileProps> = ({
     });
 
     return map;
-  }, [leads, stages, pipelines, getPipeline]);
+  }, [leads, stages, getPipeline]);
 
   return (
     <>

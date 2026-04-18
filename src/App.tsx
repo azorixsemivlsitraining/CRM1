@@ -11,9 +11,11 @@ import Projects from './components/Projects';
 import ProjectDetails from './components/ProjectDetails';
 import Reports from './components/Reports';
 import Finance from './pages/Finance';
+import DailyExpenses from './pages/DailyExpenses';
 import Payments from './pages/Payments';
 import TaxInvoice from './pages/TaxInvoice';
 import ServiceTickets from './pages/ServiceTickets';
+import CSA from './pages/CSA';
 import TelanganaProjects from './pages/TelanganaProjects';
 import APProjects from './pages/APProjects';
 import ChitoorProjects from './pages/ChitoorProjects';
@@ -26,6 +28,7 @@ import UsersManagement from './pages/UsersManagement';
 import ResetPassword from './pages/ResetPassword';
 import Sales from './pages/Sales';
 import ProjectAnalysis from './pages/ProjectAnalysis';
+import PA from './pages/PA';
 import PrivateRoute from './components/PrivateRoute';
 import Layout from './components/Layout';
 import ModuleGuard from './components/ModuleGuard';
@@ -78,7 +81,12 @@ const App: React.FC = () => {
   return (
     <ErrorBoundary>
       <ChakraProvider theme={theme}>
-        <Router>
+      <Router
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true,
+        }}
+      >
           <AuthProvider>
             <Routes>
               <Route path="/login" element={<Login />} />
@@ -100,12 +108,16 @@ const App: React.FC = () => {
                 }
               />
               <Route
-                path="/welcome"
+                path="/home"
                 element={
                   <PrivateRoute>
                     <Welcome />
                   </PrivateRoute>
                 }
+              />
+              <Route
+                path="/welcome"
+                element={<Navigate to="/home" replace />}
               />
               <Route
                 path="/dashboard/tg"
@@ -150,6 +162,18 @@ const App: React.FC = () => {
                     <ModuleGuard moduleKey="finance">
                       <Layout>
                         <Finance />
+                      </Layout>
+                    </ModuleGuard>
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/daily-expenses"
+                element={
+                  <PrivateRoute>
+                    <ModuleGuard moduleKey="finance">
+                      <Layout>
+                        <DailyExpenses />
                       </Layout>
                     </ModuleGuard>
                   </PrivateRoute>
@@ -312,6 +336,18 @@ const App: React.FC = () => {
                 }
               />
               <Route
+                path="/pa"
+                element={
+                  <PrivateRoute>
+                    <ModuleGuard moduleKey="projects">
+                      <Layout>
+                        <PA />
+                      </Layout>
+                    </ModuleGuard>
+                  </PrivateRoute>
+                }
+              />
+              <Route
                 path="/service-tickets"
                 element={
                   <PrivateRoute>
@@ -320,6 +356,16 @@ const App: React.FC = () => {
                         <ServiceTickets />
                       </Layout>
                     </ModuleGuard>
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/csa"
+                element={
+                  <PrivateRoute>
+                    <Layout>
+                      <CSA />
+                    </Layout>
                   </PrivateRoute>
                 }
               />

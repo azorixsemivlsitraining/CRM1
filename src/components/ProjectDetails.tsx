@@ -1,5 +1,5 @@
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { generatePaymentReceiptPDF } from './PaymentReceipt';
 import { Spinner } from '@chakra-ui/react';
 
@@ -43,7 +43,7 @@ import { supabase } from '../lib/supabase';
 
 import { PROJECT_STAGES } from '../lib/constants';
 import { useAuth } from '../context/AuthContext';
-import { EditIcon } from '@chakra-ui/icons';
+import { EditIcon, DeleteIcon } from '@chakra-ui/icons';
 
 // State mapping function to convert abbreviations to full names
 const mapStateToFullName = (state: string): string => {
@@ -164,6 +164,7 @@ const [paymentMode, setPaymentMode] = useState(() => {
   const [receiptPreviewUrl, setReceiptPreviewUrl] = useState<string | null>(null);
   const [isGeneratingReceipt, setIsGeneratingReceipt] = useState(false);
 
+
   // Custom close handler that revokes blob URLs
   const onReceiptPreviewClose = () => {
     if (receiptPreviewUrl && receiptPreviewUrl.startsWith('blob:')) {
@@ -188,7 +189,7 @@ const [paymentMode, setPaymentMode] = useState(() => {
   });
 
   // Prefill project edit form when opening
-  const handleProjectEditOpen = () => {
+  const handleProjectEditOpen = useCallback(() => {
     if (project) {
       setProjectEditForm({
         name: project.name || '',
@@ -206,7 +207,7 @@ const [paymentMode, setPaymentMode] = useState(() => {
       });
     }
     onProjectEditOpen();
-  };
+  }, [project, onProjectEditOpen]);
 
   const fetchProjectAndPayments = React.useCallback(async () => {
     if (!id) return;
@@ -312,6 +313,20 @@ const [paymentMode, setPaymentMode] = useState(() => {
     }
   };
 
+  const handleOpenCSA = () => {
+    if (!project) return;
+
+    const params = new URLSearchParams({
+      customerName: project.customer_name || '',
+      contactNumber: project.phone || '',
+      projectLocation: project.address || '',
+      projectManager: project.dealing_personal || '',
+    });
+
+    navigate(`/csa?${params.toString()}`);
+  };
+
+
   // Add useEffect for timestamp updates
   useEffect(() => {
     const interval = setInterval(() => {
@@ -369,22 +384,22 @@ const [paymentMode, setPaymentMode] = useState(() => {
   }
 }, [project, isEditOpen]);
 
-// Reset form data when opening the modal
-const handleEditOpen = () => {
-  if (project) {
-    setCustomerFormData({
-      customer_name: project.customer_name || '',
-      email: project.email || '',
-      phone: project.phone || '',
-      address: project.address || '',
-      kwh: project.kwh || 0,
-      loan_amount: project.loan_amount || 0,
-      start_date: project.start_date || '',
-      dealing_personal: project.dealing_personal || 'Yellesh',
-    });
-  }
-  onEditOpen();
-};
+  // Reset form data when opening the modal
+  const handleEditOpen = useCallback(() => {
+    if (project) {
+      setCustomerFormData({
+        customer_name: project.customer_name || '',
+        email: project.email || '',
+        phone: project.phone || '',
+        address: project.address || '',
+        kwh: project.kwh || 0,
+        loan_amount: project.loan_amount || 0,
+        start_date: project.start_date || '',
+        dealing_personal: project.dealing_personal || 'Yellesh',
+      });
+    }
+    onEditOpen();
+  }, [project, onEditOpen]);
 
 const location = useLocation();
 useEffect(() => {
@@ -395,7 +410,7 @@ useEffect(() => {
   } else if (edit === 'project') {
     handleProjectEditOpen();
   }
-}, [location.search, handleEditOpen, handleProjectEditOpen]);
+}, [location.search]);
 
 const handleCustomerFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
   const { name, value } = e.target;
@@ -653,6 +668,14 @@ return (
                 size="sm"
               >
                 Edit Customer
+              </Button>
+              <Button
+                colorScheme="purple"
+                variant="outline"
+                onClick={handleOpenCSA}
+                size="sm"
+              >
+                CSA
               </Button>
               <Button
                 leftIcon={<EditIcon />}
@@ -1166,6 +1189,7 @@ return (
         </ModalBody>
       </ModalContent>
     </Modal>
+
 
   </Box>
 );

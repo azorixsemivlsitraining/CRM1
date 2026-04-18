@@ -692,6 +692,29 @@ const ChitoorProjectDetails = () => {
           </HStack>
           {project && (
             <HStack spacing={2}>
+              <Button
+                colorScheme="purple"
+                variant="outline"
+                onClick={() => {
+                  const params = new URLSearchParams({
+                    customerName: project.customer_name || '',
+                    contactNumber: project.mobile_number || '',
+                    projectLocation: project.address_mandal_village || '',
+                    projectManager: project.lead_finished_by_name || '',
+                  });
+                  navigate(`/csa?${params.toString()}`);
+                }}
+              >
+                CSA
+              </Button>
+              <Button
+                colorScheme="blue"
+                variant="outline"
+                onClick={() => navigate(`/project-analysis`)}
+                size="sm"
+              >
+                PA
+              </Button>
               <Tooltip label="Edit customer" hasArrow>
                 <IconButton aria-label="Edit customer" icon={<EditIcon />} variant="ghost" onClick={onCustomerEditOpen} />
               </Tooltip>

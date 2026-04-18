@@ -58,7 +58,7 @@ const Login = () => {
     // Simple check to see if we can reach the Supabase backend
     const checkBackend = async () => {
       try {
-        const res = await fetch('https://oqqzrppoqgnrinavvolz.supabase.co/auth/v1/health', { method: 'HEAD', mode: 'no-cors' });
+        await fetch('https://oqqzrppoqgnrinavvolz.supabase.co/auth/v1/health', { method: 'HEAD', mode: 'no-cors' });
         setIsBackendReachable(true);
       } catch (e) {
         setIsBackendReachable(false);
@@ -92,7 +92,7 @@ const Login = () => {
   useEffect(() => {
     if (!isAuthenticated) return;
 
-    const fallbackPath = fromHR ? '/hr' : '/welcome';
+    const fallbackPath = fromHR ? '/hr' : '/home';
 
     if (pendingRedirect?.pathname && pendingRedirect.pathname !== '/login') {
       const search = pendingRedirect.search ?? '';
@@ -192,7 +192,7 @@ const Login = () => {
           <HStack justify="flex-start">
             <Button leftIcon={<ArrowBackIcon />} variant="outline" colorScheme="brand" size="sm" onClick={() => {
               if (isAuthenticated) {
-                navigate('/welcome');
+                navigate('/home');
               } else {
                 navigate(-1);
               }

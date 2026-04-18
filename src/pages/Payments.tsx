@@ -85,7 +85,7 @@ const Payments: React.FC = () => {
         if (error) throw error;
         setProjects(data || []);
       } catch (error: any) {
-        console.error('Error fetching projects:', error);
+        console.error('Error fetching projects:', formatSupabaseError(error));
         toast({
           title: 'Error fetching projects',
           description: formatSupabaseError(error),
