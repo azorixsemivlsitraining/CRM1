@@ -41,6 +41,8 @@ import {
 } from '@chakra-ui/react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { formatSupabaseError } from '../utils/error';
 
 interface CsaFormState {
   customerName: string;
@@ -90,6 +92,7 @@ const CSA: React.FC = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'location' | 'date'>('date');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const toast = useToast();
   const location = useLocation();
   const { user } = useAuth();
@@ -100,6 +103,52 @@ const CSA: React.FC = () => {
   const canAccessCsa = ['gopi@axisogreen.in', 'admin@axisogreen.in'].includes(user?.email?.toLowerCase() || '');
 
   useEffect(() => {
+    // Load existing CSA records from Supabase
+    const loadCSARecords = async () => {
+      if (!isSupabaseConfigured) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('csa_feedback')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.warn('Failed to load CSA records from Supabase:', formatSupabaseError(error));
+          return;
+        }
+
+        if (data && data.length > 0) {
+          // Convert database records to form state format
+          const convertedRecords: CsaFormState[] = data.map((record: any) => ({
+            customerName: record.customer_name || '',
+            contactNumber: record.contact_number || '',
+            projectLocation: record.project_location || '',
+            projectManager: record.project_manager || '',
+            installationCompletionDate: record.installation_completion_date || '',
+            installationQuality: record.installation_quality?.toString() || '',
+            timelinessOfCompletion: record.timeliness_of_completion?.toString() || '',
+            staffProfessionalism: record.staff_professionalism?.toString() || '',
+            communicationUpdates: record.communication_updates?.toString() || '',
+            overallSatisfaction: record.overall_satisfaction?.toString() || '',
+            serviceLikes: record.service_likes || '',
+            improvementAreas: record.improvement_areas || '',
+            projectIssues: record.project_issues || '',
+            wouldRecommend: record.would_recommend || '',
+            permissionToUseTestimonial: record.permission_to_use_testimonial || '',
+          }));
+
+          setSubmissions(convertedRecords);
+          localStorage.setItem('csa_submissions', JSON.stringify(convertedRecords));
+        }
+      } catch (error) {
+        console.error('Error loading CSA records:', error);
+      }
+    };
+
+    loadCSARecords();
+
+    // Also handle URL parameters if provided
     const params = new URLSearchParams(location.search);
     const nextValues = {
       customerName: params.get('customerName') || '',
@@ -150,26 +199,79 @@ const CSA: React.FC = () => {
     setForm((current) => ({ ...current, [field]: value }));
   };
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    setIsSubmitting(true);
 
-    const nextSubmissions = editingIndex === null
-      ? [...submissions, form]
-      : submissions.map((submission, index) => (index === editingIndex ? form : submission));
+    try {
+      // Prepare data for Supabase - convert snake_case and ensure proper types
+      const dbPayload = {
+        customer_name: form.customerName,
+        contact_number: form.contactNumber,
+        project_location: form.projectLocation,
+        project_manager: form.projectManager,
+        installation_completion_date: form.installationCompletionDate || null,
+        installation_quality: form.installationQuality ? parseInt(form.installationQuality, 10) : null,
+        timeliness_of_completion: form.timelinessOfCompletion ? parseInt(form.timelinessOfCompletion, 10) : null,
+        staff_professionalism: form.staffProfessionalism ? parseInt(form.staffProfessionalism, 10) : null,
+        communication_updates: form.communicationUpdates ? parseInt(form.communicationUpdates, 10) : null,
+        overall_satisfaction: form.overallSatisfaction ? parseInt(form.overallSatisfaction, 10) : null,
+        service_likes: form.serviceLikes || null,
+        improvement_areas: form.improvementAreas || null,
+        project_issues: form.projectIssues || null,
+        would_recommend: form.wouldRecommend || null,
+        permission_to_use_testimonial: form.permissionToUseTestimonial || null,
+      };
 
-    setSubmissions(nextSubmissions);
-    localStorage.setItem('csa_submissions', JSON.stringify(nextSubmissions));
+      // Save to Supabase if configured
+      if (isSupabaseConfigured) {
+        if (editingIndex === null) {
+          // Insert new record
+          const { error } = await supabase
+            .from('csa_feedback')
+            .insert([dbPayload]);
 
-    setForm(initialFormState);
-    setEditingIndex(null);
-    setActiveTab(1);
-    toast({
-      title: editingIndex === null ? 'CSA form submitted' : 'CSA report updated',
-      description: 'The customer satisfaction assessment has been saved successfully.',
-      status: 'success',
-      duration: 3500,
-      isClosable: true,
-    });
+          if (error) {
+            throw error;
+          }
+        } else {
+          // This is an edit from localStorage, not from Supabase
+          // In a full implementation, you would need to track Supabase IDs
+          console.warn('Editing records from localStorage is not yet synced back to Supabase');
+        }
+      }
+
+      // Also update localStorage for backward compatibility
+      const nextSubmissions = editingIndex === null
+        ? [...submissions, form]
+        : submissions.map((submission, index) => (index === editingIndex ? form : submission));
+
+      setSubmissions(nextSubmissions);
+      localStorage.setItem('csa_submissions', JSON.stringify(nextSubmissions));
+
+      setForm(initialFormState);
+      setEditingIndex(null);
+      setActiveTab(1);
+      toast({
+        title: editingIndex === null ? 'CSA form submitted' : 'CSA report updated',
+        description: 'The customer satisfaction assessment has been saved successfully.',
+        status: 'success',
+        duration: 3500,
+        isClosable: true,
+      });
+    } catch (error: any) {
+      const errorMessage = formatSupabaseError(error);
+      console.error('CSA submission error:', error);
+      toast({
+        title: 'Submission failed',
+        description: typeof errorMessage === 'string' ? errorMessage : 'Failed to save CSA form',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleEditSubmission = (submission: CsaFormState, index: number) => {
@@ -502,11 +604,11 @@ const CSA: React.FC = () => {
 
                     <Stack direction={{ base: 'column', md: 'row' }} justify="flex-end" gap={3}>
                       {editingIndex !== null && (
-                        <Button variant="outline" borderColor={borderColor} size="lg" onClick={handleCancelEdit}>
+                        <Button variant="outline" borderColor={borderColor} size="lg" onClick={handleCancelEdit} isDisabled={isSubmitting}>
                           Cancel Edit
                         </Button>
                       )}
-                      <Button type="submit" colorScheme="brand" size="lg">
+                      <Button type="submit" colorScheme="brand" size="lg" isLoading={isSubmitting} loadingText="Saving...">
                         {editingIndex === null ? 'Submit CSA' : 'Update CSA'}
                       </Button>
                       <Text fontSize="sm" color="gray.500" alignSelf="center">

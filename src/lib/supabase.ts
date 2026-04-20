@@ -3,6 +3,16 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || 'https://oqqzrppoqgnrinavvolz.supabase.co';
 const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xcXpycHBvcWducmluYXZ2b2x6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMyNTM2ODUsImV4cCI6MjA1ODgyOTY4NX0.O-hdv4Op8-eg6hzBmIaUSKjl0XQdIgH2lilRPahJPrA';
 
+// Validate Supabase URL format
+const isValidSupabaseUrl = (url: string): boolean => {
+  try {
+    const urlObj = new URL(url);
+    return urlObj.hostname.includes('supabase.co') && urlObj.protocol === 'https:';
+  } catch {
+    return false;
+  }
+};
+
 const createUnconfiguredSupabase = () => {
   const error = new Error(
     'Supabase is not configured. Set REACT_APP_SUPABASE_URL and REACT_APP_SUPABASE_ANON_KEY in your environment.'
@@ -59,8 +69,30 @@ const createUnconfiguredSupabase = () => {
   return mock;
 };
 
-export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
+export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey && isValidSupabaseUrl(supabaseUrl));
+
+// Log configuration status for debugging
+if (typeof window !== 'undefined') {
+  if (!isSupabaseConfigured) {
+    console.warn(
+      'Supabase configuration warning:',
+      !supabaseUrl ? 'URL is missing' : !isValidSupabaseUrl(supabaseUrl) ? 'URL format is invalid' : 'Anon key is missing'
+    );
+  } else {
+    console.info('Supabase configured and ready:', supabaseUrl);
+  }
+}
 
 export const supabase = isSupabaseConfigured
-  ? createClient(supabaseUrl, supabaseAnonKey)
+  ? createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+      },
+      global: {
+        headers: {
+          'x-client-info': 'supabase-js-react',
+        },
+      },
+    })
   : createUnconfiguredSupabase();
