@@ -41,7 +41,6 @@ import {
 } from '@chakra-ui/react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { supabase } from '../lib/supabase';
 
 interface CsaFormState {
   customerName: string;
@@ -83,8 +82,10 @@ const ratingOptions = ['1', '2', '3', '4', '5'];
 
 const CSA: React.FC = () => {
   const [form, setForm] = useState<CsaFormState>(initialFormState);
-  const [submissions, setSubmissions] = useState<CsaFormState[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [submissions, setSubmissions] = useState<CsaFormState[]>(() => {
+    const saved = localStorage.getItem('csa_submissions');
+    return saved ? JSON.parse(saved) : [];
+  });
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
@@ -97,59 +98,6 @@ const CSA: React.FC = () => {
   const titleColor = useColorModeValue('gray.700', 'gray.200');
   const ratingBoxBg = useColorModeValue('gray.50', 'gray.700');
   const canAccessCsa = ['gopi@axisogreen.in', 'admin@axisogreen.in'].includes(user?.email?.toLowerCase() || '');
-
-  // Load CSA records from Supabase on component mount
-  useEffect(() => {
-    const loadCsaRecords = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('csa_feedback')
-          .select('*')
-          .order('created_at', { ascending: false });
-
-        if (error) {
-          console.error('Error loading CSA records:', error);
-          toast({
-            title: 'Error loading records',
-            description: 'Failed to load CSA records from database.',
-            status: 'error',
-            duration: 3000,
-            isClosable: true,
-          });
-        } else {
-          // Transform Supabase data to match our form state interface
-          const transformedData: CsaFormState[] = (data || []).map((record: any) => ({
-            customerName: record.customer_name || '',
-            contactNumber: record.contact_number || '',
-            projectLocation: record.project_location || '',
-            projectManager: record.project_manager || '',
-            installationCompletionDate: record.installation_completion_date || '',
-            installationQuality: record.installation_quality?.toString() || '',
-            timelinessOfCompletion: record.timeliness_of_completion?.toString() || '',
-            staffProfessionalism: record.staff_professionalism?.toString() || '',
-            communicationUpdates: record.communication_updates?.toString() || '',
-            overallSatisfaction: record.overall_satisfaction?.toString() || '',
-            serviceLikes: record.service_likes || '',
-            improvementAreas: record.improvement_areas || '',
-            projectIssues: record.project_issues || '',
-            wouldRecommend: record.would_recommend || '',
-            permissionToUseTestimonial: record.permission_to_use_testimonial || '',
-          }));
-          setSubmissions(transformedData);
-        }
-      } catch (err) {
-        console.error('Unexpected error loading CSA records:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (canAccessCsa) {
-      loadCsaRecords();
-    } else {
-      setLoading(false);
-    }
-  }, [canAccessCsa, toast]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -202,110 +150,26 @@ const CSA: React.FC = () => {
     setForm((current) => ({ ...current, [field]: value }));
   };
 
-  const handleSubmit = async (event: React.FormEvent) => {
+  const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
 
-    try {
-      // Transform form data to match Supabase schema
-      const csaData = {
-        customer_name: form.customerName,
-        contact_number: form.contactNumber,
-        project_location: form.projectLocation,
-        project_manager: form.projectManager,
-        installation_completion_date: form.installationCompletionDate || null,
-        installation_quality: parseInt(form.installationQuality) || 1,
-        timeliness_of_completion: parseInt(form.timelinessOfCompletion) || 1,
-        staff_professionalism: parseInt(form.staffProfessionalism) || 1,
-        communication_updates: parseInt(form.communicationUpdates) || 1,
-        overall_satisfaction: parseInt(form.overallSatisfaction) || 1,
-        service_likes: form.serviceLikes || null,
-        improvement_areas: form.improvementAreas || null,
-        project_issues: form.projectIssues || null,
-        would_recommend: form.wouldRecommend,
-        permission_to_use_testimonial: form.permissionToUseTestimonial,
-      };
+    const nextSubmissions = editingIndex === null
+      ? [...submissions, form]
+      : submissions.map((submission, index) => (index === editingIndex ? form : submission));
 
-      let result;
-      if (editingIndex === null) {
-        // Insert new record
-        result = await supabase
-          .from('csa_feedback')
-          .insert(csaData)
-          .select()
-          .single();
-      } else {
-        // Update existing record - we need the record ID
-        // For now, we'll insert as new since we don't track the Supabase ID
-        // In a real implementation, you'd want to store the Supabase ID in state
-        result = await supabase
-          .from('csa_feedback')
-          .insert(csaData)
-          .select()
-          .single();
-      }
+    setSubmissions(nextSubmissions);
+    localStorage.setItem('csa_submissions', JSON.stringify(nextSubmissions));
 
-      if (result.error) {
-        console.error('Error saving CSA record:', result.error);
-        toast({
-          title: 'Error saving record',
-          description: 'Failed to save CSA record to database.',
-          status: 'error',
-          duration: 3000,
-          isClosable: true,
-        });
-        return;
-      }
-
-      // Reload the data from Supabase to get the latest state
-      const { data: refreshedData, error: refreshError } = await supabase
-        .from('csa_feedback')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (refreshError) {
-        console.error('Error refreshing data:', refreshError);
-      } else {
-        // Transform and update local state
-        const transformedData: CsaFormState[] = (refreshedData || []).map((record: any) => ({
-          customerName: record.customer_name || '',
-          contactNumber: record.contact_number || '',
-          projectLocation: record.project_location || '',
-          projectManager: record.project_manager || '',
-          installationCompletionDate: record.installation_completion_date || '',
-          installationQuality: record.installation_quality?.toString() || '',
-          timelinessOfCompletion: record.timeliness_of_completion?.toString() || '',
-          staffProfessionalism: record.staff_professionalism?.toString() || '',
-          communicationUpdates: record.communication_updates?.toString() || '',
-          overallSatisfaction: record.overall_satisfaction?.toString() || '',
-          serviceLikes: record.service_likes || '',
-          improvementAreas: record.improvement_areas || '',
-          projectIssues: record.project_issues || '',
-          wouldRecommend: record.would_recommend || '',
-          permissionToUseTestimonial: record.permission_to_use_testimonial || '',
-        }));
-        setSubmissions(transformedData);
-      }
-
-      setForm(initialFormState);
-      setEditingIndex(null);
-      setActiveTab(1);
-      toast({
-        title: editingIndex === null ? 'CSA form submitted' : 'CSA report updated',
-        description: 'The customer satisfaction assessment has been saved successfully.',
-        status: 'success',
-        duration: 3500,
-        isClosable: true,
-      });
-    } catch (err) {
-      console.error('Unexpected error saving CSA record:', err);
-      toast({
-        title: 'Unexpected error',
-        description: 'An unexpected error occurred while saving the record.',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
-    }
+    setForm(initialFormState);
+    setEditingIndex(null);
+    setActiveTab(1);
+    toast({
+      title: editingIndex === null ? 'CSA form submitted' : 'CSA report updated',
+      description: 'The customer satisfaction assessment has been saved successfully.',
+      status: 'success',
+      duration: 3500,
+      isClosable: true,
+    });
   };
 
   const handleEditSubmission = (submission: CsaFormState, index: number) => {
@@ -314,104 +178,22 @@ const CSA: React.FC = () => {
     setActiveTab(0);
   };
 
-  const handleDeleteSubmission = async (index: number) => {
-    try {
-      // Since we don't track Supabase IDs, we need to find the record by matching data
-      // This is not ideal but works for this implementation
-      const submissionToDelete = submissions[index];
-      
-      // Find the record in Supabase by matching unique fields
-      const { data: records, error: findError } = await supabase
-        .from('csa_feedback')
-        .select('*')
-        .eq('customer_name', submissionToDelete.customerName)
-        .eq('contact_number', submissionToDelete.contactNumber)
-        .eq('project_location', submissionToDelete.projectLocation)
-        .eq('project_manager', submissionToDelete.projectManager);
+  const handleDeleteSubmission = (index: number) => {
+    const nextSubmissions = submissions.filter((_, submissionIndex) => submissionIndex !== index);
+    setSubmissions(nextSubmissions);
+    localStorage.setItem('csa_submissions', JSON.stringify(nextSubmissions));
 
-      if (findError) {
-        console.error('Error finding record to delete:', findError);
-        toast({
-          title: 'Error deleting record',
-          description: 'Failed to find the record to delete.',
-          status: 'error',
-          duration: 3000,
-          isClosable: true,
-        });
-        return;
-      }
-
-      if (records && records.length > 0) {
-        // Delete the first matching record
-        const { error: deleteError } = await supabase
-          .from('csa_feedback')
-          .delete()
-          .eq('id', records[0].id);
-
-        if (deleteError) {
-          console.error('Error deleting CSA record:', deleteError);
-          toast({
-            title: 'Error deleting record',
-            description: 'Failed to delete CSA record from database.',
-            status: 'error',
-            duration: 3000,
-            isClosable: true,
-          });
-          return;
-        }
-      }
-
-      // Reload the data from Supabase
-      const { data: refreshedData, error: refreshError } = await supabase
-        .from('csa_feedback')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (refreshError) {
-        console.error('Error refreshing data:', refreshError);
-      } else {
-        // Transform and update local state
-        const transformedData: CsaFormState[] = (refreshedData || []).map((record: any) => ({
-          customerName: record.customer_name || '',
-          contactNumber: record.contact_number || '',
-          projectLocation: record.project_location || '',
-          projectManager: record.project_manager || '',
-          installationCompletionDate: record.installation_completion_date || '',
-          installationQuality: record.installation_quality?.toString() || '',
-          timelinessOfCompletion: record.timeliness_of_completion?.toString() || '',
-          staffProfessionalism: record.staff_professionalism?.toString() || '',
-          communicationUpdates: record.communication_updates?.toString() || '',
-          overallSatisfaction: record.overall_satisfaction?.toString() || '',
-          serviceLikes: record.service_likes || '',
-          improvementAreas: record.improvement_areas || '',
-          projectIssues: record.project_issues || '',
-          wouldRecommend: record.would_recommend || '',
-          permissionToUseTestimonial: record.permission_to_use_testimonial || '',
-        }));
-        setSubmissions(transformedData);
-      }
-
-      if (editingIndex === index) {
-        setForm(initialFormState);
-        setEditingIndex(null);
-      }
-
-      toast({
-        title: 'CSA report deleted',
-        status: 'info',
-        duration: 3000,
-        isClosable: true,
-      });
-    } catch (err) {
-      console.error('Unexpected error deleting CSA record:', err);
-      toast({
-        title: 'Unexpected error',
-        description: 'An unexpected error occurred while deleting the record.',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
+    if (editingIndex === index) {
+      setForm(initialFormState);
+      setEditingIndex(null);
     }
+
+    toast({
+      title: 'CSA report deleted',
+      status: 'info',
+      duration: 3000,
+      isClosable: true,
+    });
   };
 
   const handleCancelEdit = () => {
@@ -737,12 +519,7 @@ const CSA: React.FC = () => {
 
               {/* CSA Records Tab */}
               <TabPanel>
-                {loading ? (
-                  <Box textAlign="center" py={10}>
-                    <Heading size="md" color={titleColor} mb={2}>Loading Records...</Heading>
-                    <Text color={titleColor}>Please wait while we load CSA records from the database.</Text>
-                  </Box>
-                ) : submissions.length === 0 ? (
+                {submissions.length === 0 ? (
                   <Box textAlign="center" py={10}>
                     <Heading size="md" color={titleColor} mb={2}>No Records Yet</Heading>
                     <Text color={titleColor}>CSA records will appear here once you submit forms.</Text>
@@ -765,12 +542,7 @@ const CSA: React.FC = () => {
               {/* Analytics Tab */}
               <TabPanel>
                 <VStack spacing={6} align="stretch">
-                  {loading ? (
-                    <Box textAlign="center" py={10}>
-                      <Heading size="md" color={titleColor} mb={2}>Loading Analytics...</Heading>
-                      <Text color={titleColor}>Please wait while we load data for analytics.</Text>
-                    </Box>
-                  ) : submissions.length === 0 ? (
+                  {submissions.length === 0 ? (
                     <Box textAlign="center" py={10}>
                       <Heading size="md" color={titleColor} mb={2}>No Data Available</Heading>
                       <Text color={titleColor}>Submit CSA forms to view analytics reports.</Text>
