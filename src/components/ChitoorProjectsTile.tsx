@@ -49,6 +49,8 @@ import { useAuth } from '../context/AuthContext';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import { formatSupabaseError } from '../utils/error';
+import { performSupabaseDiagnostics } from '../utils/supabaseHealthCheck';
+import { withRetry } from '../utils/supabaseRetry';
 
 interface ChitoorProjectsTileProps {
   isMobile: boolean;
@@ -389,10 +391,19 @@ const ChitoorProjectsTile = ({
       let lastError: any = null;
 
       for (const table of tableCandidates) {
-        res = await supabase
-          .from(table)
-          .select('*')
-          .order('created_at', { ascending: false });
+        try {
+          res = await withRetry(
+            () =>
+              supabase
+                .from(table)
+                .select('*')
+                .order('created_at', { ascending: false }),
+            { maxRetries: 2, initialDelayMs: 300 }
+          );
+        } catch (retryError) {
+          // Retry wrapper throws on final failure, convert to response format
+          res = { error: retryError };
+        }
 
         if (res?.error) {
           const errMsg = formatSupabaseError(res.error) || (res.error as any)?.message || '';
@@ -414,10 +425,17 @@ const ChitoorProjectsTile = ({
       }
     } catch (error: any) {
       let message = 'Unable to load Chitoor approvals.';
+      const isNetwork = (error && (error.name === 'TypeError' || /Failed to fetch/i.test(String(error)))) || /TypeError: Failed to fetch/i.test(String(error?.message || error));
+
       try {
-        const isNetwork = (error && (error.name === 'TypeError' || /Failed to fetch/i.test(String(error)))) || /TypeError: Failed to fetch/i.test(String(error?.message || error));
         if (isNetwork) {
           message = 'Network error: could not reach database. Check Supabase URL, CORS, or connectivity.';
+          // Run diagnostics for network errors
+          performSupabaseDiagnostics().then((diagnostics) => {
+            console.warn('Supabase Diagnostics:', diagnostics);
+          }).catch((e) => {
+            console.warn('Failed to run diagnostics:', e);
+          });
         } else {
           const rawMessage = formatSupabaseError(error);
           message = typeof rawMessage === 'string' ? rawMessage : String(rawMessage) || message;
