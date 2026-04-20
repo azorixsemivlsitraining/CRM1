@@ -45,6 +45,7 @@ const tiles: Tile[] = [
   { label: 'Service Tickets', description: 'Track and resolve issues', icon: '🎫', to: '/service-tickets' },
   { label: 'Finance', description: 'Billing, payments and receipts', icon: '💰', to: '/finance' },
   { label: 'HR', description: 'User access and team management', icon: '👥', to: '/hr' },
+  { label: 'Employee Task', description: 'Task management and tracking', icon: '✅', to: 'https://employee-task-itfn.onrender.com/' },
   { label: 'Admin Settings', description: 'System configuration and controls', icon: '⚙️', to: '/admin' },
 ];
 
@@ -98,6 +99,8 @@ const Welcome: React.FC = () => {
       );
     }
 
+    const isExternalLink = tile.to.startsWith('http');
+
     return (
       <LinkBox
         key={tile.label}
@@ -120,6 +123,8 @@ const Welcome: React.FC = () => {
         <Box mt={3}>
           {tile.label === 'Admin Settings' ? (
             <LinkOverlay as="button" onClick={handleAdminAccess} color="brand.600">Open</LinkOverlay>
+          ) : isExternalLink ? (
+            <LinkOverlay as="button" onClick={() => window.open(tile.to, '_blank')} color="brand.600">Open</LinkOverlay>
           ) : (
             <LinkOverlay as="button" onClick={() => handleOpenPath(tile.to)} color="brand.600">Open</LinkOverlay>
           )}
