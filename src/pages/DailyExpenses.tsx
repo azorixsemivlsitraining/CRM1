@@ -68,6 +68,59 @@ const BarChart: React.FC<{ labels: string[]; values: number[]; color?: string }>
   );
 };
 
+interface ComparisonSeries {
+  label: string;
+  color: string;
+}
+
+const ComparisonChart: React.FC<{
+  periodLabels: string[];
+  seriesData: Record<string, number[]>;
+  series: ComparisonSeries[];
+}> = ({ periodLabels, seriesData, series }) => {
+  const allValues = Object.values(seriesData).flat();
+  const max = Math.max(1, ...allValues, 0);
+
+  return (
+    <Box>
+      <VStack align="stretch" spacing={4}>
+        {periodLabels.map((period, periodIdx) => (
+          <Box key={period}>
+            <Text fontSize="sm" fontWeight="bold" mb={2}>{period}</Text>
+            <VStack align="stretch" spacing={1} ml={2}>
+              {series.map((s) => {
+                const value = seriesData[s.label]?.[periodIdx] || 0;
+                return (
+                  <Box key={`${period}-${s.label}`}>
+                    <HStack justify="space-between" mb={1}>
+                      <HStack spacing={2} minW="0" flex={1}>
+                        <Box w="10px" h="10px" bg={s.color} borderRadius="sm" flexShrink={0} />
+                        <Text fontSize="xs" textTransform="capitalize">{s.label}</Text>
+                      </HStack>
+                      <Text fontWeight="bold" fontSize="xs" whiteSpace="nowrap">{inr(value)}</Text>
+                    </HStack>
+                    <Box bg="gray.100" h="12px" borderRadius="md" overflow="hidden">
+                      <Box bg={s.color} h="100%" width={`${(value / max) * 100}%`} />
+                    </Box>
+                  </Box>
+                );
+              })}
+            </VStack>
+          </Box>
+        ))}
+        <HStack spacing={4} mt={4}>
+          {series.map((s) => (
+            <HStack key={s.label} spacing={2}>
+              <Box w="12px" h="12px" bg={s.color} borderRadius="sm" />
+              <Text fontSize="xs" textTransform="capitalize">{s.label}</Text>
+            </HStack>
+          ))}
+        </HStack>
+      </VStack>
+    </Box>
+  );
+};
+
 const DailyExpenses: React.FC = () => {
   const toast = useToast();
   const [tabIndex, setTabIndex] = useState(0);
@@ -120,6 +173,60 @@ const DailyExpenses: React.FC = () => {
       out[k] = (out[k] || 0) + (Number(r.amount) || 0);
     });
     return out;
+  }, [rows]);
+
+  const weeklyComparison = useMemo(() => {
+    const now = new Date();
+    const weeks: { label: string; data: Record<string, number> }[] = [];
+
+    for (let i = 11; i >= 0; i--) {
+      const weekEnd = new Date(now);
+      weekEnd.setDate(weekEnd.getDate() - i * 7);
+      const weekStart = new Date(weekEnd);
+      weekStart.setDate(weekStart.getDate() - 6);
+
+      const weekLabel = `${weekStart.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })} - ${weekEnd.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}`;
+      const weekData: Record<string, number> = {};
+
+      rows.filter((r) => {
+        const d = new Date(r.date);
+        return d >= weekStart && d <= weekEnd;
+      }).forEach((r) => {
+        const k = String(r.category || 'other').toLowerCase();
+        weekData[k] = (weekData[k] || 0) + (Number(r.amount) || 0);
+      });
+
+      weeks.push({ label: weekLabel, data: weekData });
+    }
+
+    return weeks;
+  }, [rows]);
+
+  const monthlyComparison = useMemo(() => {
+    const now = new Date();
+    const months: { label: string; data: Record<string, number> }[] = [];
+
+    for (let i = 11; i >= 0; i--) {
+      const month = new Date(now);
+      month.setMonth(month.getMonth() - i);
+      const monthStart = new Date(month.getFullYear(), month.getMonth(), 1);
+      const monthEnd = new Date(month.getFullYear(), month.getMonth() + 1, 0);
+
+      const monthLabel = monthStart.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
+      const monthData: Record<string, number> = {};
+
+      rows.filter((r) => {
+        const d = new Date(r.date);
+        return d >= monthStart && d <= monthEnd;
+      }).forEach((r) => {
+        const k = String(r.category || 'other').toLowerCase();
+        monthData[k] = (monthData[k] || 0) + (Number(r.amount) || 0);
+      });
+
+      months.push({ label: monthLabel, data: monthData });
+    }
+
+    return months;
   }, [rows]);
 
   const handleSave = async () => {
@@ -417,13 +524,15 @@ const DailyExpenses: React.FC = () => {
               <TabPanel>
                 <Tabs variant="soft-rounded" colorScheme="brand" index={reportTabIndex} onChange={setReportTabIndex}>
                   <TabList mb={4}>
-                    <Tab>Weekly Report</Tab>
-                    <Tab>Monthly Report</Tab>
+                    <Tab>This Week vs Category</Tab>
+                    <Tab>Weekly Comparison (12 weeks)</Tab>
+                    <Tab>This Month vs Category</Tab>
+                    <Tab>Monthly Comparison (12 months)</Tab>
                   </TabList>
                   <TabPanels>
                     <TabPanel px={0}>
                       <Card>
-                        <CardHeader><Heading size="sm">Weekly Category Expense Graph</Heading></CardHeader>
+                        <CardHeader><Heading size="sm">Current Week - Expenses by Category</Heading></CardHeader>
                         <CardBody>
                           {Object.keys(weeklyTotals).length > 0 ? (
                             <BarChart labels={Object.keys(weeklyTotals)} values={Object.values(weeklyTotals)} color="brand.400" />
@@ -433,11 +542,63 @@ const DailyExpenses: React.FC = () => {
                     </TabPanel>
                     <TabPanel px={0}>
                       <Card>
-                        <CardHeader><Heading size="sm">Monthly Category Expense Graph</Heading></CardHeader>
+                        <CardHeader><Heading size="sm">Weekly Comparison - Last 12 Weeks</Heading><Text fontSize="xs" color="gray.600" mt={1}>Compare expense trends across categories week by week</Text></CardHeader>
+                        <CardBody>
+                          {weeklyComparison.length > 0 ? (
+                            (() => {
+                              const allCategories = new Set<string>();
+                              weeklyComparison.forEach(w => Object.keys(w.data).forEach(c => allCategories.add(c)));
+                              const categories = Array.from(allCategories);
+                              const seriesData: Record<string, number[]> = {};
+                              const colors = ['brand.400', 'green.400', 'orange.400', 'blue.400', 'purple.400', 'red.400'];
+                              categories.forEach((cat, idx) => {
+                                seriesData[cat] = weeklyComparison.map(w => w.data[cat] || 0);
+                              });
+                              return (
+                                <ComparisonChart
+                                  periodLabels={weeklyComparison.map(w => w.label)}
+                                  seriesData={seriesData}
+                                  series={categories.map((cat, idx) => ({ label: cat, color: colors[idx % colors.length] }))}
+                                />
+                              );
+                            })()
+                          ) : <Text fontSize="sm" color="gray.500">No weekly comparison data available</Text>}
+                        </CardBody>
+                      </Card>
+                    </TabPanel>
+                    <TabPanel px={0}>
+                      <Card>
+                        <CardHeader><Heading size="sm">Current Month - Expenses by Category</Heading></CardHeader>
                         <CardBody>
                           {Object.keys(monthlyTotals).length > 0 ? (
                             <BarChart labels={Object.keys(monthlyTotals)} values={Object.values(monthlyTotals)} color="green.400" />
                           ) : <Text fontSize="sm" color="gray.500">No monthly data available</Text>}
+                        </CardBody>
+                      </Card>
+                    </TabPanel>
+                    <TabPanel px={0}>
+                      <Card>
+                        <CardHeader><Heading size="sm">Monthly Comparison - Last 12 Months</Heading><Text fontSize="xs" color="gray.600" mt={1}>Compare expense trends across categories month by month</Text></CardHeader>
+                        <CardBody>
+                          {monthlyComparison.length > 0 ? (
+                            (() => {
+                              const allCategories = new Set<string>();
+                              monthlyComparison.forEach(m => Object.keys(m.data).forEach(c => allCategories.add(c)));
+                              const categories = Array.from(allCategories);
+                              const seriesData: Record<string, number[]> = {};
+                              const colors = ['brand.400', 'green.400', 'orange.400', 'blue.400', 'purple.400', 'red.400'];
+                              categories.forEach((cat, idx) => {
+                                seriesData[cat] = monthlyComparison.map(m => m.data[cat] || 0);
+                              });
+                              return (
+                                <ComparisonChart
+                                  periodLabels={monthlyComparison.map(m => m.label)}
+                                  seriesData={seriesData}
+                                  series={categories.map((cat, idx) => ({ label: cat, color: colors[idx % colors.length] }))}
+                                />
+                              );
+                            })()
+                          ) : <Text fontSize="sm" color="gray.500">No monthly comparison data available</Text>}
                         </CardBody>
                       </Card>
                     </TabPanel>
@@ -453,4 +614,3 @@ const DailyExpenses: React.FC = () => {
 };
 
 export default DailyExpenses;
-
